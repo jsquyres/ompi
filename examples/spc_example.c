@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <mpi.h>
+#include "mpi.h"
 
 /* Sends 'num_messages' messages of 'message_size' bytes from rank 0 to rank 1.
  * All messages are send synchronously and with the same tag in MPI_COMM_WORLD.
