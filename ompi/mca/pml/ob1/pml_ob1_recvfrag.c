@@ -315,8 +315,9 @@ check_cantmatch_for_match(mca_pml_ob1_comm_proc_t *proc)
 {
     mca_pml_ob1_recv_frag_t *frag = proc->frags_cant_match;
 
-    if( (NULL != frag) && (frag->hdr.hdr_match.hdr_seq == proc->expected_sequence) )
+    if( (NULL != frag) && (frag->hdr.hdr_match.hdr_seq == proc->expected_sequence) ) {
         return remove_head_from_ordered_list(&proc->frags_cant_match);
+    }
     return NULL;
 }
 

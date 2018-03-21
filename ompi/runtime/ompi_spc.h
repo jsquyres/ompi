@@ -28,8 +28,8 @@
 #include MCA_timer_IMPLEMENTATION_HEADER
 
 /* INSTRUCTIONS FOR ADDING COUNTERS
- * 1.) Add a new counter name in the OMPI_COUNTERS enum before
- *     OMPI_NUM_COUNTERS below.
+ * 1.) Add a new counter name in the ompi_spc_counters_t enum before
+ *     OMPI_SPC_NUM_COUNTERS below.
  * 2.) Add corresponding counter name and descriptions to the
  *     counter_names and counter_descriptions arrays in
  *     ompi_spc.c  NOTE: The names and descriptions
@@ -47,7 +47,7 @@
  */
 
 /* This enumeration serves as event ids for the various events */
-enum OMPI_COUNTERS{
+enum ompi_spc_counters_t {
     OMPI_SEND,
     OMPI_BSEND,
     OMPI_RSEND,
@@ -107,7 +107,6 @@ enum OMPI_COUNTERS{
     OMPI_WAITSOME,
     OMPI_BARRIER,
     OMPI_IBARRIER,
-    OMPI_WTICK,
     OMPI_WTIME,
     OMPI_CANCEL,
     OMPI_BYTES_RECEIVED_USER,
@@ -123,7 +122,7 @@ enum OMPI_COUNTERS{
     OMPI_OOS_IN_QUEUE,
     OMPI_MAX_UNEXPECTED_IN_QUEUE,
     OMPI_MAX_OOS_IN_QUEUE,
-    OMPI_NUM_COUNTERS /* This serves as the number of counters.  It must be last. */
+    OMPI_SPC_NUM_COUNTERS /* This serves as the number of counters.  It must be last. */
 };
 
 /* A structure for storing the event data */
@@ -131,10 +130,6 @@ typedef struct ompi_event_s{
     char *name;
     long long value;
 } ompi_event_t;
-
-OMPI_DECLSPEC extern unsigned int attached_event[OMPI_NUM_COUNTERS];
-OMPI_DECLSPEC extern unsigned int timer_event[OMPI_NUM_COUNTERS];
-OMPI_DECLSPEC extern ompi_event_t *events;
 
 /* Events data structure initialization function */
 void events_init(void);
@@ -150,7 +145,6 @@ void ompi_spc_cycles_to_usecs(long long *cycles);
 void ompi_spc_update_watermark(unsigned int watermark_enum, unsigned int value_enum);
 
 /* MPI_T utility functions */
-static int ompi_spc_notify(mca_base_pvar_t *pvar, mca_base_pvar_event_t event, void *obj_handle, int *count);
 long long ompi_spc_get_counter(int counter_id);
 
 /* Macros for using the SPC utility functions throughout the codebase.

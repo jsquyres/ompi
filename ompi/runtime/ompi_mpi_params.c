@@ -322,7 +322,7 @@ int ompi_mpi_register_params(void)
     (void) mca_base_var_register("ompi", "mpi", NULL, "spc_attach",
                                  "A comma delimeted string listing the SPC counters to enable.",
                                  MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
-                                 OPAL_INFO_LVL_9,
+                                 OPAL_INFO_LVL_4,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &ompi_mpi_spc_attach_string);
 
@@ -330,7 +330,7 @@ int ompi_mpi_register_params(void)
     (void) mca_base_var_register("ompi", "mpi", NULL, "spc_dump_enabled",
                                  "A boolean value for whether (true) or not (false) to enable dumping SPC counters in MPI_Finalize.",
                                  MCA_BASE_VAR_TYPE_BOOL, NULL, 0, 0,
-                                 OPAL_INFO_LVL_9,
+                                 OPAL_INFO_LVL_4,
                                  MCA_BASE_VAR_SCOPE_READONLY,
                                  &ompi_mpi_spc_dump_enabled);
 

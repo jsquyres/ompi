@@ -54,9 +54,8 @@ int main(int argc, char **argv)
     char name[256], description[256];
 
     /* Counter names to be read by ranks 0 and 1 */
-    char counter_names[2][40];
-    sprintf(counter_names[0], "runtime_spc_OMPI_BYTES_SENT_USER");
-    sprintf(counter_names[1], "runtime_spc_OMPI_BYTES_RECEIVED_USER");
+    char counter_names[2][40] = { "runtime_spc_OMPI_BYTES_SENT_USER",
+                                  "runtime_spc_OMPI_BYTES_RECEIVED_USER" };
 
     MPI_Init(NULL, NULL);
     MPI_T_init_thread(MPI_THREAD_SINGLE, &provided);
@@ -65,7 +64,7 @@ int main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     if(size != 2) {
         fprintf(stderr, "ERROR: This test should be run with two MPI processes.\n");
-        return -1;
+        MPI_Abort(MPI_COMM_WORLD, -1);
     }
 
     /* Determine the MPI_T pvar indices for the OMPI_BYTES_SENT/RECIEVED_USER SPCs */
@@ -85,7 +84,7 @@ int main(int argc, char **argv)
     /* Make sure we found the counters */
     if(index == -1) {
         fprintf(stderr, "ERROR: Couldn't find the appropriate SPC counter in the MPI_T pvars.\n");
-        return -1;
+        MPI_Abort(MPI_COMM_WORLD, -1);
     }
 
     int ret;

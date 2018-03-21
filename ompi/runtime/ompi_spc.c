@@ -15,176 +15,102 @@
 opal_timer_t sys_clock_freq_mhz = 0;
 
 /* Array for converting from SPC indices to MPI_T indices */
-OMPI_DECLSPEC int mpi_t_indices[OMPI_NUM_COUNTERS] = {0};
+OMPI_DECLSPEC int mpi_t_indices[OMPI_SPC_NUM_COUNTERS] = {0};
 OMPI_DECLSPEC int mpi_t_offset = -1;
-OMPI_DECLSPEC int mpi_t_disabled = 0;
+OMPI_DECLSPEC bool mpi_t_enabled = false;
 
-/* Array of names for each counter.  Used for MPI_T and PAPI sde initialization */
-OMPI_DECLSPEC const char *counter_names[OMPI_NUM_COUNTERS] = {
-    "OMPI_SEND",
-    "OMPI_BSEND",
-    "OMPI_RSEND",
-    "OMPI_SSEND",
-    "OMPI_RECV",
-    "OMPI_MRECV",
-    "OMPI_ISEND",
-    "OMPI_IBSEND",
-    "OMPI_IRSEND",
-    "OMPI_ISSEND",
-    "OMPI_IRECV",
-    "OMPI_SENDRECV",
-    "OMPI_SENDRECV_REPLACE",
-    "OMPI_PUT",
-    "OMPI_RPUT",
-    "OMPI_GET",
-    "OMPI_RGET",
-    "OMPI_PROBE",
-    "OMPI_IPROBE",
-    "OMPI_BCAST",
-    "OMPI_IBCAST",
-    "OMPI_REDUCE",
-    "OMPI_IREDUCE",
-    "OMPI_IREDUCE_SCATTER",
-    "OMPI_IREDUCE_SCATTER_BLOCK",
-    "OMPI_ALLREDUCE",
-    "OMPI_IALLREDUCE",
-    "OMPI_SCAN",
-    "OMPI_ISCAN",
-    "OMPI_SCATTER",
-    "OMPI_SCATTERV",
-    "OMPI_ISCATTER",
-    "OMPI_ISCATTERV",
-    "OMPI_GATHER",
-    "OMPI_GATHERV",
-    "OMPI_IGATHER",
-    "OMPI_ALLTOALL",
-    "OMPI_IALLTOALL",
-    "OMPI_IALLTOALLV",
-    "OMPI_IALLTOALLW",
-    "OMPI_NEIGHBOR_ALLTOALL",
-    "OMPI_NEIGHBOR_ALLTOALLV",
-    "OMPI_NEIGHBOR_ALLTOALLW",
-    "OMPI_ALLGATHER",
-    "OMPI_ALLGATHERV",
-    "OMPI_IALLGATHER",
-    "OMPI_IALLGATHERV",
-    "OMPI_NEIGHBOR_ALLGATHER",
-    "OMPI_NEIGHBOR_ALLGATHERV",
-    "OMPI_TEST",
-    "OMPI_TESTALL",
-    "OMPI_TESTANY",
-    "OMPI_TESTSOME",
-    "OMPI_WAIT",
-    "OMPI_WAITALL",
-    "OMPI_WAITANY",
-    "OMPI_WAITSOME",
-    "OMPI_BARRIER",
-    "OMPI_IBARRIER",
-    "OMPI_WTICK",
-    "OMPI_WTIME",
-    "OMPI_CANCEL",
-    "OMPI_BYTES_RECEIVED_USER",
-    "OMPI_BYTES_RECEIVED_MPI",
-    "OMPI_BYTES_SENT_USER",
-    "OMPI_BYTES_SENT_MPI",
-    "OMPI_BYTES_PUT",
-    "OMPI_BYTES_GET",
-    "OMPI_UNEXPECTED",
-    "OMPI_OUT_OF_SEQUENCE",
-    "OMPI_MATCH_TIME",
-    "OMPI_UNEXPECTED_IN_QUEUE",
-    "OMPI_OOS_IN_QUEUE",
-    "OMPI_MAX_UNEXPECTED_IN_QUEUE",
-    "OMPI_MAX_OOS_IN_QUEUE"
-};
+typedef struct ompi_spc_event_t {
+    const char* counter_name;
+    const char* counter_description;
+} ompi_spc_event_t;
 
-/* Array of descriptions for each counter.  Used for MPI_T and PAPI sde initialization */
-OMPI_DECLSPEC const char *counter_descriptions[OMPI_NUM_COUNTERS] = {
-    "The number of times MPI_Send was called.",
-    "The number of times MPI_Bsend was called.",
-    "The number of times MPI_Rsend was called.",
-    "The number of times MPI_Ssend was called.",
-    "The number of times MPI_Recv was called.",
-    "The number of times MPI_Mrecv was called.",
-    "The number of times MPI_Isend was called.",
-    "The number of times MPI_Ibsend was called.",
-    "The number of times MPI_Irsend was called.",
-    "The number of times MPI_Issend was called.",
-    "The number of times MPI_Irecv was called.",
-    "The number of times MPI_Sendrecv was called.",
-    "The number of times MPI_Sendrecv_replace was called.",
-    "The number of times MPI_Put was called.",
-    "The number of times MPI_Rput was called.",
-    "The number of times MPI_Get was called.",
-    "The number of times MPI_Rget was called.",
-    "The number of times MPI_Probe was called.",
-    "The number of times MPI_Iprobe was called.",
-    "The number of times MPI_Bcast was called.",
-    "The number of times MPI_Ibcast was called.",
-    "The number of times MPI_Reduce was called.",
-    "The number of times MPI_Ireduce was called.",
-    "The number of times MPI_Ireduce_scatter was called.",
-    "The number of times MPI_Ireduce_scatter_block was called.",
-    "The number of times MPI_Allreduce was called.",
-    "The number of times MPI_Iallreduce was called.",
-    "The number of times MPI_Scan was called.",
-    "The number of times MPI_Iscan was called.",
-    "The number of times MPI_Scatter was called.",
-    "The number of times MPI_Scatterv was called.",
-    "The number of times MPI_Iscatter was called.",
-    "The number of times MPI_Iscatterv was called.",
-    "The number of times MPI_Gather was called.",
-    "The number of times MPI_Gatherv was called.",
-    "The number of times MPI_Igather was called.",
-    "The number of times MPI_Alltoall was called.",
-    "The number of times MPI_Ialltoall was called.",
-    "The number of times MPI_Ialltoallv was called.",
-    "The number of times MPI_Ialltoallw was called.",
-    "The number of times MPI_Neighbor_alltoall was called.",
-    "The number of times MPI_Neighbor_alltoallv was called.",
-    "The number of times MPI_Neighbor_alltoallw was called.",
-    "The number of times MPI_Allgather was called.",
-    "The number of times MPI_Allgatherv was called.",
-    "The number of times MPI_Iallgather was called.",
-    "The number of times MPI_Iallgatherv was called.",
-    "The number of times MPI_Neighbor_allgather was called.",
-    "The number of times MPI_Neighbor_allgatherv was called.",
-    "The number of times MPI_Test was called.",
-    "The number of times MPI_Testall was called.",
-    "The number of times MPI_Testany was called.",
-    "The number of times MPI_Testsome was called.",
-    "The number of times MPI_Wait was called.",
-    "The number of times MPI_Waitall was called.",
-    "The number of times MPI_Waitany was called.",
-    "The number of times MPI_Waitsome was called.",
-    "The number of times MPI_Barrier was called.",
-    "The number of times MPI_Ibarrier was called.",
-    "The number of times MPI_Wtick was called.",
-    "The number of times MPI_Wtime was called.",
-    "The number of times MPI_Cancel was called.",
-    "The number of bytes received by the user through point-to-point communications. Note: Includes bytes transferred using internal RMA operations.",
-    "The number of bytes received by MPI through collective, control, or other internal communications.",
-    "The number of bytes sent by the user through point-to-point communications.  Note: Includes bytes transferred using internal RMA operations.",
-    "The number of bytes sent by MPI through collective, control, or other internal communications.",
-    "The number of bytes sent/received using RMA Put operations both through user-level Put functions and internal Put functions.",
-    "The number of bytes sent/received using RMA Get operations both through user-level Get functions and internal Get functions.",
-    "The number of messages that arrived as unexpected messages.",
-    "The number of messages that arrived out of the proper sequence.",
-    "The number of microseconds spent matching unexpected messages.",
-    "The number of messages that are currently in the unexpected message queue(s) of an MPI process.",
-    "The number of messages that are currently in the out of sequence message queue(s) of an MPI process.",
-    "The maximum number of messages that the unexpected message queue(s) within an MPI process contained at once since the last reset of this counter.  \
-Note: This counter is reset each time it is read.",
-    "The maximum number of messages that the out of sequence message queue(s) within an MPI process contained at once since the last reset of this counter.  \
-Note: This counter is reset each time it is read."
+#define SET_COUNTER_ARRAY(NAME, DESC)   [NAME] = { .counter_name = #NAME, .counter_description = DESC }
+
+static ompi_spc_event_t ompi_spc_events_names[OMPI_SPC_NUM_COUNTERS] = {
+    SET_COUNTER_ARRAY(OMPI_SEND, "The number of times MPI_Send was called."),
+    SET_COUNTER_ARRAY(OMPI_BSEND, "The number of times MPI_Bsend was called."),
+    SET_COUNTER_ARRAY(OMPI_RSEND, "The number of times MPI_Rsend was called."),
+    SET_COUNTER_ARRAY(OMPI_SSEND, "The number of times MPI_Ssend was called."),
+    SET_COUNTER_ARRAY(OMPI_RECV, "The number of times MPI_Recv was called."),
+    SET_COUNTER_ARRAY(OMPI_MRECV, "The number of times MPI_Mrecv was called."),
+    SET_COUNTER_ARRAY(OMPI_ISEND, "The number of times MPI_Isend was called."),
+    SET_COUNTER_ARRAY(OMPI_IBSEND, "The number of times MPI_Ibsend was called."),
+    SET_COUNTER_ARRAY(OMPI_IRSEND, "The number of times MPI_Irsend was called."),
+    SET_COUNTER_ARRAY(OMPI_ISSEND, "The number of times MPI_Issend was called."),
+    SET_COUNTER_ARRAY(OMPI_IRECV, "The number of times MPI_Irecv was called."),
+    SET_COUNTER_ARRAY(OMPI_SENDRECV, "The number of times MPI_Sendrecv was called."),
+    SET_COUNTER_ARRAY(OMPI_SENDRECV_REPLACE, "The number of times MPI_Sendrecv_replace was called."),
+    SET_COUNTER_ARRAY(OMPI_PUT, "The number of times MPI_Put was called."),
+    SET_COUNTER_ARRAY(OMPI_RPUT, "The number of times MPI_Rput was called."),
+    SET_COUNTER_ARRAY(OMPI_GET, "The number of times MPI_Get was called."),
+    SET_COUNTER_ARRAY(OMPI_RGET, "The number of times MPI_Rget was called."),
+    SET_COUNTER_ARRAY(OMPI_PROBE, "The number of times MPI_Probe was called."),
+    SET_COUNTER_ARRAY(OMPI_IPROBE, "The number of times MPI_Iprobe was called."),
+    SET_COUNTER_ARRAY(OMPI_BCAST, "The number of times MPI_Bcast was called."),
+    SET_COUNTER_ARRAY(OMPI_IBCAST, "The number of times MPI_Ibcast was called."),
+    SET_COUNTER_ARRAY(OMPI_REDUCE, "The number of times MPI_Reduce was called."),
+    SET_COUNTER_ARRAY(OMPI_IREDUCE, "The number of times MPI_Ireduce was called."),
+    SET_COUNTER_ARRAY(OMPI_IREDUCE_SCATTER, "The number of times MPI_Ireduce_scatter was called."),
+    SET_COUNTER_ARRAY(OMPI_IREDUCE_SCATTER_BLOCK, "The number of times MPI_Ireduce_scatter_block was called."),
+    SET_COUNTER_ARRAY(OMPI_ALLREDUCE, "The number of times MPI_Allreduce was called."),
+    SET_COUNTER_ARRAY(OMPI_IALLREDUCE, "The number of times MPI_Iallreduce was called."),
+    SET_COUNTER_ARRAY(OMPI_SCAN, "The number of times MPI_Scan was called."),
+    SET_COUNTER_ARRAY(OMPI_ISCAN, "The number of times MPI_Iscan was called."),
+    SET_COUNTER_ARRAY(OMPI_SCATTER, "The number of times MPI_Scatter was called."),
+    SET_COUNTER_ARRAY(OMPI_SCATTERV, "The number of times MPI_Scatterv was called."),
+    SET_COUNTER_ARRAY(OMPI_ISCATTER, "The number of times MPI_Iscatter was called."),
+    SET_COUNTER_ARRAY(OMPI_ISCATTERV, "The number of times MPI_Iscatterv was called."),
+    SET_COUNTER_ARRAY(OMPI_GATHER, "The number of times MPI_Gather was called."),
+    SET_COUNTER_ARRAY(OMPI_GATHERV, "The number of times MPI_Gatherv was called."),
+    SET_COUNTER_ARRAY(OMPI_IGATHER, "The number of times MPI_Igather was called."),
+    SET_COUNTER_ARRAY(OMPI_ALLTOALL, "The number of times MPI_Alltoall was called."),
+    SET_COUNTER_ARRAY(OMPI_IALLTOALL, "The number of times MPI_Ialltoall was called."),
+    SET_COUNTER_ARRAY(OMPI_IALLTOALLV, "The number of times MPI_Ialltoallv was called."),
+    SET_COUNTER_ARRAY(OMPI_IALLTOALLW, "The number of times MPI_Ialltoallw was called."),
+    SET_COUNTER_ARRAY(OMPI_NEIGHBOR_ALLTOALL, "The number of times MPI_Neighbor_alltoall was called."),
+    SET_COUNTER_ARRAY(OMPI_NEIGHBOR_ALLTOALLV, "The number of times MPI_Neighbor_alltoallv was called."),
+    SET_COUNTER_ARRAY(OMPI_NEIGHBOR_ALLTOALLW, "The number of times MPI_Neighbor_alltoallw was called."),
+    SET_COUNTER_ARRAY(OMPI_ALLGATHER, "The number of times MPI_Allgather was called."),
+    SET_COUNTER_ARRAY(OMPI_ALLGATHERV, "The number of times MPI_Allgatherv was called."),
+    SET_COUNTER_ARRAY(OMPI_IALLGATHER, "The number of times MPI_Iallgather was called."),
+    SET_COUNTER_ARRAY(OMPI_IALLGATHERV, "The number of times MPI_Iallgatherv was called."),
+    SET_COUNTER_ARRAY(OMPI_NEIGHBOR_ALLGATHER, "The number of times MPI_Neighbor_allgather was called."),
+    SET_COUNTER_ARRAY(OMPI_NEIGHBOR_ALLGATHERV, "The number of times MPI_Neighbor_allgatherv was called."),
+    SET_COUNTER_ARRAY(OMPI_TEST, "The number of times MPI_Test was called."),
+    SET_COUNTER_ARRAY(OMPI_TESTALL, "The number of times MPI_Testall was called."),
+    SET_COUNTER_ARRAY(OMPI_TESTANY, "The number of times MPI_Testany was called."),
+    SET_COUNTER_ARRAY(OMPI_TESTSOME, "The number of times MPI_Testsome was called."),
+    SET_COUNTER_ARRAY(OMPI_WAIT, "The number of times MPI_Wait was called."),
+    SET_COUNTER_ARRAY(OMPI_WAITALL, "The number of times MPI_Waitall was called."),
+    SET_COUNTER_ARRAY(OMPI_WAITANY, "The number of times MPI_Waitany was called."),
+    SET_COUNTER_ARRAY(OMPI_WAITSOME, "The number of times MPI_Waitsome was called."),
+    SET_COUNTER_ARRAY(OMPI_BARRIER, "The number of times MPI_Barrier was called."),
+    SET_COUNTER_ARRAY(OMPI_IBARRIER, "The number of times MPI_Ibarrier was called."),
+    SET_COUNTER_ARRAY(OMPI_WTIME, "The number of times MPI_Wtime was called."),
+    SET_COUNTER_ARRAY(OMPI_CANCEL, "The number of times MPI_Cancel was called."),
+    SET_COUNTER_ARRAY(OMPI_BYTES_RECEIVED_USER, "The number of bytes received by the user through point-to-point communications. Note: Includes bytes transferred using internal RMA operations."),
+    SET_COUNTER_ARRAY(OMPI_BYTES_RECEIVED_MPI, "The number of bytes received by MPI through collective, control, or other internal communications."),
+    SET_COUNTER_ARRAY(OMPI_BYTES_SENT_USER, "The number of bytes sent by the user through point-to-point communications.  Note: Includes bytes transferred using internal RMA operations."),
+    SET_COUNTER_ARRAY(OMPI_BYTES_SENT_MPI, "The number of bytes sent by MPI through collective, control, or other internal communications."),
+    SET_COUNTER_ARRAY(OMPI_BYTES_PUT, "The number of bytes sent/received using RMA Put operations both through user-level Put functions and internal Put functions."),
+    SET_COUNTER_ARRAY(OMPI_BYTES_GET, "The number of bytes sent/received using RMA Get operations both through user-level Get functions and internal Get functions."),
+    SET_COUNTER_ARRAY(OMPI_UNEXPECTED, "The number of messages that arrived as unexpected messages."),
+    SET_COUNTER_ARRAY(OMPI_OUT_OF_SEQUENCE, "The number of messages that arrived out of the proper sequence."),
+    SET_COUNTER_ARRAY(OMPI_MATCH_TIME, "The number of microseconds spent matching unexpected messages."),
+    SET_COUNTER_ARRAY(OMPI_UNEXPECTED_IN_QUEUE, "The number of messages that are currently in the unexpected message queue(s) of an MPI process."),
+    SET_COUNTER_ARRAY(OMPI_OOS_IN_QUEUE, "The number of messages that are currently in the out of sequence message queue(s) of an MPI process."),
+    SET_COUNTER_ARRAY(OMPI_MAX_UNEXPECTED_IN_QUEUE, "The maximum number of messages that the unexpected message queue(s) within an MPI process "
+                                                    "contained at once since the last reset of this counter. Note: This counter is reset each time it is read."),
+    SET_COUNTER_ARRAY(OMPI_MAX_OOS_IN_QUEUE, "The maximum number of messages that the out of sequence message queue(s) within an MPI process "
+                                             "contained at once since the last reset of this counter. Note: This counter is reset each time it is read.")
 };
 
 /* An array of integer values to denote whether an event is activated (1) or not (0) */
-OMPI_DECLSPEC unsigned int attached_event[OMPI_NUM_COUNTERS] = { 0 };
+static unsigned int ompi_spc_attached_event[OMPI_SPC_NUM_COUNTERS] = { 0 };
 /* An array of integer values to denote whether an event is timer-based (1) or not (0) */
-OMPI_DECLSPEC unsigned int timer_event[OMPI_NUM_COUNTERS] = { 0 };
+static unsigned int ompi_spc_timer_event[OMPI_SPC_NUM_COUNTERS] = { 0 };
 /* An array of event structures to store the event data (name and value) */
-OMPI_DECLSPEC ompi_event_t *events = NULL;
+static ompi_event_t *ompi_spc_events = NULL;
 
 /* ##############################################################
  * ################# Begin MPI_T Functions ######################
@@ -196,7 +122,7 @@ static int ompi_spc_notify(mca_base_pvar_t *pvar, mca_base_pvar_event_t event, v
 
     int index;
 
-    if(OPAL_UNLIKELY(mpi_t_disabled == 1))
+    if(OPAL_LIKELY(!mpi_t_enabled))
         return MPI_SUCCESS;
 
     /* For this event, we need to set count to the number of long long type
@@ -210,13 +136,13 @@ static int ompi_spc_notify(mca_base_pvar_t *pvar, mca_base_pvar_event_t event, v
     else if(MCA_BASE_PVAR_HANDLE_START == event) {
         /* Convert from MPI_T pvar index to SPC index */
         index = pvar->pvar_index - mpi_t_offset;
-        attached_event[index] = 1;
+        ompi_spc_attached_event[index] = 1;
     }
     /* For this event, we need to turn off the counter */
     else if(MCA_BASE_PVAR_HANDLE_STOP == event) {
         /* Convert from MPI_T pvar index to SPC index */
         index = pvar->pvar_index - mpi_t_offset;
-        attached_event[index] = 0;
+        ompi_spc_attached_event[index] = 0;
     }
 
     return MPI_SUCCESS;
@@ -233,12 +159,12 @@ static int ompi_spc_notify(mca_base_pvar_t *pvar, mca_base_pvar_event_t event, v
  * to the correct value for this pvar.
  */
 static int ompi_spc_get_count(const struct mca_base_pvar_t *pvar, void *value, void *obj_handle)
-{   
+{
     (void) obj_handle;
 
     long long *counter_value = (long long*)value;
 
-    if(OPAL_UNLIKELY(mpi_t_disabled == 1)) {
+    if(OPAL_LIKELY(!mpi_t_enabled)) {
         *counter_value = 0;
         return MPI_SUCCESS;
     }
@@ -246,39 +172,39 @@ static int ompi_spc_get_count(const struct mca_base_pvar_t *pvar, void *value, v
     /* Convert from MPI_T pvar index to SPC index */
     int index = pvar->pvar_index - mpi_t_offset;
     /* Set the counter value to the current SPC value */
-    *counter_value = events[index].value;
+    *counter_value = ompi_spc_events[index].value;
     /* If this is a timer-based counter, convert from cycles to microseconds */
-    if(timer_event[index])
+    if(ompi_spc_timer_event[index])
         *counter_value /= sys_clock_freq_mhz;
     /* If this is a high watermark counter, reset it after it has been read */
     if(index == OMPI_MAX_UNEXPECTED_IN_QUEUE || index == OMPI_MAX_OOS_IN_QUEUE)
-        events[index].value = 0;
+        ompi_spc_events[index].value = 0;
 
     return MPI_SUCCESS;
 }
 
 /* Initializes the events data structure and allocates memory for it if needed. */
-void events_init()
+void events_init(void)
 {
     int i;
 
     /* If the events data structure hasn't been allocated yet, allocate memory for it */
-    if(events == NULL) {
-        events = (ompi_event_t*)malloc(OMPI_NUM_COUNTERS * sizeof(ompi_event_t));
+    if(ompi_spc_events == NULL) {
+        ompi_spc_events = (ompi_event_t*)malloc(OMPI_SPC_NUM_COUNTERS * sizeof(ompi_event_t));
     }
     /* The data structure has been allocated, so we simply initialize all of the counters
      * with their names and an initial count of 0.
      */
-    for(i = 0; i < OMPI_NUM_COUNTERS; i++) {
-        events[i].name = counter_names[i];
-        events[i].value = 0;
+    for(i = 0; i < OMPI_SPC_NUM_COUNTERS; i++) {
+        ompi_spc_events[i].name = (char*)ompi_spc_events_names[i].counter_name;
+        ompi_spc_events[i].value = 0;
     }
 }
 
 /* Initializes the SPC data structures and registers all counters as MPI_T pvars.
  * Turns on only the counters that were specified in the mpi_spc_attach MCA parameter.  
  */
-void ompi_spc_init()
+void ompi_spc_init(void)
 {
     int i, j, ret, found = 0, all_on = 0;
 
@@ -289,27 +215,31 @@ void ompi_spc_init()
 
     /* Get the MCA params string of counters to turn on */
     char **arg_strings = opal_argv_split(ompi_mpi_spc_attach_string, ',');
-    int num_args      = opal_argv_count(arg_strings);
+    int num_args       = opal_argv_count(arg_strings);
 
     /* If there is only one argument and it is 'all', then all counters
      * should be turned on.  If the size is 0, then no counters will be enabled.
      */
-    if(num_args == 1) {
-        if(strcmp(arg_strings[0], "all") == 0)
+    if(1 == num_args) {
+        if(strcmp(arg_strings[0], "all") == 0) {
             all_on = 1;
+        }
     }
 
-    int prev = -1;
     /* Turn on only the counters that were specified in the MCA parameter */
-    for(i = 0; i < OMPI_NUM_COUNTERS; i++) {
-        if(all_on)
-            attached_event[i] = 1;
-        else {
+    for(i = 0; i < OMPI_SPC_NUM_COUNTERS; i++) {
+        if(all_on) {
+            ompi_spc_attached_event[i] = 1;
+            mpi_t_enabled = true;
+            found++;
+        } else {
             /* Note: If no arguments were given, this will be skipped */
-            for(j = 0; j < num_args && found < num_args; j++) {
-                if(strcmp(counter_names[i], arg_strings[j]) == 0) {
-                    attached_event[i] = 1;
+            for(j = 0; j < num_args; j++) {
+                if( 0 == strcmp(ompi_spc_events_names[i].counter_name, arg_strings[j]) ) {
+                    ompi_spc_attached_event[i] = 1;
+                    mpi_t_enabled = true;
                     found++;
+                    break;
                 }
             }
         }
@@ -318,14 +248,11 @@ void ompi_spc_init()
          * ################## Add Timer-Based Counter Enums Here ##################
          * ########################################################################
          */
-        /* If this is a timer event, sent the corresponding timer_event entry to 1 */
-        if(i == OMPI_MATCH_TIME)
-            timer_event[i] = 1;
-        else
-            timer_event[i] = 0;
+        ompi_spc_timer_event[i] = 0;
+        mpi_t_indices[i] = -1;
 
         /* Registers the current counter as an MPI_T pvar regardless of whether it's been turned on or not */
-        ret = mca_base_pvar_register("ompi", "runtime", "spc", counter_names[i], counter_descriptions[i],
+        ret = mca_base_pvar_register("ompi", "runtime", "spc", ompi_spc_events_names[i].counter_name, ompi_spc_events_names[i].counter_description,
                                      OPAL_INFO_LVL_4, MPI_T_PVAR_CLASS_SIZE,
                                      MCA_BASE_VAR_TYPE_UNSIGNED_LONG_LONG, NULL, MPI_T_BIND_NO_OBJECT,
                                      MCA_BASE_PVAR_FLAG_READONLY | MCA_BASE_PVAR_FLAG_CONTINUOUS,
@@ -335,115 +262,92 @@ void ompi_spc_init()
          * The array index indicates the SPC index, while the value indicates
          * the MPI_T index.
          */
-        if(ret != OPAL_ERROR) {
+        if( OPAL_SUCCESS == ret ) {
             mpi_t_indices[i] = ret;
 
-            if(mpi_t_offset == -1) {
-                mpi_t_offset = ret;
-                prev = ret;
-            } else if(ret != prev + 1) {
-                mpi_t_disabled = 1;
-                fprintf(stderr, "There was an error registering SPCs as MPI_T pvars.  SPCs will be disabled for MPI_T.\n");
-                break;
-            } else {
-                prev = ret;
+            if( mpi_t_offset == -1 ) {
+                mpi_t_offset = mpi_t_indices[i];
             }
-        } else {
-            mpi_t_indices[i] = -1;
-            mpi_t_disabled = 1;
+        }
+        if( (mpi_t_indices[i] < 0) || (mpi_t_indices[i] != (mpi_t_offset + found - 1)) ) {
+            mpi_t_enabled = false;
             fprintf(stderr, "There was an error registering SPCs as MPI_T pvars.  SPCs will be disabled for MPI_T.\n");
             break;
         }
     }
+    /* If this is a timer event, sent the corresponding timer_event entry to 1 */
+    ompi_spc_timer_event[OMPI_MATCH_TIME] = 1;
+    opal_argv_free(arg_strings);
 }
 
 /* Frees any dynamically alocated OMPI SPC data structures */
-void ompi_spc_fini()
+void ompi_spc_fini(void)
 {
 #if SPC_ENABLE == 1
     if(!ompi_mpi_spc_dump_enabled)
         goto skip_dump;
 
-    int i, j, rank, world_size, offset, err;
-    long long *recv_buffer, *send_buffer;
+    int i, j, world_size, offset, err;
+    long long *recv_buffer = NULL, *send_buffer;
 
     ompi_communicator_t *comm = &ompi_mpi_comm_world.comm;
-
-    rank = ompi_comm_rank(comm);
+    int rank = ompi_comm_rank(comm);
     world_size = ompi_comm_size(comm);
 
     /* Convert from cycles to usecs before sending */
-    for(i = 0; i < OMPI_NUM_COUNTERS; i++) {
-        if(timer_event[i])
-            SPC_CYCLES_TO_USECS(&events[i].value);
+    for(i = 0; i < OMPI_SPC_NUM_COUNTERS; i++) {
+        if(ompi_spc_timer_event[i])
+            SPC_CYCLES_TO_USECS(&ompi_spc_events[i].value);
     }
 
     /* Aggregate all of the information on rank 0 using MPI_Gather on MPI_COMM_WORLD */
-    if(rank == 0) {
-        send_buffer = (long long*)malloc(OMPI_NUM_COUNTERS * sizeof(long long));
-        recv_buffer = (long long*)malloc(world_size * OMPI_NUM_COUNTERS * sizeof(long long));
-        for(i = 0; i < OMPI_NUM_COUNTERS; i++) {
-            send_buffer[i] = events[i].value;
-        }
-        err = comm->c_coll->coll_gather(send_buffer, OMPI_NUM_COUNTERS, MPI_LONG_LONG,
-                                        recv_buffer, OMPI_NUM_COUNTERS, MPI_LONG_LONG,
-                                        0, comm,
-                                        comm->c_coll->coll_gather_module);
-    } else {
-        send_buffer = (long long*)malloc(OMPI_NUM_COUNTERS * sizeof(long long));
-        for(i = 0; i < OMPI_NUM_COUNTERS; i++) {
-            send_buffer[i] = events[i].value;
-        }
-        err = comm->c_coll->coll_gather(send_buffer, OMPI_NUM_COUNTERS, MPI_LONG_LONG,
-                                        recv_buffer, OMPI_NUM_COUNTERS, MPI_LONG_LONG,
-                                        0, comm,
-                                        comm->c_coll->coll_gather_module);
+    send_buffer = (long long*)malloc(OMPI_SPC_NUM_COUNTERS * sizeof(long long));
+    for(i = 0; i < OMPI_SPC_NUM_COUNTERS; i++) {
+        send_buffer[i] = ompi_spc_events[i].value;
     }
+    if( 0 == rank ) {
+        recv_buffer = (long long*)malloc(world_size * OMPI_SPC_NUM_COUNTERS * sizeof(long long));
+    }
+    err = comm->c_coll->coll_gather(send_buffer, OMPI_SPC_NUM_COUNTERS, MPI_LONG_LONG,
+                                    recv_buffer, OMPI_SPC_NUM_COUNTERS, MPI_LONG_LONG,
+                                    0, comm,
+                                    comm->c_coll->coll_gather_module);
 
     /* Once rank 0 has all of the information, print the aggregated counter values for each rank in order */
     if(rank == 0) {
         fprintf(stdout, "OMPI Software Counters:\n");
         offset = 0; /* Offset into the recv_buffer for each rank */
         for(j = 0; j < world_size; j++) {
-            fprintf(stdout, "World Rank %d:\n", j);
-            for(i = 0; i < OMPI_NUM_COUNTERS; i++) {
-                if(attached_event[i]) {
-                    /* If this is a timer-based counter, we need to covert from cycles to usecs */
-                    if(recv_buffer[offset+i] == 0)
-                        continue;
-                    fprintf(stdout, "%s -> %lld\n", events[i].name, recv_buffer[offset+i]);
-                }
+            fprintf(stdout, "MPI_COMM_WORLD Rank %d:\n", j);
+            for(i = 0; i < OMPI_SPC_NUM_COUNTERS; i++) {
+                /* If this is a timer-based counter, we need to covert from cycles to usecs */
+                if( 0 == recv_buffer[offset+i] )
+                    continue;
+                fprintf(stdout, "%s -> %lld\n", ompi_spc_events[i].name, recv_buffer[offset+i]);
             }
             fprintf(stdout, "\n");
-            offset += OMPI_NUM_COUNTERS;
+            offset += OMPI_SPC_NUM_COUNTERS;
         }
         printf("###########################################################################\n");
         printf("NOTE: Any counters not shown here were either disabled or had a value of 0.\n");
         printf("###########################################################################\n");
 
         free(recv_buffer);
-        free(send_buffer);
-    } else {
-        free(send_buffer);
     }
+    free(send_buffer);
 
     comm->c_coll->coll_barrier(comm, comm->c_coll->coll_barrier_module);
  skip_dump:
-    if(rank == 0)
-        free(events);
-#else
-    int rank = ompi_comm_rank(&ompi_mpi_comm_world.comm);
-    if(rank == 0)
-        free(events);
 #endif
+    free(ompi_spc_events); ompi_spc_events = NULL;
 }
 
 /* Records an update to a counter using an atomic add operation. */
 void ompi_spc_record(unsigned int event_id, long long value)
 {
     /* Denoted unlikely because counters will often be turned off. */
-    if(OPAL_UNLIKELY(attached_event[event_id] == 1)) {
-        OPAL_THREAD_ADD_FETCH_SIZE_T(&(events[event_id].value), value);
+    if(OPAL_UNLIKELY(ompi_spc_attached_event[event_id] == 1)) {
+        OPAL_THREAD_ADD_FETCH_SIZE_T(&(ompi_spc_events[event_id].value), value);
     }
 }
 
@@ -456,7 +360,7 @@ void ompi_spc_timer_start(unsigned int event_id, opal_timer_t *cycles)
     /* Check whether cycles == 0.0 to make sure the timer hasn't started yet.
      * This is denoted unlikely because the counters will often be turned off.
      */
-    if(OPAL_UNLIKELY(attached_event[event_id] == 1 && *cycles == 0)) {
+    if(OPAL_UNLIKELY(ompi_spc_attached_event[event_id] == 1 && *cycles == 0)) {
         *cycles = opal_timer_base_get_cycles();
     }
 }
@@ -468,9 +372,9 @@ void ompi_spc_timer_start(unsigned int event_id, opal_timer_t *cycles)
 void ompi_spc_timer_stop(unsigned int event_id, opal_timer_t *cycles)
 {
     /* This is denoted unlikely because the counters will often be turned off. */
-    if(OPAL_UNLIKELY(attached_event[event_id] == 1)) {
+    if(OPAL_UNLIKELY(ompi_spc_attached_event[event_id] == 1)) {
         *cycles = opal_timer_base_get_cycles() - *cycles;
-        OPAL_THREAD_ADD_FETCH_SIZE_T(&events[event_id].value, (long long)*cycles);
+        OPAL_THREAD_ADD_FETCH_SIZE_T(&ompi_spc_events[event_id].value, (long long)*cycles);
     }
 }
 
@@ -493,12 +397,12 @@ void ompi_spc_user_or_mpi(int tag, long long value, unsigned int user_enum, unsi
 void ompi_spc_update_watermark(unsigned int watermark_enum, unsigned int value_enum)
 {
     /* Denoted unlikely because counters will often be turned off. */
-    if(OPAL_UNLIKELY(attached_event[watermark_enum] == 1 && attached_event[value_enum] == 1)) {
+    if(OPAL_UNLIKELY(ompi_spc_attached_event[watermark_enum] == 1 && ompi_spc_attached_event[value_enum] == 1)) {
         /* WARNING: This assumes that this function was called while a lock has already been taken.
          *          This function is NOT thread safe otherwise!
          */
-        if(events[value_enum].value > events[watermark_enum].value)
-            events[watermark_enum].value = events[value_enum].value;
+        if(ompi_spc_events[value_enum].value > ompi_spc_events[watermark_enum].value)
+            ompi_spc_events[watermark_enum].value = ompi_spc_events[value_enum].value;
     }
 }
 
