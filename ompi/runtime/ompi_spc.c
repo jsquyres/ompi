@@ -106,11 +106,29 @@ static ompi_spc_event_t ompi_spc_events_names[OMPI_SPC_NUM_COUNTERS] = {
 };
 
 /* An array of integer values to denote whether an event is activated (1) or not (0) */
-static unsigned int ompi_spc_attached_event[OMPI_SPC_NUM_COUNTERS] = { 0 };
+static uint32_t ompi_spc_attached_event[OMPI_SPC_NUM_COUNTERS / sizeof(uint32_t)] = { 0 };
 /* An array of integer values to denote whether an event is timer-based (1) or not (0) */
-static unsigned int ompi_spc_timer_event[OMPI_SPC_NUM_COUNTERS] = { 0 };
+static uint32_t ompi_spc_timer_event[OMPI_SPC_NUM_COUNTERS / sizeof(uint32_t)] = { 0 };
 /* An array of event structures to store the event data (name and value) */
 static ompi_event_t *ompi_spc_events = NULL;
+
+static inline void SET_SPC_BIT(uint32_t* array, int32_t pos)
+{
+    assert(pos < OMPI_SPC_NUM_COUNTERS);
+    array[pos / (8 * sizeof(uint32_t))] |= (1U << (pos % (8 * sizeof(uint32_t))));
+}
+
+static inline bool IS_SPC_BIT_SET(uint32_t* array, int32_t pos)
+{
+    assert(pos < OMPI_SPC_NUM_COUNTERS);
+    return !!(array[pos / (8 * sizeof(uint32_t))] & (1U << (pos % (8 * sizeof(uint32_t)))));
+}
+
+static inline void CLEAR_SPC_BIT(uint32_t* array, int32_t pos)
+{
+    assert(pos < OMPI_SPC_NUM_COUNTERS);
+    array[pos / (8 * sizeof(uint32_t))] &= ~(1U << (pos % (8 * sizeof(uint32_t))));
+}
 
 /* ##############################################################
  * ################# Begin MPI_T Functions ######################
@@ -136,13 +154,13 @@ static int ompi_spc_notify(mca_base_pvar_t *pvar, mca_base_pvar_event_t event, v
     else if(MCA_BASE_PVAR_HANDLE_START == event) {
         /* Convert from MPI_T pvar index to SPC index */
         index = pvar->pvar_index - mpi_t_offset;
-        ompi_spc_attached_event[index] = 1;
+        SET_SPC_BIT(ompi_spc_attached_event, index);
     }
     /* For this event, we need to turn off the counter */
     else if(MCA_BASE_PVAR_HANDLE_STOP == event) {
         /* Convert from MPI_T pvar index to SPC index */
         index = pvar->pvar_index - mpi_t_offset;
-        ompi_spc_attached_event[index] = 0;
+        CLEAR_SPC_BIT(ompi_spc_attached_event, index);
     }
 
     return MPI_SUCCESS;
@@ -174,7 +192,7 @@ static int ompi_spc_get_count(const struct mca_base_pvar_t *pvar, void *value, v
     /* Set the counter value to the current SPC value */
     *counter_value = ompi_spc_events[index].value;
     /* If this is a timer-based counter, convert from cycles to microseconds */
-    if(ompi_spc_timer_event[index])
+    if( IS_SPC_BIT_SET(ompi_spc_timer_event, index) )
         *counter_value /= sys_clock_freq_mhz;
     /* If this is a high watermark counter, reset it after it has been read */
     if(index == OMPI_MAX_UNEXPECTED_IN_QUEUE || index == OMPI_MAX_OOS_IN_QUEUE)
@@ -229,14 +247,14 @@ void ompi_spc_init(void)
     /* Turn on only the counters that were specified in the MCA parameter */
     for(i = 0; i < OMPI_SPC_NUM_COUNTERS; i++) {
         if(all_on) {
-            ompi_spc_attached_event[i] = 1;
+            SET_SPC_BIT(ompi_spc_attached_event, i);
             mpi_t_enabled = true;
             found++;
         } else {
             /* Note: If no arguments were given, this will be skipped */
             for(j = 0; j < num_args; j++) {
                 if( 0 == strcmp(ompi_spc_events_names[i].counter_name, arg_strings[j]) ) {
-                    ompi_spc_attached_event[i] = 1;
+                    SET_SPC_BIT(ompi_spc_attached_event, i);
                     mpi_t_enabled = true;
                     found++;
                     break;
@@ -248,7 +266,7 @@ void ompi_spc_init(void)
          * ################## Add Timer-Based Counter Enums Here ##################
          * ########################################################################
          */
-        ompi_spc_timer_event[i] = 0;
+        CLEAR_SPC_BIT(ompi_spc_timer_event, i);
         mpi_t_indices[i] = -1;
 
         /* Registers the current counter as an MPI_T pvar regardless of whether it's been turned on or not */
@@ -276,7 +294,7 @@ void ompi_spc_init(void)
         }
     }
     /* If this is a timer event, sent the corresponding timer_event entry to 1 */
-    ompi_spc_timer_event[OMPI_MATCH_TIME] = 1;
+    SET_SPC_BIT(ompi_spc_timer_event, OMPI_MATCH_TIME);
     opal_argv_free(arg_strings);
 }
 
@@ -287,7 +305,7 @@ void ompi_spc_fini(void)
     if(!ompi_mpi_spc_dump_enabled)
         goto skip_dump;
 
-    int i, j, world_size, offset, err;
+    int i, j, world_size, offset;
     long long *recv_buffer = NULL, *send_buffer;
 
     ompi_communicator_t *comm = &ompi_mpi_comm_world.comm;
@@ -296,7 +314,7 @@ void ompi_spc_fini(void)
 
     /* Convert from cycles to usecs before sending */
     for(i = 0; i < OMPI_SPC_NUM_COUNTERS; i++) {
-        if(ompi_spc_timer_event[i])
+        if( IS_SPC_BIT_SET(ompi_spc_timer_event, i) )
             SPC_CYCLES_TO_USECS(&ompi_spc_events[i].value);
     }
 
@@ -308,7 +326,7 @@ void ompi_spc_fini(void)
     if( 0 == rank ) {
         recv_buffer = (long long*)malloc(world_size * OMPI_SPC_NUM_COUNTERS * sizeof(long long));
     }
-    err = comm->c_coll->coll_gather(send_buffer, OMPI_SPC_NUM_COUNTERS, MPI_LONG_LONG,
+    (void)comm->c_coll->coll_gather(send_buffer, OMPI_SPC_NUM_COUNTERS, MPI_LONG_LONG,
                                     recv_buffer, OMPI_SPC_NUM_COUNTERS, MPI_LONG_LONG,
                                     0, comm,
                                     comm->c_coll->coll_gather_module);
@@ -346,7 +364,7 @@ void ompi_spc_fini(void)
 void ompi_spc_record(unsigned int event_id, long long value)
 {
     /* Denoted unlikely because counters will often be turned off. */
-    if(OPAL_UNLIKELY(ompi_spc_attached_event[event_id] == 1)) {
+    if( OPAL_UNLIKELY(IS_SPC_BIT_SET(ompi_spc_attached_event, event_id)) ) {
         OPAL_THREAD_ADD_FETCH_SIZE_T(&(ompi_spc_events[event_id].value), value);
     }
 }
@@ -360,7 +378,7 @@ void ompi_spc_timer_start(unsigned int event_id, opal_timer_t *cycles)
     /* Check whether cycles == 0.0 to make sure the timer hasn't started yet.
      * This is denoted unlikely because the counters will often be turned off.
      */
-    if(OPAL_UNLIKELY(ompi_spc_attached_event[event_id] == 1 && *cycles == 0)) {
+    if( OPAL_UNLIKELY(IS_SPC_BIT_SET(ompi_spc_attached_event, event_id) && *cycles == 0) ) {
         *cycles = opal_timer_base_get_cycles();
     }
 }
@@ -372,7 +390,7 @@ void ompi_spc_timer_start(unsigned int event_id, opal_timer_t *cycles)
 void ompi_spc_timer_stop(unsigned int event_id, opal_timer_t *cycles)
 {
     /* This is denoted unlikely because the counters will often be turned off. */
-    if(OPAL_UNLIKELY(ompi_spc_attached_event[event_id] == 1)) {
+    if( OPAL_UNLIKELY(IS_SPC_BIT_SET(ompi_spc_attached_event, event_id)) ) {
         *cycles = opal_timer_base_get_cycles() - *cycles;
         OPAL_THREAD_ADD_FETCH_SIZE_T(&ompi_spc_events[event_id].value, (long long)*cycles);
     }
@@ -383,11 +401,7 @@ void ompi_spc_timer_stop(unsigned int event_id, opal_timer_t *cycles)
  */
 void ompi_spc_user_or_mpi(int tag, long long value, unsigned int user_enum, unsigned int mpi_enum)
 {
-    if(tag >= 0) {
-        SPC_RECORD(user_enum, value);
-    } else {
-        SPC_RECORD(mpi_enum, value);
-    }
+    SPC_RECORD( (tag >= 0 ? user_enum : mpi_enum), value);
 }
 
 /* Checks whether the counter denoted by value_enum exceeds the current value of the
@@ -397,7 +411,8 @@ void ompi_spc_user_or_mpi(int tag, long long value, unsigned int user_enum, unsi
 void ompi_spc_update_watermark(unsigned int watermark_enum, unsigned int value_enum)
 {
     /* Denoted unlikely because counters will often be turned off. */
-    if(OPAL_UNLIKELY(ompi_spc_attached_event[watermark_enum] == 1 && ompi_spc_attached_event[value_enum] == 1)) {
+    if( OPAL_UNLIKELY(IS_SPC_BIT_SET(ompi_spc_attached_event, watermark_enum) &&
+                      IS_SPC_BIT_SET(ompi_spc_attached_event, value_enum)) ) {
         /* WARNING: This assumes that this function was called while a lock has already been taken.
          *          This function is NOT thread safe otherwise!
          */
