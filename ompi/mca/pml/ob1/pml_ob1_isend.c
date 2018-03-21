@@ -122,7 +122,7 @@ static inline int mca_pml_ob1_send_inline (const void *buf, size_t count,
                              MCA_PML_OB1_HDR_TYPE_MATCH, NULL);
 
     if(OPAL_LIKELY(rc == OPAL_SUCCESS)) {
-        SPC_USER_OR_MPI(tag, (long long)size, OMPI_BYTES_SENT_USER, OMPI_BYTES_SENT_MPI);
+        SPC_USER_OR_MPI(tag, (ompi_spc_value_t)size, OMPI_BYTES_SENT_USER, OMPI_BYTES_SENT_MPI);
     }
 
     if (count > 0) {

@@ -125,11 +125,16 @@ enum ompi_spc_counters_t {
     OMPI_SPC_NUM_COUNTERS /* This serves as the number of counters.  It must be last. */
 };
 
+/* There is currently no support for atomics on long long values so we will default to
+ * size_t for now until support for such atomics is implemented.
+ */
+typedef size_t ompi_spc_value_t;
+
 /* A structure for storing the event data */
-typedef struct ompi_event_s{
+typedef struct ompi_spc_s{
     char *name;
-    long long value;
-} ompi_event_t;
+    ompi_spc_value_t value;
+} ompi_spc_t;
 
 /* Events data structure initialization function */
 void events_init(void);
@@ -137,15 +142,13 @@ void events_init(void);
 /* OMPI SPC utility functions */
 void ompi_spc_init(void);
 void ompi_spc_fini(void);
-void ompi_spc_record(unsigned int event_id, long long value);
+void ompi_spc_record(unsigned int event_id, ompi_spc_value_t value);
 void ompi_spc_timer_start(unsigned int event_id, opal_timer_t *cycles);
 void ompi_spc_timer_stop(unsigned int event_id, opal_timer_t *cycles);
-void ompi_spc_user_or_mpi(int tag, long long value, unsigned int user_enum, unsigned int mpi_enum);
-void ompi_spc_cycles_to_usecs(long long *cycles);
+void ompi_spc_user_or_mpi(int tag, ompi_spc_value_t value, unsigned int user_enum, unsigned int mpi_enum);
+void ompi_spc_cycles_to_usecs(ompi_spc_value_t *cycles);
 void ompi_spc_update_watermark(unsigned int watermark_enum, unsigned int value_enum);
-
-/* MPI_T utility functions */
-long long ompi_spc_get_counter(int counter_id);
+static int ompi_spc_get_count(const struct mca_base_pvar_t *pvar, void *value, void *obj_handle);
 
 /* Macros for using the SPC utility functions throughout the codebase.
  * If SPC_ENABLE is not 1, the macros become no-ops.

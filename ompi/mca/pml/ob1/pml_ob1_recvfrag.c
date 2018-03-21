@@ -455,7 +455,7 @@ void mca_pml_ob1_recv_frag_callback_match(mca_btl_base_module_t* btl,
                                    &iov_count,
                                    &bytes_received );
             match->req_bytes_received = bytes_received;
-            SPC_USER_OR_MPI(match->req_recv.req_base.req_ompi.req_status.MPI_TAG, (long long)bytes_received,
+            SPC_USER_OR_MPI(match->req_recv.req_base.req_ompi.req_status.MPI_TAG, (ompi_spc_value_t)bytes_received,
                             OMPI_BYTES_RECEIVED_USER, OMPI_BYTES_RECEIVED_MPI);
             /*
              *  Unpacking finished, make the user buffer unaccessable again.
