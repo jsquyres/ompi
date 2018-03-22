@@ -182,28 +182,28 @@ static int ompi_spc_get_count(const struct mca_base_pvar_t *pvar, void *value, v
 #else /* SPCs are not enabled */
 
 #define SPC_INIT()  \
-    do {} while (0)
+    ((void)0)
 
 #define SPC_FINI()  \
-    do {} while (0)
+    ((void)0)
 
 #define SPC_RECORD(event_id, value)  \
-    do {} while (0)
+    ((void)0)
 
 #define SPC_TIMER_START(event_id, usec)  \
-    do {} while (0)
+    ((void)0)
 
 #define SPC_TIMER_STOP(event_id, usec)  \
-    do {} while (0)
+    ((void)0)
 
 #define SPC_USER_OR_MPI(tag, value, enum_if_user, enum_if_mpi) \
-    do {} while (0)
+    ((void)0)
 
 #define SPC_CYCLES_TO_USECS(cycles) \
-    do {} while (0)
+    ((void)0)
 
 #define SPC_UPDATE_WATERMARK(watermark_enum, value_enum) \
-    do {} while (0)
+    ((void)0)
 
 #endif
 
