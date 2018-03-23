@@ -121,6 +121,12 @@ static inline int mca_pml_ob1_send_inline (const void *buf, size_t count,
                              size, MCA_BTL_NO_ORDER, MCA_BTL_DES_FLAGS_PRIORITY | MCA_BTL_DES_FLAGS_BTL_OWNERSHIP,
                              MCA_PML_OB1_HDR_TYPE_MATCH, NULL);
 
+    /* This #if is required due to an issue that arises with the IBM CI (XL Compiler).
+     * The compiler doesn't seem to like having a compiler hint attached to an if
+     * statement that only has a no-op inside and has the following error:
+     *
+     * 1586-494 (U) INTERNAL COMPILER ERROR: Signal 11.
+     */
 #if SPC_ENABLE == 1
     if(OPAL_LIKELY(rc == OPAL_SUCCESS)) {
         SPC_USER_OR_MPI(tag, (ompi_spc_value_t)size, OMPI_BYTES_SENT_USER, OMPI_BYTES_SENT_MPI);
