@@ -104,3 +104,9 @@ its predecessors) APIs for this operation.
 This typically happens when launching outside of mpirun where the underlying
 resource manager does not provide publish/lookup support. One way of solving
 the problem is to simply use mpirun to start the application.
+#
+[spc: failed to allocate memory]
+Failed to allocate memory for the internal SPC data structures.  Malloc returned a null pointer.
+#
+[spc: MPI_T disabled]
+There was an error registering SPCs as MPI_T pvars.  SPCs will be disabled for MPI_T.

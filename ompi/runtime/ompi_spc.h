@@ -24,6 +24,8 @@
 #include "opal/mca/timer/timer.h"
 #include "opal/mca/base/mca_base_pvar.h"
 #include "opal/util/argv.h"
+#include "opal/util/show_help.h"
+#include "opal/util/output.h"
 
 #include MCA_timer_IMPLEMENTATION_HEADER
 

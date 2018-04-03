@@ -95,7 +95,7 @@ static ompi_spc_event_t ompi_spc_events_names[OMPI_SPC_NUM_COUNTERS] = {
     SET_COUNTER_ARRAY(OMPI_BYTES_GET, "The number of bytes sent/received using RMA Get operations both through user-level Get functions and internal Get functions."),
     SET_COUNTER_ARRAY(OMPI_UNEXPECTED, "The number of messages that arrived as unexpected messages."),
     SET_COUNTER_ARRAY(OMPI_OUT_OF_SEQUENCE, "The number of messages that arrived out of the proper sequence."),
-    SET_COUNTER_ARRAY(OMPI_MATCH_TIME, "The number of microseconds spent matching unexpected messages."),
+    SET_COUNTER_ARRAY(OMPI_MATCH_TIME, "The number of microseconds spent matching unexpected messages.  Note: The timer used on the back end is in cycles, which could potentially be problematic on a system where the clock frequency can change.  On such a system, this counter could be inaccurate since we assume a fixed clock rate."),
     SET_COUNTER_ARRAY(OMPI_UNEXPECTED_IN_QUEUE, "The number of messages that are currently in the unexpected message queue(s) of an MPI process."),
     SET_COUNTER_ARRAY(OMPI_OOS_IN_QUEUE, "The number of messages that are currently in the out of sequence message queue(s) of an MPI process."),
     SET_COUNTER_ARRAY(OMPI_MAX_UNEXPECTED_IN_QUEUE, "The maximum number of messages that the unexpected message queue(s) within an MPI process "
@@ -139,8 +139,9 @@ static int ompi_spc_notify(mca_base_pvar_t *pvar, mca_base_pvar_event_t event, v
 
     int index;
 
-    if(OPAL_LIKELY(!mpi_t_enabled))
+    if(OPAL_LIKELY(!mpi_t_enabled)) {
         return MPI_SUCCESS;
+    }
 
     /* For this event, we need to set count to the number of long long type
      * values for this counter.  All SPC counters are one long long, so we
@@ -191,11 +192,13 @@ static int ompi_spc_get_count(const struct mca_base_pvar_t *pvar, void *value, v
     /* Set the counter value to the current SPC value */
     *counter_value = (long long)ompi_spc_events[index].value;
     /* If this is a timer-based counter, convert from cycles to microseconds */
-    if( IS_SPC_BIT_SET(ompi_spc_timer_event, index) )
+    if( IS_SPC_BIT_SET(ompi_spc_timer_event, index) ) {
         *counter_value /= sys_clock_freq_mhz;
+    }
     /* If this is a high watermark counter, reset it after it has been read */
-    if(index == OMPI_MAX_UNEXPECTED_IN_QUEUE || index == OMPI_MAX_OOS_IN_QUEUE)
+    if(index == OMPI_MAX_UNEXPECTED_IN_QUEUE || index == OMPI_MAX_OOS_IN_QUEUE) {
         ompi_spc_events[index].value = 0;
+    }
 
     return MPI_SUCCESS;
 }
@@ -208,6 +211,10 @@ void events_init(void)
     /* If the events data structure hasn't been allocated yet, allocate memory for it */
     if(ompi_spc_events == NULL) {
         ompi_spc_events = (ompi_spc_t*)malloc(OMPI_SPC_NUM_COUNTERS * sizeof(ompi_spc_t));
+        if(ompi_spc_events == NULL) {
+            opal_show_help("help-mpi-runtime.txt", "spc: failed to allocate memory", true);
+            return;
+        }
     }
     /* The data structure has been allocated, so we simply initialize all of the counters
      * with their names and an initial count of 0.
@@ -283,7 +290,7 @@ void ompi_spc_init(void)
         }
         if( (ret < 0) || (ret != (mpi_t_offset + found - 1)) ) {
             mpi_t_enabled = false;
-            fprintf(stderr, "There was an error registering SPCs as MPI_T pvars.  SPCs will be disabled for MPI_T.\n");
+            opal_show_help("help-mpi-runtime.txt", "spc: MPI_T disabled", true);
             break;
         }
     }
@@ -292,13 +299,11 @@ void ompi_spc_init(void)
     opal_argv_free(arg_strings);
 }
 
-/* Frees any dynamically alocated OMPI SPC data structures */
-void ompi_spc_fini(void)
+/* Gathers all of the SPC data onto rank 0 of MPI_COMM_WORLD and prints out all
+ * of the counter values to stdout.
+ */
+void ompi_spc_dump(void)
 {
-#if SPC_ENABLE == 1
-    if(!ompi_mpi_spc_dump_enabled)
-        goto skip_dump;
-
     int i, j, world_size, offset;
     long long *recv_buffer = NULL, *send_buffer;
 
@@ -308,8 +313,9 @@ void ompi_spc_fini(void)
 
     /* Convert from cycles to usecs before sending */
     for(i = 0; i < OMPI_SPC_NUM_COUNTERS; i++) {
-        if( IS_SPC_BIT_SET(ompi_spc_timer_event, i) )
+        if( IS_SPC_BIT_SET(ompi_spc_timer_event, i) ) {
             SPC_CYCLES_TO_USECS(&ompi_spc_events[i].value);
+        }
     }
 
     /* Aggregate all of the information on rank 0 using MPI_Gather on MPI_COMM_WORLD */
@@ -327,17 +333,18 @@ void ompi_spc_fini(void)
 
     /* Once rank 0 has all of the information, print the aggregated counter values for each rank in order */
     if(rank == 0) {
-        fprintf(stdout, "OMPI Software Counters:\n");
+        opal_output(0, "Open MPI Software-based Performance Counters:\n");
         offset = 0; /* Offset into the recv_buffer for each rank */
         for(j = 0; j < world_size; j++) {
-            fprintf(stdout, "MPI_COMM_WORLD Rank %d:\n", j);
+            opal_output(0, "MPI_COMM_WORLD Rank %d:\n", j);
             for(i = 0; i < OMPI_SPC_NUM_COUNTERS; i++) {
                 /* If this is a timer-based counter, we need to covert from cycles to usecs */
-                if( 0 == recv_buffer[offset+i] )
+                if( 0 == recv_buffer[offset+i] ) {
                     continue;
-                fprintf(stdout, "%s -> %lld\n", ompi_spc_events[i].name, recv_buffer[offset+i]);
+                }
+                opal_output(0, "%s -> %lld\n", ompi_spc_events[i].name, recv_buffer[offset+i]);
             }
-            fprintf(stdout, "\n");
+            opal_output(0, "\n");
             offset += OMPI_SPC_NUM_COUNTERS;
         }
         printf("###########################################################################\n");
@@ -349,7 +356,13 @@ void ompi_spc_fini(void)
     free(send_buffer);
 
     comm->c_coll->coll_barrier(comm, comm->c_coll->coll_barrier_module);
- skip_dump:
+}
+
+/* Frees any dynamically alocated OMPI SPC data structures */
+void ompi_spc_fini(void)
+{
+#if SPC_ENABLE == 1
+    ompi_spc_dump();
 #endif
     free(ompi_spc_events); ompi_spc_events = NULL;
 }
@@ -410,8 +423,9 @@ void ompi_spc_update_watermark(unsigned int watermark_enum, unsigned int value_e
         /* WARNING: This assumes that this function was called while a lock has already been taken.
          *          This function is NOT thread safe otherwise!
          */
-        if(ompi_spc_events[value_enum].value > ompi_spc_events[watermark_enum].value)
+        if(ompi_spc_events[value_enum].value > ompi_spc_events[watermark_enum].value) {
             ompi_spc_events[watermark_enum].value = ompi_spc_events[value_enum].value;
+        }
     }
 }
 
