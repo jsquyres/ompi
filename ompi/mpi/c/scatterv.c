@@ -48,7 +48,7 @@ int MPI_Scatterv(const void *sendbuf, const int sendcounts[], const int displs[]
 {
     int i, size, err;
 
-    SPC_RECORD(OMPI_SCATTERV, 1);
+    SPC_RECORD(OMPI_SPC_SCATTERV, 1);
 
     MEMCHECKER(
         ptrdiff_t ext;

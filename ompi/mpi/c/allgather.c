@@ -50,7 +50,7 @@ int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 {
     int err;
 
-    SPC_RECORD(OMPI_ALLGATHER, 1);
+    SPC_RECORD(OMPI_SPC_ALLGATHER, 1);
 
     MEMCHECKER(
         int rank;

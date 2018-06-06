@@ -39,7 +39,7 @@ int MPI_Mrecv(void *buf, int count, MPI_Datatype type,
     int rc = MPI_SUCCESS;
     ompi_communicator_t *comm;
 
-    SPC_RECORD(OMPI_MRECV, 1);
+    SPC_RECORD(OMPI_SPC_MRECV, 1);
 
     MEMCHECKER(
         memchecker_datatype(type);

@@ -49,7 +49,7 @@ int MPI_Iallreduce(const void *sendbuf, void *recvbuf, int count,
 {
     int err;
 
-    SPC_RECORD(OMPI_IALLREDUCE, 1);
+    SPC_RECORD(OMPI_SPC_IALLREDUCE, 1);
 
     MEMCHECKER(
         memchecker_datatype(datatype);

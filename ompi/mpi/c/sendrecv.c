@@ -49,7 +49,7 @@ int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
     ompi_request_t* req;
     int rc = MPI_SUCCESS;
 
-    SPC_RECORD(OMPI_SENDRECV, 1);
+    SPC_RECORD(OMPI_SPC_SENDRECV, 1);
 
     MEMCHECKER(
         memchecker_datatype(sendtype);

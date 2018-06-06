@@ -53,7 +53,7 @@ int MPI_Neighbor_allgather(const void *sendbuf, int sendcount, MPI_Datatype send
 {
     int err;
 
-    SPC_RECORD(OMPI_NEIGHBOR_ALLGATHER, 1);
+    SPC_RECORD(OMPI_SPC_NEIGHBOR_ALLGATHER, 1);
 
     MEMCHECKER(
         int rank;

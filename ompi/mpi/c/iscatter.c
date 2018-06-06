@@ -50,7 +50,7 @@ int MPI_Iscatter(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 {
     int err;
 
-    SPC_RECORD(OMPI_ISCATTER, 1);
+    SPC_RECORD(OMPI_SPC_ISCATTER, 1);
 
     MEMCHECKER(
         memchecker_comm(comm);

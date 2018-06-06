@@ -48,7 +48,7 @@ int MPI_Gatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 {
     int i, size, err;
 
-    SPC_RECORD(OMPI_GATHERV, 1);
+    SPC_RECORD(OMPI_SPC_GATHERV, 1);
 
     MEMCHECKER(
         ptrdiff_t ext;

@@ -43,7 +43,7 @@ int MPI_Ibarrier(MPI_Comm comm, MPI_Request *request)
 {
     int err = MPI_SUCCESS;
 
-    SPC_RECORD(OMPI_IBARRIER, 1);
+    SPC_RECORD(OMPI_SPC_IBARRIER, 1);
 
     MEMCHECKER(
             memchecker_comm(comm);

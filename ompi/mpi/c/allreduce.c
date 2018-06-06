@@ -48,7 +48,7 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
 {
     int err;
 
-    SPC_RECORD(OMPI_ALLREDUCE, 1);
+    SPC_RECORD(OMPI_SPC_ALLREDUCE, 1);
 
     MEMCHECKER(
         memchecker_datatype(datatype);

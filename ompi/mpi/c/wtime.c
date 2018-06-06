@@ -47,7 +47,7 @@ double MPI_Wtime(void)
 {
     double wtime;
 
-    SPC_RECORD(OMPI_WTIME, 1);
+    SPC_RECORD(OMPI_SPC_WTIME, 1);
 
     /*
      * See https://github.com/open-mpi/ompi/issues/3003 to find out

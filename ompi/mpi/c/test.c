@@ -43,7 +43,7 @@ int MPI_Test(MPI_Request *request, int *completed, MPI_Status *status)
 {
     int rc;
 
-    SPC_RECORD(OMPI_TEST, 1);
+    SPC_RECORD(OMPI_SPC_TEST, 1);
 
     MEMCHECKER(
         memchecker_request (request);

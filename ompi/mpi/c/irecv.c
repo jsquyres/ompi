@@ -44,7 +44,7 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype type, int source,
 {
     int rc = MPI_SUCCESS;
 
-    SPC_RECORD(OMPI_IRECV, 1);
+    SPC_RECORD(OMPI_SPC_IRECV, 1);
 
     MEMCHECKER(
         memchecker_datatype(type);

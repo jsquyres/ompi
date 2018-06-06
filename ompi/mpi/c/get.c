@@ -49,7 +49,7 @@ int MPI_Get(void *origin_addr, int origin_count,
 {
     int rc;
 
-    SPC_RECORD(OMPI_GET, 1);
+    SPC_RECORD(OMPI_SPC_GET, 1);
 
     if (MPI_PARAM_CHECK) {
         rc = OMPI_SUCCESS;

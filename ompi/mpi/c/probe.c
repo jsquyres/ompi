@@ -43,7 +43,7 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
     int rc;
 
-    SPC_RECORD(OMPI_PROBE, 1);
+    SPC_RECORD(OMPI_SPC_PROBE, 1);
 
     MEMCHECKER(
         memchecker_comm(comm);

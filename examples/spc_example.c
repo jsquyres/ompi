@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     int num_messages, message_size;
 
     if(argc < 3) {
-        printf("Usage: mpirun -np 2 --mca mpi_spc_attach all --mca mpi_spc_dump_enabled true ./test [num_messages] [message_size]\n");
+        printf("Usage: mpirun -np 2 --mca mpi_spc_attach all --mca mpi_spc_dump_enabled true ./spc_example [num_messages] [message_size]\n");
         return -1;
     } else {
         num_messages = atoi(argv[1]);
@@ -54,8 +54,8 @@ int main(int argc, char **argv)
     char name[256], description[256];
 
     /* Counter names to be read by ranks 0 and 1 */
-    char counter_names[2][40] = { "runtime_spc_OMPI_BYTES_SENT_USER",
-                                  "runtime_spc_OMPI_BYTES_RECEIVED_USER" };
+    char *counter_names[] = {"runtime_spc_OMPI_BYTES_SENT_USER",
+                             "runtime_spc_OMPI_BYTES_RECEIVED_USER" };
 
     MPI_Init(NULL, NULL);
     MPI_T_init_thread(MPI_THREAD_SINGLE, &provided);

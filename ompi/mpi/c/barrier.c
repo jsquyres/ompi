@@ -41,7 +41,7 @@ int MPI_Barrier(MPI_Comm comm)
 {
   int err = MPI_SUCCESS;
 
-  SPC_RECORD(OMPI_BARRIER, 1);
+  SPC_RECORD(OMPI_SPC_BARRIER, 1);
 
   MEMCHECKER(
     memchecker_comm(comm);

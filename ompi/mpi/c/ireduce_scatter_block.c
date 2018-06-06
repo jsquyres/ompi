@@ -50,7 +50,7 @@ int MPI_Ireduce_scatter_block(const void *sendbuf, void *recvbuf, int recvcount,
 {
     int err;
 
-    SPC_RECORD(OMPI_IREDUCE_SCATTER_BLOCK, 1);
+    SPC_RECORD(OMPI_SPC_IREDUCE_SCATTER_BLOCK, 1);
 
     MEMCHECKER(
         memchecker_comm(comm);

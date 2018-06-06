@@ -46,7 +46,7 @@ int MPI_Testsome(int incount, MPI_Request requests[],
                  int *outcount, int indices[],
                  MPI_Status statuses[])
 {
-    SPC_RECORD(OMPI_TESTSOME, 1);
+    SPC_RECORD(OMPI_SPC_TESTSOME, 1);
 
     MEMCHECKER(
         int j;

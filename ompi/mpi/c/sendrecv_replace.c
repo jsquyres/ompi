@@ -49,7 +49,7 @@ int MPI_Sendrecv_replace(void * buf, int count, MPI_Datatype datatype,
 {
     int rc = MPI_SUCCESS;
 
-    SPC_RECORD(OMPI_SENDRECV_REPLACE, 1);
+    SPC_RECORD(OMPI_SPC_SENDRECV_REPLACE, 1);
 
     MEMCHECKER(
                memchecker_datatype(datatype);

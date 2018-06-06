@@ -46,7 +46,7 @@ int MPI_Waitsome(int incount, MPI_Request requests[],
                  int *outcount, int indices[],
                  MPI_Status statuses[])
 {
-    SPC_RECORD(OMPI_WAITSOME, 1);
+    SPC_RECORD(OMPI_SPC_WAITSOME, 1);
 
     MEMCHECKER(
         int j;

@@ -26,81 +26,81 @@ typedef struct ompi_spc_event_t {
 #define SET_COUNTER_ARRAY(NAME, DESC)   [NAME] = { .counter_name = #NAME, .counter_description = DESC }
 
 static ompi_spc_event_t ompi_spc_events_names[OMPI_SPC_NUM_COUNTERS] = {
-    SET_COUNTER_ARRAY(OMPI_SEND, "The number of times MPI_Send was called."),
-    SET_COUNTER_ARRAY(OMPI_BSEND, "The number of times MPI_Bsend was called."),
-    SET_COUNTER_ARRAY(OMPI_RSEND, "The number of times MPI_Rsend was called."),
-    SET_COUNTER_ARRAY(OMPI_SSEND, "The number of times MPI_Ssend was called."),
-    SET_COUNTER_ARRAY(OMPI_RECV, "The number of times MPI_Recv was called."),
-    SET_COUNTER_ARRAY(OMPI_MRECV, "The number of times MPI_Mrecv was called."),
-    SET_COUNTER_ARRAY(OMPI_ISEND, "The number of times MPI_Isend was called."),
-    SET_COUNTER_ARRAY(OMPI_IBSEND, "The number of times MPI_Ibsend was called."),
-    SET_COUNTER_ARRAY(OMPI_IRSEND, "The number of times MPI_Irsend was called."),
-    SET_COUNTER_ARRAY(OMPI_ISSEND, "The number of times MPI_Issend was called."),
-    SET_COUNTER_ARRAY(OMPI_IRECV, "The number of times MPI_Irecv was called."),
-    SET_COUNTER_ARRAY(OMPI_SENDRECV, "The number of times MPI_Sendrecv was called."),
-    SET_COUNTER_ARRAY(OMPI_SENDRECV_REPLACE, "The number of times MPI_Sendrecv_replace was called."),
-    SET_COUNTER_ARRAY(OMPI_PUT, "The number of times MPI_Put was called."),
-    SET_COUNTER_ARRAY(OMPI_RPUT, "The number of times MPI_Rput was called."),
-    SET_COUNTER_ARRAY(OMPI_GET, "The number of times MPI_Get was called."),
-    SET_COUNTER_ARRAY(OMPI_RGET, "The number of times MPI_Rget was called."),
-    SET_COUNTER_ARRAY(OMPI_PROBE, "The number of times MPI_Probe was called."),
-    SET_COUNTER_ARRAY(OMPI_IPROBE, "The number of times MPI_Iprobe was called."),
-    SET_COUNTER_ARRAY(OMPI_BCAST, "The number of times MPI_Bcast was called."),
-    SET_COUNTER_ARRAY(OMPI_IBCAST, "The number of times MPI_Ibcast was called."),
-    SET_COUNTER_ARRAY(OMPI_REDUCE, "The number of times MPI_Reduce was called."),
-    SET_COUNTER_ARRAY(OMPI_IREDUCE, "The number of times MPI_Ireduce was called."),
-    SET_COUNTER_ARRAY(OMPI_IREDUCE_SCATTER, "The number of times MPI_Ireduce_scatter was called."),
-    SET_COUNTER_ARRAY(OMPI_IREDUCE_SCATTER_BLOCK, "The number of times MPI_Ireduce_scatter_block was called."),
-    SET_COUNTER_ARRAY(OMPI_ALLREDUCE, "The number of times MPI_Allreduce was called."),
-    SET_COUNTER_ARRAY(OMPI_IALLREDUCE, "The number of times MPI_Iallreduce was called."),
-    SET_COUNTER_ARRAY(OMPI_SCAN, "The number of times MPI_Scan was called."),
-    SET_COUNTER_ARRAY(OMPI_ISCAN, "The number of times MPI_Iscan was called."),
-    SET_COUNTER_ARRAY(OMPI_SCATTER, "The number of times MPI_Scatter was called."),
-    SET_COUNTER_ARRAY(OMPI_SCATTERV, "The number of times MPI_Scatterv was called."),
-    SET_COUNTER_ARRAY(OMPI_ISCATTER, "The number of times MPI_Iscatter was called."),
-    SET_COUNTER_ARRAY(OMPI_ISCATTERV, "The number of times MPI_Iscatterv was called."),
-    SET_COUNTER_ARRAY(OMPI_GATHER, "The number of times MPI_Gather was called."),
-    SET_COUNTER_ARRAY(OMPI_GATHERV, "The number of times MPI_Gatherv was called."),
-    SET_COUNTER_ARRAY(OMPI_IGATHER, "The number of times MPI_Igather was called."),
-    SET_COUNTER_ARRAY(OMPI_ALLTOALL, "The number of times MPI_Alltoall was called."),
-    SET_COUNTER_ARRAY(OMPI_IALLTOALL, "The number of times MPI_Ialltoall was called."),
-    SET_COUNTER_ARRAY(OMPI_IALLTOALLV, "The number of times MPI_Ialltoallv was called."),
-    SET_COUNTER_ARRAY(OMPI_IALLTOALLW, "The number of times MPI_Ialltoallw was called."),
-    SET_COUNTER_ARRAY(OMPI_NEIGHBOR_ALLTOALL, "The number of times MPI_Neighbor_alltoall was called."),
-    SET_COUNTER_ARRAY(OMPI_NEIGHBOR_ALLTOALLV, "The number of times MPI_Neighbor_alltoallv was called."),
-    SET_COUNTER_ARRAY(OMPI_NEIGHBOR_ALLTOALLW, "The number of times MPI_Neighbor_alltoallw was called."),
-    SET_COUNTER_ARRAY(OMPI_ALLGATHER, "The number of times MPI_Allgather was called."),
-    SET_COUNTER_ARRAY(OMPI_ALLGATHERV, "The number of times MPI_Allgatherv was called."),
-    SET_COUNTER_ARRAY(OMPI_IALLGATHER, "The number of times MPI_Iallgather was called."),
-    SET_COUNTER_ARRAY(OMPI_IALLGATHERV, "The number of times MPI_Iallgatherv was called."),
-    SET_COUNTER_ARRAY(OMPI_NEIGHBOR_ALLGATHER, "The number of times MPI_Neighbor_allgather was called."),
-    SET_COUNTER_ARRAY(OMPI_NEIGHBOR_ALLGATHERV, "The number of times MPI_Neighbor_allgatherv was called."),
-    SET_COUNTER_ARRAY(OMPI_TEST, "The number of times MPI_Test was called."),
-    SET_COUNTER_ARRAY(OMPI_TESTALL, "The number of times MPI_Testall was called."),
-    SET_COUNTER_ARRAY(OMPI_TESTANY, "The number of times MPI_Testany was called."),
-    SET_COUNTER_ARRAY(OMPI_TESTSOME, "The number of times MPI_Testsome was called."),
-    SET_COUNTER_ARRAY(OMPI_WAIT, "The number of times MPI_Wait was called."),
-    SET_COUNTER_ARRAY(OMPI_WAITALL, "The number of times MPI_Waitall was called."),
-    SET_COUNTER_ARRAY(OMPI_WAITANY, "The number of times MPI_Waitany was called."),
-    SET_COUNTER_ARRAY(OMPI_WAITSOME, "The number of times MPI_Waitsome was called."),
-    SET_COUNTER_ARRAY(OMPI_BARRIER, "The number of times MPI_Barrier was called."),
-    SET_COUNTER_ARRAY(OMPI_IBARRIER, "The number of times MPI_Ibarrier was called."),
-    SET_COUNTER_ARRAY(OMPI_WTIME, "The number of times MPI_Wtime was called."),
-    SET_COUNTER_ARRAY(OMPI_CANCEL, "The number of times MPI_Cancel was called."),
-    SET_COUNTER_ARRAY(OMPI_BYTES_RECEIVED_USER, "The number of bytes received by the user through point-to-point communications. Note: Includes bytes transferred using internal RMA operations."),
-    SET_COUNTER_ARRAY(OMPI_BYTES_RECEIVED_MPI, "The number of bytes received by MPI through collective, control, or other internal communications."),
-    SET_COUNTER_ARRAY(OMPI_BYTES_SENT_USER, "The number of bytes sent by the user through point-to-point communications.  Note: Includes bytes transferred using internal RMA operations."),
-    SET_COUNTER_ARRAY(OMPI_BYTES_SENT_MPI, "The number of bytes sent by MPI through collective, control, or other internal communications."),
-    SET_COUNTER_ARRAY(OMPI_BYTES_PUT, "The number of bytes sent/received using RMA Put operations both through user-level Put functions and internal Put functions."),
-    SET_COUNTER_ARRAY(OMPI_BYTES_GET, "The number of bytes sent/received using RMA Get operations both through user-level Get functions and internal Get functions."),
-    SET_COUNTER_ARRAY(OMPI_UNEXPECTED, "The number of messages that arrived as unexpected messages."),
-    SET_COUNTER_ARRAY(OMPI_OUT_OF_SEQUENCE, "The number of messages that arrived out of the proper sequence."),
-    SET_COUNTER_ARRAY(OMPI_MATCH_TIME, "The number of microseconds spent matching unexpected messages.  Note: The timer used on the back end is in cycles, which could potentially be problematic on a system where the clock frequency can change.  On such a system, this counter could be inaccurate since we assume a fixed clock rate."),
-    SET_COUNTER_ARRAY(OMPI_UNEXPECTED_IN_QUEUE, "The number of messages that are currently in the unexpected message queue(s) of an MPI process."),
-    SET_COUNTER_ARRAY(OMPI_OOS_IN_QUEUE, "The number of messages that are currently in the out of sequence message queue(s) of an MPI process."),
-    SET_COUNTER_ARRAY(OMPI_MAX_UNEXPECTED_IN_QUEUE, "The maximum number of messages that the unexpected message queue(s) within an MPI process "
+    SET_COUNTER_ARRAY(OMPI_SPC_SEND, "The number of times MPI_Send was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_BSEND, "The number of times MPI_Bsend was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_RSEND, "The number of times MPI_Rsend was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_SSEND, "The number of times MPI_Ssend was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_RECV, "The number of times MPI_Recv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_MRECV, "The number of times MPI_Mrecv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_ISEND, "The number of times MPI_Isend was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IBSEND, "The number of times MPI_Ibsend was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IRSEND, "The number of times MPI_Irsend was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_ISSEND, "The number of times MPI_Issend was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IRECV, "The number of times MPI_Irecv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_SENDRECV, "The number of times MPI_Sendrecv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_SENDRECV_REPLACE, "The number of times MPI_Sendrecv_replace was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_PUT, "The number of times MPI_Put was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_RPUT, "The number of times MPI_Rput was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_GET, "The number of times MPI_Get was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_RGET, "The number of times MPI_Rget was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_PROBE, "The number of times MPI_Probe was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IPROBE, "The number of times MPI_Iprobe was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_BCAST, "The number of times MPI_Bcast was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IBCAST, "The number of times MPI_Ibcast was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_REDUCE, "The number of times MPI_Reduce was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IREDUCE, "The number of times MPI_Ireduce was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IREDUCE_SCATTER, "The number of times MPI_Ireduce_scatter was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IREDUCE_SCATTER_BLOCK, "The number of times MPI_Ireduce_scatter_block was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_ALLREDUCE, "The number of times MPI_Allreduce was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IALLREDUCE, "The number of times MPI_Iallreduce was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_SCAN, "The number of times MPI_Scan was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_ISCAN, "The number of times MPI_Iscan was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_SCATTER, "The number of times MPI_Scatter was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_SCATTERV, "The number of times MPI_Scatterv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_ISCATTER, "The number of times MPI_Iscatter was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_ISCATTERV, "The number of times MPI_Iscatterv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_GATHER, "The number of times MPI_Gather was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_GATHERV, "The number of times MPI_Gatherv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IGATHER, "The number of times MPI_Igather was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_ALLTOALL, "The number of times MPI_Alltoall was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IALLTOALL, "The number of times MPI_Ialltoall was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IALLTOALLV, "The number of times MPI_Ialltoallv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IALLTOALLW, "The number of times MPI_Ialltoallw was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_NEIGHBOR_ALLTOALL, "The number of times MPI_Neighbor_alltoall was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_NEIGHBOR_ALLTOALLV, "The number of times MPI_Neighbor_alltoallv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_NEIGHBOR_ALLTOALLW, "The number of times MPI_Neighbor_alltoallw was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_ALLGATHER, "The number of times MPI_Allgather was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_ALLGATHERV, "The number of times MPI_Allgatherv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IALLGATHER, "The number of times MPI_Iallgather was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IALLGATHERV, "The number of times MPI_Iallgatherv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_NEIGHBOR_ALLGATHER, "The number of times MPI_Neighbor_allgather was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_NEIGHBOR_ALLGATHERV, "The number of times MPI_Neighbor_allgatherv was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_TEST, "The number of times MPI_Test was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_TESTALL, "The number of times MPI_Testall was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_TESTANY, "The number of times MPI_Testany was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_TESTSOME, "The number of times MPI_Testsome was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_WAIT, "The number of times MPI_Wait was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_WAITALL, "The number of times MPI_Waitall was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_WAITANY, "The number of times MPI_Waitany was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_WAITSOME, "The number of times MPI_Waitsome was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_BARRIER, "The number of times MPI_Barrier was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_IBARRIER, "The number of times MPI_Ibarrier was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_WTIME, "The number of times MPI_Wtime was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_CANCEL, "The number of times MPI_Cancel was called."),
+    SET_COUNTER_ARRAY(OMPI_SPC_BYTES_RECEIVED_USER, "The number of bytes received by the user through point-to-point communications. Note: Includes bytes transferred using internal RMA operations."),
+    SET_COUNTER_ARRAY(OMPI_SPC_BYTES_RECEIVED_MPI, "The number of bytes received by MPI through collective, control, or other internal communications."),
+    SET_COUNTER_ARRAY(OMPI_SPC_BYTES_SENT_USER, "The number of bytes sent by the user through point-to-point communications.  Note: Includes bytes transferred using internal RMA operations."),
+    SET_COUNTER_ARRAY(OMPI_SPC_BYTES_SENT_MPI, "The number of bytes sent by MPI through collective, control, or other internal communications."),
+    SET_COUNTER_ARRAY(OMPI_SPC_BYTES_PUT, "The number of bytes sent/received using RMA Put operations both through user-level Put functions and internal Put functions."),
+    SET_COUNTER_ARRAY(OMPI_SPC_BYTES_GET, "The number of bytes sent/received using RMA Get operations both through user-level Get functions and internal Get functions."),
+    SET_COUNTER_ARRAY(OMPI_SPC_UNEXPECTED, "The number of messages that arrived as unexpected messages."),
+    SET_COUNTER_ARRAY(OMPI_SPC_OUT_OF_SEQUENCE, "The number of messages that arrived out of the proper sequence."),
+    SET_COUNTER_ARRAY(OMPI_SPC_MATCH_TIME, "The number of microseconds spent matching unexpected messages.  Note: The timer used on the back end is in cycles, which could potentially be problematic on a system where the clock frequency can change.  On such a system, this counter could be inaccurate since we assume a fixed clock rate."),
+    SET_COUNTER_ARRAY(OMPI_SPC_UNEXPECTED_IN_QUEUE, "The number of messages that are currently in the unexpected message queue(s) of an MPI process."),
+    SET_COUNTER_ARRAY(OMPI_SPC_OOS_IN_QUEUE, "The number of messages that are currently in the out of sequence message queue(s) of an MPI process."),
+    SET_COUNTER_ARRAY(OMPI_SPC_MAX_UNEXPECTED_IN_QUEUE, "The maximum number of messages that the unexpected message queue(s) within an MPI process "
                                                     "contained at once since the last reset of this counter. Note: This counter is reset each time it is read."),
-    SET_COUNTER_ARRAY(OMPI_MAX_OOS_IN_QUEUE, "The maximum number of messages that the out of sequence message queue(s) within an MPI process "
+    SET_COUNTER_ARRAY(OMPI_SPC_MAX_OOS_IN_QUEUE, "The maximum number of messages that the out of sequence message queue(s) within an MPI process "
                                              "contained at once since the last reset of this counter. Note: This counter is reset each time it is read.")
 };
 
@@ -134,9 +134,10 @@ static inline void CLEAR_SPC_BIT(uint32_t* array, int32_t pos)
  * ##############################################################
  */
 static int ompi_spc_notify(mca_base_pvar_t *pvar, mca_base_pvar_event_t event, void *obj_handle, int *count)
-{
-    (void)obj_handle;
+    __opal_attribute_unused__;
 
+static int ompi_spc_notify(mca_base_pvar_t *pvar, mca_base_pvar_event_t event, void *obj_handle, int *count)
+{
     int index;
 
     if(OPAL_LIKELY(!mpi_t_enabled)) {
@@ -177,9 +178,10 @@ static int ompi_spc_notify(mca_base_pvar_t *pvar, mca_base_pvar_event_t event, v
  * to the correct value for this pvar.
  */
 static int ompi_spc_get_count(const struct mca_base_pvar_t *pvar, void *value, void *obj_handle)
-{
-    (void) obj_handle;
+    __opal_attribute_unused__;
 
+static int ompi_spc_get_count(const struct mca_base_pvar_t *pvar, void *value, void *obj_handle)
+{
     long long *counter_value = (long long*)value;
 
     if(OPAL_LIKELY(!mpi_t_enabled)) {
@@ -196,7 +198,7 @@ static int ompi_spc_get_count(const struct mca_base_pvar_t *pvar, void *value, v
         *counter_value /= sys_clock_freq_mhz;
     }
     /* If this is a high watermark counter, reset it after it has been read */
-    if(index == OMPI_MAX_UNEXPECTED_IN_QUEUE || index == OMPI_MAX_OOS_IN_QUEUE) {
+    if(index == OMPI_SPC_MAX_UNEXPECTED_IN_QUEUE || index == OMPI_SPC_MAX_OOS_IN_QUEUE) {
         ompi_spc_events[index].value = 0;
     }
 
@@ -204,7 +206,7 @@ static int ompi_spc_get_count(const struct mca_base_pvar_t *pvar, void *value, v
 }
 
 /* Initializes the events data structure and allocates memory for it if needed. */
-void events_init(void)
+void ompi_spc_events_init(void)
 {
     int i;
 
@@ -235,7 +237,7 @@ void ompi_spc_init(void)
     /* Initialize the clock frequency variable as the CPU's frequency in MHz */
     sys_clock_freq_mhz = opal_timer_base_get_freq() / 1000000;
 
-    events_init();
+    ompi_spc_events_init();
 
     /* Get the MCA params string of counters to turn on */
     char **arg_strings = opal_argv_split(ompi_mpi_spc_attach_string, ',');
@@ -295,7 +297,7 @@ void ompi_spc_init(void)
         }
     }
     /* If this is a timer event, sent the corresponding timer_event entry to 1 */
-    SET_SPC_BIT(ompi_spc_timer_event, OMPI_MATCH_TIME);
+    SET_SPC_BIT(ompi_spc_timer_event, OMPI_SPC_MATCH_TIME);
     opal_argv_free(arg_strings);
 }
 
@@ -320,11 +322,19 @@ void ompi_spc_dump(void)
 
     /* Aggregate all of the information on rank 0 using MPI_Gather on MPI_COMM_WORLD */
     send_buffer = (long long*)malloc(OMPI_SPC_NUM_COUNTERS * sizeof(long long));
+    if(send_buffer == NULL) {
+        opal_show_help("help-mpi-runtime.txt", "spc: failed to allocate memory", true);
+        return;
+    }
     for(i = 0; i < OMPI_SPC_NUM_COUNTERS; i++) {
         send_buffer[i] = (long long)ompi_spc_events[i].value;
     }
     if( 0 == rank ) {
         recv_buffer = (long long*)malloc(world_size * OMPI_SPC_NUM_COUNTERS * sizeof(long long));
+        if(recv_buffer == NULL) {
+            opal_show_help("help-mpi-runtime.txt", "spc: failed to allocate memory", true);
+            return;
+        }
     }
     (void)comm->c_coll->coll_gather(send_buffer, OMPI_SPC_NUM_COUNTERS, MPI_LONG_LONG,
                                     recv_buffer, OMPI_SPC_NUM_COUNTERS, MPI_LONG_LONG,

@@ -48,7 +48,7 @@ int MPI_Scan(const void *sendbuf, void *recvbuf, int count,
 {
     int err;
 
-    SPC_RECORD(OMPI_SCAN, 1);
+    SPC_RECORD(OMPI_SPC_SCAN, 1);
 
     MEMCHECKER(
         memchecker_datatype(datatype);

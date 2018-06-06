@@ -53,7 +53,7 @@ int MPI_Neighbor_alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendt
     size_t sendtype_size, recvtype_size;
     int err;
 
-    SPC_RECORD(OMPI_NEIGHBOR_ALLTOALL, 1);
+    SPC_RECORD(OMPI_SPC_NEIGHBOR_ALLTOALL, 1);
 
     MEMCHECKER(
         memchecker_comm(comm);

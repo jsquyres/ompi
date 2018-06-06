@@ -51,7 +51,7 @@ int MPI_Ialltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
     size_t sendtype_size, recvtype_size;
     int err;
 
-    SPC_RECORD(OMPI_IALLTOALL, 1);
+    SPC_RECORD(OMPI_SPC_IALLTOALL, 1);
 
     MEMCHECKER(
         memchecker_comm(comm);

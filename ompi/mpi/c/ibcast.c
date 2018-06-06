@@ -37,7 +37,7 @@ int MPI_Ibcast(void *buffer, int count, MPI_Datatype datatype,
 {
     int err;
 
-    SPC_RECORD(OMPI_IBCAST, 1);
+    SPC_RECORD(OMPI_SPC_IBCAST, 1);
 
     MEMCHECKER(
         memchecker_datatype(datatype);

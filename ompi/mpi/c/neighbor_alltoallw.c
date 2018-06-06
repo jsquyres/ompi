@@ -54,7 +54,7 @@ int MPI_Neighbor_alltoallw(const void *sendbuf, const int sendcounts[], const MP
     int i, err;
     int indegree, outdegree;
 
-    SPC_RECORD(OMPI_NEIGHBOR_ALLTOALLW, 1);
+    SPC_RECORD(OMPI_SPC_NEIGHBOR_ALLTOALLW, 1);
 
     MEMCHECKER(
         ptrdiff_t recv_ext;

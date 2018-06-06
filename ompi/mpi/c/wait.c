@@ -41,7 +41,7 @@ static const char FUNC_NAME[] = "MPI_Wait";
 
 int MPI_Wait(MPI_Request *request, MPI_Status *status)
 {
-    SPC_RECORD(OMPI_WAIT, 1);
+    SPC_RECORD(OMPI_SPC_WAIT, 1);
 
     MEMCHECKER(
         memchecker_request(request);

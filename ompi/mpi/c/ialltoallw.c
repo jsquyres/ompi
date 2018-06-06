@@ -50,7 +50,7 @@ int MPI_Ialltoallw(const void *sendbuf, const int sendcounts[], const int sdispl
 {
     int i, size, err;
 
-    SPC_RECORD(OMPI_IALLTOALLW, 1);
+    SPC_RECORD(OMPI_SPC_IALLTOALLW, 1);
 
     MEMCHECKER(
         ptrdiff_t recv_ext;

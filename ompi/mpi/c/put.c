@@ -49,7 +49,7 @@ int MPI_Put(const void *origin_addr, int origin_count, MPI_Datatype origin_datat
 {
     int rc;
 
-    SPC_RECORD(OMPI_PUT, 1);
+    SPC_RECORD(OMPI_SPC_PUT, 1);
 
     if (MPI_PARAM_CHECK) {
         rc = OMPI_SUCCESS;

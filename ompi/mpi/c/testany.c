@@ -44,7 +44,7 @@ static const char FUNC_NAME[] = "MPI_Testany";
 
 int MPI_Testany(int count, MPI_Request requests[], int *indx, int *completed, MPI_Status *status)
 {
-    SPC_RECORD(OMPI_TESTANY, 1);
+    SPC_RECORD(OMPI_SPC_TESTANY, 1);
 
     MEMCHECKER(
         int j;

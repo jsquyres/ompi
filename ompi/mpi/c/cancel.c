@@ -44,7 +44,7 @@ int MPI_Cancel(MPI_Request *request)
 {
     int rc;
 
-    SPC_RECORD(OMPI_CANCEL, 1);
+    SPC_RECORD(OMPI_SPC_CANCEL, 1);
 
     MEMCHECKER(
         memchecker_request(request);

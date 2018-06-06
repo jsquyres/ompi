@@ -48,7 +48,7 @@ int MPI_Ibsend(const void *buf, int count, MPI_Datatype type, int dest,
 {
     int rc = MPI_SUCCESS;
 
-    SPC_RECORD(OMPI_IBSEND, 1);
+    SPC_RECORD(OMPI_SPC_IBSEND, 1);
 
     MEMCHECKER(
         memchecker_datatype(type);

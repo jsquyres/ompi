@@ -49,7 +49,7 @@ int MPI_Ireduce_scatter(const void *sendbuf, void *recvbuf, const int recvcounts
 {
     int i, err, size, count;
 
-    SPC_RECORD(OMPI_IREDUCE_SCATTER, 1);
+    SPC_RECORD(OMPI_SPC_IREDUCE_SCATTER, 1);
 
     MEMCHECKER(
         int rank;
