@@ -18,6 +18,8 @@ opal_timer_t sys_clock_freq_mhz = 0;
 OMPI_DECLSPEC int mpi_t_offset = -1;
 OMPI_DECLSPEC bool mpi_t_enabled = false;
 
+OPAL_DECLSPEC ompi_communicator_t *comm = NULL;
+
 typedef struct ompi_spc_event_t {
     const char* counter_name;
     const char* counter_description;
@@ -225,6 +227,8 @@ void ompi_spc_events_init(void)
         ompi_spc_events[i].name = (char*)ompi_spc_events_names[i].counter_name;
         ompi_spc_events[i].value = 0;
     }
+
+    ompi_comm_dup(&ompi_mpi_comm_world.comm, &comm);
 }
 
 /* Initializes the SPC data structures and registers all counters as MPI_T pvars.
@@ -309,7 +313,6 @@ void ompi_spc_dump(void)
     int i, j, world_size, offset;
     long long *recv_buffer = NULL, *send_buffer;
 
-    ompi_communicator_t *comm = &ompi_mpi_comm_world.comm;
     int rank = ompi_comm_rank(comm);
     world_size = ompi_comm_size(comm);
 
@@ -372,9 +375,12 @@ void ompi_spc_dump(void)
 void ompi_spc_fini(void)
 {
 #if SPC_ENABLE == 1
-    ompi_spc_dump();
+    if(ompi_mpi_spc_dump_enabled) {
+        ompi_spc_dump();
+    }
 #endif
     free(ompi_spc_events); ompi_spc_events = NULL;
+    ompi_comm_free(&comm);
 }
 
 /* Records an update to a counter using an atomic add operation. */
