@@ -2,7 +2,7 @@ dnl -*- shell-script -*-
 dnl
 dnl Copyright (c) 2015-2017 Research Organization for Information Science
 dnl                         and Technology (RIST). All rights reserved.
-dnl Copyright (c) 2017      Cisco Systems, Inc.  All rights reserved.
+dnl Copyright (c) 2017-2018 Cisco Systems, Inc.  All rights reserved
 dnl $COPYRIGHT$
 dnl
 dnl Additional copyrights may follow
@@ -135,6 +135,8 @@ EOF
     result_msg=
     OPAL_LOG_COMMAND([$CC -o conftest $CFLAGS $CPPFLAGS conftest_c.$ac_ext $LDFLAGS -l$1 $LIBS $3],
         [ldd_output=`ldd conftest`
+         OPAL_LOG_MSG([ldd conftest output:])
+         OPAL_LOG_MSG([$ldd_output])
          AS_IF([echo $ldd_output | grep -q libnl-3.so],
                [this_requires_v3=1
                 result_msg="v3"])
