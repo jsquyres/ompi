@@ -3,6 +3,7 @@
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
  *
+ * Copyright (c) 2018      Cisco Systems, Inc.  All rights reserved
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -13,6 +14,8 @@
 #include "ompi_spc.h"
 
 opal_timer_t sys_clock_freq_mhz = 0;
+
+static void ompi_spc_dump(void);
 
 /* Array for converting from SPC indices to MPI_T indices */
 OMPI_DECLSPEC int mpi_t_offset = -1;
@@ -213,10 +216,11 @@ void ompi_spc_events_init(void)
     int i;
 
     /* If the events data structure hasn't been allocated yet, allocate memory for it */
-    if(ompi_spc_events == NULL) {
+    if(NULL == ompi_spc_events) {
         ompi_spc_events = (ompi_spc_t*)malloc(OMPI_SPC_NUM_COUNTERS * sizeof(ompi_spc_t));
         if(ompi_spc_events == NULL) {
-            opal_show_help("help-mpi-runtime.txt", "spc: failed to allocate memory", true);
+            opal_show_help("help-mpi-runtime.txt", "lib-call-fail", true,
+                           "malloc", __FILE__, __LINE__);
             return;
         }
     }
@@ -308,7 +312,7 @@ void ompi_spc_init(void)
 /* Gathers all of the SPC data onto rank 0 of MPI_COMM_WORLD and prints out all
  * of the counter values to stdout.
  */
-void ompi_spc_dump(void)
+static void ompi_spc_dump(void)
 {
     int i, j, world_size, offset;
     long long *recv_buffer = NULL, *send_buffer;
@@ -325,8 +329,9 @@ void ompi_spc_dump(void)
 
     /* Aggregate all of the information on rank 0 using MPI_Gather on MPI_COMM_WORLD */
     send_buffer = (long long*)malloc(OMPI_SPC_NUM_COUNTERS * sizeof(long long));
-    if(send_buffer == NULL) {
-        opal_show_help("help-mpi-runtime.txt", "spc: failed to allocate memory", true);
+    if (NULL == send_buffer) {
+        opal_show_help("help-mpi-runtime.txt", "lib-call-fail", true,
+                       "malloc", __FILE__, __LINE__);
         return;
     }
     for(i = 0; i < OMPI_SPC_NUM_COUNTERS; i++) {
@@ -334,8 +339,9 @@ void ompi_spc_dump(void)
     }
     if( 0 == rank ) {
         recv_buffer = (long long*)malloc(world_size * OMPI_SPC_NUM_COUNTERS * sizeof(long long));
-        if(recv_buffer == NULL) {
-            opal_show_help("help-mpi-runtime.txt", "spc: failed to allocate memory", true);
+        if (NULL == recv_buffer) {
+            opal_show_help("help-mpi-runtime.txt", "lib-call-fail", true,
+                           "malloc", __FILE__, __LINE__);
             return;
         }
     }
@@ -374,11 +380,10 @@ void ompi_spc_dump(void)
 /* Frees any dynamically alocated OMPI SPC data structures */
 void ompi_spc_fini(void)
 {
-#if SPC_ENABLE == 1
-    if(ompi_mpi_spc_dump_enabled) {
+    if (SPC_ENABLE == 1 && ompi_mpi_spc_dump_enabled) {
         ompi_spc_dump();
     }
-#endif
+
     free(ompi_spc_events); ompi_spc_events = NULL;
     ompi_comm_free(&comm);
 }
