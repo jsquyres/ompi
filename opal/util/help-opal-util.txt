@@ -1,6 +1,6 @@
 # -*- text -*-
 #
-# Copyright (c) 2009 Cisco Systems, Inc.  All rights reserved.
+# Copyright (c) 2009-2018 Cisco Systems, Inc.  All rights reserved
 # Copyright (c) 2017      Intel, Inc.  All rights reserved.
 # $COPYRIGHT$
 #
@@ -114,3 +114,15 @@ A call to mkdir was unable to create the desired directory:
 
 Please check to ensure you have adequate permissions to perform
 the desired operation.
+#
+[info key too long]
+Open MPI has detected the use of an info key that is too long.
+
+If you need longer MPI_Info keys, you can use the --with-max-info-key
+configure command line argument to set a longer maximum length.
+
+  Key:                    %s
+  Key length:             %d
+  Max allowed key length: %d
+
+%s

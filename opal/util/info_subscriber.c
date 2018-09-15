@@ -39,6 +39,7 @@
 #include <assert.h>
 
 #include "opal/util/argv.h"
+#include "opal/util/show_help.h"
 #include "opal/util/opal_getcwd.h"
 #include "opal/util/output.h"
 #include "opal/util/strncpy.h"
@@ -258,32 +259,26 @@ opal_infosubscribe_testregister(opal_infosubscriber_t *object)
 static int
 save_original_key_val(opal_info_t *info, char *key, char *val, int overwrite)
 {
-    char modkey[OPAL_MAX_INFO_KEY];
+    char modkey[OPAL_INFO_KEY_STORAGE];
     int flag, err;
 
     // Checking strlen, even though it should be unnecessary.
     // This should only happen on predefined keys with short lengths.
-    if (strlen(key) + strlen(OPAL_INFO_SAVE_PREFIX) < OPAL_MAX_INFO_KEY) {
-        snprintf(modkey, OPAL_MAX_INFO_KEY,
-            OPAL_INFO_SAVE_PREFIX "%s", key);
-// (the prefix macro is a string, so the unreadable part above is a string concatenation)
-        flag = 0;
-        opal_info_get(info, modkey, 0, NULL, &flag);
-        if (!flag || overwrite) {
-            err = opal_info_set(info, modkey, val);
-            if (OPAL_SUCCESS != err) {
-                return err;
-            }
-        }
-// FIXME: use whatever the Open MPI convention is for DEBUG options like this
-// Even though I don't expect this codepath to happen, if it somehow DID happen
-// in a real run with user-keys, I'd rather it be silent at that point rather
-// being noisy and/or aborting.
-#ifdef OMPI_DEBUG
-    } else {
-        printf("WARNING: Unexpected key length [%s]\n", key);
-#endif
+    if (strlen(key) + strlen(OPAL_INFO_SAVE_PREFIX) > OPAL_INFO_KEY_STORAGE) {
+        return OPAL_ERR_BAD_PARAM;
     }
+    
+    snprintf(modkey, OPAL_INFO_KEY_STORAGE, OPAL_INFO_SAVE_PREFIX "%s", key);
+    // (the prefix macro is a string, so the unreadable part above is a string concatenation)
+    flag = 0;
+    opal_info_get(info, modkey, 0, NULL, &flag);
+    if (!flag || overwrite) {
+        err = opal_info_set(info, modkey, val);
+        if (OPAL_SUCCESS != err) {
+            return err;
+        }
+    }
+
     return OPAL_SUCCESS;
 }
 
@@ -347,25 +342,30 @@ opal_infosubscribe_change_info(opal_infosubscriber_t *object, opal_info_t *new_i
 // to me this might be required if the strings become more dynamic than the
 // simple true/false values seen in the current code. It'll be an easy change,
 // callback() is only used two places.
-int opal_infosubscribe_subscribe(opal_infosubscriber_t *object, char *key, char *value, opal_key_interest_callback_t *callback)
+int opal_infosubscribe_subscribe(opal_infosubscriber_t *object,
+                                 char *key, char *initial_value,
+                                 opal_key_interest_callback_t *callback)
 {
     opal_list_t *list = NULL;
     opal_hash_table_t *table = &object->s_subscriber_table;
     opal_callback_list_item_t *callback_list_item;
-    size_t max_len = OPAL_MAX_INFO_KEY - strlen(OPAL_INFO_SAVE_PREFIX);
 
-    if (strlen(key) > max_len) {
-        opal_output(0, "DEVELOPER WARNING: Unexpected MPI info key length [%s]: "
-                    "OMPI internal callback keys are limited to %" PRIsize_t " chars.",
-                    key, max_len);
+    if (strlen(key) > OPAL_MAX_INFO_KEY) {
+        opal_show_help("help-opal-util.txt", "info key too long", true,
+                       key,
+                       strlen(key),
+                       OPAL_MAX_INFO_KEY,
+                       (OPAL_ENABLE_DEBUG ?
+                        "Aborting because this is a developer / debugging build.  Go fix this error." :
+                        "This info key will almost certainly not work properly.  You should inform an\nOpen MPI developer about this."));
 #if OPAL_ENABLE_DEBUG
-        opal_output(0, "Aborting because this is a developer / debugging build.  Go fix this error.");
         // Do not assert() / dump core.  Just exit un-gracefully.
         exit(1);
-#else
-        opal_output(0, "The \"%s\" MPI info key almost certainly will not work properly.  You should inform an Open MPI developer about this.", key);
-        key[max_len] = '\0';
 #endif
+
+        // This will almost certainly cause problems, but the user has
+        // been warned.
+        key[OPAL_MAX_INFO_KEY] = '\0';
     }
 
     if (table) {
@@ -378,8 +378,8 @@ int opal_infosubscribe_subscribe(opal_infosubscriber_t *object, char *key, char 
 
         callback_list_item = OBJ_NEW(opal_callback_list_item_t);
         callback_list_item->callback = callback;
-        if (value) {
-            callback_list_item->default_value = strdup(value);
+        if (initial_value) {
+            callback_list_item->default_value = strdup(initial_value);
         } else {
             callback_list_item->default_value = NULL;
         }
@@ -400,7 +400,7 @@ int opal_infosubscribe_subscribe(opal_infosubscriber_t *object, char *key, char 
 // - is there a value already associated with key in this obj's info:
 //   to use in the callback()
         char *buffer = malloc(OPAL_MAX_INFO_VAL+1); // (+1 shouldn't be needed)
-        char *val = value; // start as default value
+        char *val = initial_value; // start as default value
         int flag = 0;
         char *updated_value;
         int err;
@@ -438,9 +438,3 @@ int opal_infosubscribe_subscribe(opal_infosubscriber_t *object, char *key, char 
 
     return OPAL_SUCCESS;
 }
-
-/*
-    OBJ_DESTRUCT(&opal_comm_info_hashtable);
-    OBJ_DESTRUCT(&opal_win_info_hashtable);
-    OBJ_DESTRUCT(&opal_file_info_hashtable);
-*/

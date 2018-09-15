@@ -1299,7 +1299,10 @@ static char* ompi_osc_rdma_set_no_lock_info(opal_infosubscriber_t *obj, char *ke
     ompi_osc_rdma_module_t *module = GET_MODULE(win);
     bool temp;
 
-    temp = opal_str_to_bool(value);
+    if (OPAL_SUCCESS != opal_str_to_bool(value, &temp)) {
+        return OPAL_ERR_BAD_PARAM;
+    }
+
     if (temp && !module->no_locks) {
         /* clean up the lock hash. it is up to the user to ensure no lock is
          * outstanding from this process when setting the info key */

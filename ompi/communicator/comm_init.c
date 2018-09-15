@@ -473,11 +473,13 @@ static void ompi_comm_destruct(ompi_communicator_t* comm)
     static char *ompi_comm_set_ ## name (opal_infosubscriber_t *obj, char *key, char *value) \
     {                                                                   \
         ompi_communicator_t *comm = (ompi_communicator_t *) obj;        \
-                                                                        \
-        if (opal_str_to_bool(value)) {                                  \
-            comm->c_assertions |= flag;                                 \
-        } else {                                                        \
-            comm->c_assertions &= ~flag;                                \
+        bool bool_val;                                                  \
+        if (OPAL_SUCCESS == opal_str_to_bool(value, &bool_val)) {       \
+            if (bool_val) {                                             \
+                comm->c_assertions |= flag;                             \
+            } else {                                                    \
+                comm->c_assertions &= ~flag;                            \
+            }
         }                                                               \
                                                                         \
         return OMPI_COMM_CHECK_ASSERT(comm, flag) ? "true" : "false";   \

@@ -34,12 +34,24 @@
 
 /**
  * \internal
- * opal_info_t structure. MPI_Info is a pointer to this structure
+ * opal_info_t structure.  MPI_Info is a pointer to this structure.
+ *
+ * Note that there are two key/value lists on this structure:
+ *
+ * i_user_keys: these are user-visible keys.  These keys are used for
+ * the MPI_INFO_*() APIs, such as MPI_INFO_SET/GET, etc.
+ *
+ * i_internal_keys: these are keys maintained internally for use by
+ * the opal_infosubscribe_*() APIs.
+ *
+ * Each element of i_user_keys and i_internal_keys is of type
+ * opal_info_entry_t.
  */
-
 struct opal_info_t {
-  opal_list_t   super;
-  opal_mutex_t	*i_lock;
+    opal_object_t super;
+    opal_list_t   *i_user_keys;
+    opal_list_t   *i_internal_keys;
+    opal_mutex_t  *i_lock;
 };
 
 /**
@@ -58,7 +70,7 @@ extern opal_pointer_array_t ompi_info_f_to_c_table;
 /**
  * \internal
  *
- * opal_info_entry_t object. Each item in opal_info_list is of this
+ * opal_info_entry_t object. Each item in opal_info_t is of this
  * type. It contains (key,value) pairs
  */
 struct opal_info_entry_t {
@@ -66,7 +78,7 @@ struct opal_info_entry_t {
     char *ie_value; /**< value part of the (key, value) pair.
                   * Maximum length is MPI_MAX_INFO_VAL */
     char ie_key[OPAL_MAX_INFO_KEY + 1]; /**< "key" part of the (key, value)
-                                     * pair */
+                                         * pair */
 };
 /**
  * \internal
@@ -89,10 +101,8 @@ OPAL_DECLSPEC OBJ_CLASS_DECLARATION(opal_info_t);
 OPAL_DECLSPEC OBJ_CLASS_DECLARATION(opal_info_entry_t);
 
 
-int opal_mpiinfo_init(void*);
-
 /**
- *   opal_info_dup - Duplicate an 'MPI_Info' object
+ *   opal_info_dup - Duplicate an opal_info_t object.
  *
  *   @param info source info object (handle)
  *   @param newinfo pointer to the new info object (handle)
@@ -112,7 +122,8 @@ int opal_info_dup (opal_info_t *info, opal_info_t **newinfo);
 #define OPAL_INFO_SAVE_PREFIX "_OMPI_IN_"
 
 /**
- *   opal_info_dup_mpistandard - Duplicate an 'MPI_Info' object
+ *   opal_info_dup_mpistandard - Duplicate an opal_info_t object, but
+ *   also perform key comparisons and save changed values.
  *
  *   @param info source info object (handle)
  *   @param newinfo pointer to the new info object (handle)
@@ -123,7 +134,7 @@ int opal_info_dup (opal_info_t *info, opal_info_t **newinfo);
  *   The user sets an info object with key/value pairs and once processed,
  *   we keep key/val pairs that might have been modified vs what the user
  *   provided, and some user inputs might have been ignored too.  The original
- *   user inpust are kept as __IN_<key>/<val>.
+ *   user key/values are stored in the i_internal_keys list.
  *
  *   This routine then outputs key/value pairs as:
  *
@@ -143,8 +154,8 @@ int opal_info_dup_mpistandard (opal_info_t *info, opal_info_t **newinfo);
  * Set a new key,value pair on info.
  *
  * @param info pointer to opal_info_t object
- * @param key pointer to the new key object
- * @param value pointer to the new value object
+ * @param key pointer to the new key string
+ * @param value pointer to the new value string
  *
  * @retval OPAL_SUCCESS upon success
  * @retval OPAL_ERR_OUT_OF_RESOURCE if out of memory
@@ -155,7 +166,7 @@ OPAL_DECLSPEC int opal_info_set (opal_info_t *info, const char *key, const char 
  * Set a new key,value pair from a variable enumerator.
  *
  * @param info pointer to opal_info_t object
- * @param key pointer to the new key object
+ * @param key pointer to the new key string
  * @param value integer value of the info key (must be valid in var_enum)
  * @param var_enum variable enumerator
  *
@@ -167,7 +178,7 @@ OPAL_DECLSPEC int opal_info_set_value_enum (opal_info_t *info, const char *key, 
                                             mca_base_var_enum_t *var_enum);
 
 /**
- * opal_info_free - Free an 'MPI_Info' object.
+ * opal_info_free - Free an opal_info_t object.
  *
  *   @param info pointer to info (opal_info_t *) object to be freed (handle)
  *
@@ -181,7 +192,7 @@ OPAL_DECLSPEC int opal_info_set_value_enum (opal_info_t *info, const char *key, 
 int opal_info_free (opal_info_t **info);
 
   /**
-   *   Get a (key, value) pair from an 'MPI_Info' object and assign it
+   *   Get a (key, value) pair from an opal_info_t object and assign it
    *   into a boolen output.
    *
    *   @param info Pointer to opal_info_t object
@@ -192,22 +203,14 @@ int opal_info_free (opal_info_t **info);
    *
    *   @retval OPAL_SUCCESS
    *
-   *   If found, the string value will be cast to the boolen output in
-   *   the following manner:
-   *
-   *   - If the string value is digits, the return value is "(bool)
-   *     atoi(value)"
-   *   - If the string value is (case-insensitive) "yes" or "true", the
-   *     result is true
-   *   - If the string value is (case-insensitive) "no" or "false", the
-   *     result is false
-   *   - All other values are false
+   *   If found, the string value will be cast to the boolen output
+   *   using opal_str2bool().
    */
 OPAL_DECLSPEC int opal_info_get_bool (opal_info_t *info, char *key, bool *value,
                                       int *flag);
 
 /**
- *   Get a (key, value) pair from an 'MPI_Info' object and assign it
+ *   Get a (key, value) pair from an opal_info_t object and assign it
  *   into an integer output based on the enumerator value.
  *
  *   @param info Pointer to opal_info_t object
@@ -227,7 +230,7 @@ OPAL_DECLSPEC int opal_info_get_value_enum (opal_info_t *info, const char *key,
                                             mca_base_var_enum_t *var_enum, int *flag);
 
 /**
- *   Get a (key, value) pair from an 'MPI_Info' object
+ *   Get a (key, value) pair from an opal_info_t object
  *
  *   @param info Pointer to opal_info_t object
  *   @param key null-terminated character string of the index key
@@ -245,7 +248,7 @@ OPAL_DECLSPEC int opal_info_get (opal_info_t *info, const char *key, int valuele
                                  char *value, int *flag);
 
 /**
- * Delete a (key,value) pair from "info"
+ * Delete a (key,value) pair from an opal_info_t object
  *
  * @param info opal_info_t pointer on which we need to operate
  * @param key The key portion of the (key,value) pair that
@@ -257,6 +260,8 @@ OPAL_DECLSPEC int opal_info_get (opal_info_t *info, const char *key, int valuele
 int opal_info_delete(opal_info_t *info, const char *key);
 
 /**
+ *   Get the length of a key's value from an opal_info_t object
+ *
  *   @param info - opal_info_t pointer object (handle)
  *   @param key - null-terminated character string of the index key
  *   @param valuelen - length of the value associated with 'key' (integer)
@@ -275,7 +280,8 @@ OPAL_DECLSPEC int opal_info_get_valuelen (opal_info_t *info, const char *key, in
                                           int *flag);
 
 /**
- *   opal_info_get_nthkey - Get a key indexed by integer from an 'MPI_Info' o
+ *   opal_info_get_nthkey - Get a key indexed by integer from an
+ *   opal_info_t object.
  *
  *   @param info Pointer to opal_info_t object
  *   @param n index of key to retrieve (integer)
@@ -320,7 +326,8 @@ int opal_info_value_to_int(char *value, int *interp);
 END_C_DECLS
 
 /**
- * Get the number of keys defined on on an MPI_Info object
+ * Get the number of user keys defined on on an opal_info_t object
+ *
  * @param info Pointer to opal_info_t object.
  * @param nkeys Pointer to nkeys, which needs to be filled up.
  *
@@ -329,10 +336,8 @@ END_C_DECLS
 static inline int
 opal_info_get_nkeys(opal_info_t *info, int *nkeys)
 {
-    *nkeys = (int) opal_list_get_size(&(info->super));
+    *nkeys = (int) opal_list_get_size(&(info->user_keys));
     return OPAL_SUCCESS;
 }
-
-bool opal_str_to_bool(char*);
 
 #endif /* OPAL_INFO_H */

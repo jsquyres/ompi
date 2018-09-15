@@ -70,7 +70,7 @@ headers = \
         show_help.h \
         show_help_lex.h \
         stacktrace.h \
-        str2bool.h \
+        str_to_bool.h \
         strncpy.h \
         sys_limits.h \
         timings.h \
@@ -110,7 +110,7 @@ libopalutil_la_SOURCES = \
         show_help.c \
         show_help_lex.l \
         stacktrace.c \
-        str2bool.c \
+        str_to_bool.c \
         strncpy.c \
         sys_limits.c \
         uri.c \
