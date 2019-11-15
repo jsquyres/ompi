@@ -31,10 +31,9 @@
 #include "opal/util/proc.h"
 #include "opal/hash_string.h"
 
-#include "pmix.h"
-#include "pmix_server.h"
-#include "pmix_tool.h"
-#include "pmix_version.h"
+/* include implementation to call */
+#include MCA_pmix_IMPLEMENTATION_HEADER
+
 
 BEGIN_C_DECLS
 
@@ -518,6 +517,29 @@ OPAL_DECLSPEC int opal_pmix_register_cleanup(char *path,
 #endif
 #endif
 #endif
+
+/**
+ * Structure for hwloc components.
+ */
+struct opal_pmix_base_component_2_0_0_t {
+    /** MCA base component */
+    mca_base_component_t base_version;
+    /** MCA base data */
+    mca_base_component_data_t base_data;
+};
+
+/**
+ * Convenience typedef
+ */
+typedef struct opal_pmix_base_component_2_0_0_t opal_pmix_base_component_2_0_0_t;
+typedef struct opal_pmix_base_component_2_0_0_t opal_pmix_component_t;
+
+/**
+ * Macro for use in components that are of type hwloc
+ */
+#define OPAL_PMIX_BASE_VERSION_2_0_0 \
+    OPAL_MCA_BASE_VERSION_2_1_0("pmix", 2, 0, 0)
+
 
 END_C_DECLS
 

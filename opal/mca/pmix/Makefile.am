@@ -8,6 +8,7 @@
 #
 
 EXTRA_DIST = autogen.options
+dist_opaldata_DATA =
 
 # main library setup
 noinst_LTLIBRARIES = libmca_pmix.la

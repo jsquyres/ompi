@@ -37,23 +37,13 @@ AC_DEFUN([MCA_opal_pmix_pmix4x_COMPILE_MODE], [
     AC_MSG_RESULT([$$4])
 ])
 
-# Include hwloc m4 files
-m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc.m4)
-m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_pkg.m4)
-m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_check_attributes.m4)
-m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_check_visibility.m4)
-m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_check_vendor.m4)
-m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_components.m4)
-m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_internal.m4)
-m4_include(opal/mca/hwloc/hwloc201/hwloc/config/netloc.m4)
-
 # MCA_pmix_pmix4x_POST_CONFIG()
 # ---------------------------------
 AC_DEFUN([MCA_opal_pmix_pmix4x_POST_CONFIG],[
     OPAL_VAR_SCOPE_PUSH([opal_pmix_pmix4x_basedir])
 
     # If we won, then do all the rest of the setup
-    AS_IF([test "$1" = "1" && test "$opal_pmix_pmix4x_support" = "yes"],
+    AS_IF([test "$1" = "1" && test "$opal_pmix_pmix4x_happy" = "1"],
           [
            # Set this variable so that the framework m4 knows what
            # file to include in opal/mca/pmix/pmix-internal.h
@@ -71,7 +61,7 @@ AC_DEFUN([MCA_opal_pmix_pmix4x_POST_CONFIG],[
     OPAL_VAR_SCOPE_POP
 
     # This must be run unconditionally
-    PMIX_DO_AM_CONDITIONALS
+    # PMIX_DO_AM_CONDITIONALS
 ])dnl
 
 
@@ -80,7 +70,7 @@ AC_DEFUN([MCA_opal_pmix_pmix4x_POST_CONFIG],[
 AC_DEFUN([MCA_opal_pmix_pmix4x_CONFIG],[
     AC_CONFIG_FILES([opal/mca/pmix/pmix4x/Makefile])
 
-    OPAL_VAR_SCOPE_PUSH([PMIX_VERSION opal_pmix_pmix4x_save_CPPFLAGS opal_pmix_pmix2_save_CFLAGS opal_pmix_pmix4x_save_LDFLAGS opal_pmix_pmix4x_save_LIBS opal_pmix_pmix4x_basedir opal_pmix_pmix4x_args opal_pmix_pmix4x_happy  pmix_pmix4x_status_filename])
+    OPAL_VAR_SCOPE_PUSH([PMIX_VERSION opal_pmix_pmix4x_save_CPPFLAGS opal_pmix_pmix2_save_CFLAGS opal_pmix_pmix4x_save_LDFLAGS opal_pmix_pmix4x_save_LIBS opal_pmix_pmix4x_basedir opal_pmix_pmix4x_args  pmix_pmix4x_status_filename])
 
     opal_pmix_pmix4x_basedir=opal/mca/pmix/pmix4x
 
