@@ -23,6 +23,58 @@
 # $HEADER$
 #
 
+#
+# Priority
+#
+AC_DEFUN([MCA_opal_pmix_pmix4x_PRIORITY], [80])
+
+#
+# Force this component to compile in static-only mode
+#
+AC_DEFUN([MCA_opal_pmix_pmix4x_COMPILE_MODE], [
+    AC_MSG_CHECKING([for MCA component $2:$3 compile mode])
+    $4="static"
+    AC_MSG_RESULT([$$4])
+])
+
+# Include hwloc m4 files
+m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc.m4)
+m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_pkg.m4)
+m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_check_attributes.m4)
+m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_check_visibility.m4)
+m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_check_vendor.m4)
+m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_components.m4)
+m4_include(opal/mca/hwloc/hwloc201/hwloc/config/hwloc_internal.m4)
+m4_include(opal/mca/hwloc/hwloc201/hwloc/config/netloc.m4)
+
+# MCA_pmix_pmix4x_POST_CONFIG()
+# ---------------------------------
+AC_DEFUN([MCA_opal_pmix_pmix4x_POST_CONFIG],[
+    OPAL_VAR_SCOPE_PUSH([opal_pmix_pmix4x_basedir])
+
+    # If we won, then do all the rest of the setup
+    AS_IF([test "$1" = "1" && test "$opal_pmix_pmix4x_support" = "yes"],
+          [
+           # Set this variable so that the framework m4 knows what
+           # file to include in opal/mca/pmix/pmix-internal.h
+           opal_pmix_pmix4x_basedir=opal/mca/pmix/pmix4x
+           opal_pmix_base_include="$opal_pmix_pmix4x_basedir/pmix4x.h"
+
+           # Add some stuff to CPPFLAGS so that the rest of the source
+           # tree can be built
+           file=$opal_pmix_pmix4x_basedir/openpmix
+           CPPFLAGS="-I$OPAL_TOP_SRCDIR/$file/include $CPPFLAGS"
+           AS_IF([test "$OPAL_TOP_BUILDDIR" != "$OPAL_TOP_SRCDIR"],
+                 [CPPFLAGS="-I$OPAL_TOP_BUILDDIR/$file/include $CPPFLAGS"])
+           unset file
+          ])
+    OPAL_VAR_SCOPE_POP
+
+    # This must be run unconditionally
+    PMIX_DO_AM_CONDITIONALS
+])dnl
+
+
 # MCA_pmix_pmix4x_CONFIG([action-if-found], [action-if-not-found])
 # -----------------------------------------------------------
 AC_DEFUN([MCA_opal_pmix_pmix4x_CONFIG],[
