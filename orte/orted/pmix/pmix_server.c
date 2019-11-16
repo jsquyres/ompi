@@ -16,8 +16,8 @@
  * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2014-2017 Mellanox Technologies, Inc.
  *                         All rights reserved.
- * Copyright (c) 2014-2015 Research Organization for Information Science
- *                         and Technology (RIST). All rights reserved.
+ * Copyright (c) 2014-2019 Research Organization for Information Science
+ *                         and Technology (RIST).  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -52,7 +52,7 @@
 #include "opal/class/opal_hotel.h"
 #include "opal/class/opal_list.h"
 #include "opal/mca/base/mca_base_var.h"
-#include "opal/mca/pmix/pmix-internal.h"
+#include "opal/pmix/pmix-internal.h"
 #include "opal/util/opal_environ.h"
 #include "opal/util/show_help.h"
 #include "opal/util/error.h"
@@ -85,12 +85,15 @@ static void pmix_server_dmdx_recv(int status, orte_process_name_t* sender,
 static void pmix_server_dmdx_resp(int status, orte_process_name_t* sender,
                                   opal_buffer_t *buffer,
                                   orte_rml_tag_t tg, void *cbdata);
+static void pmix_server_log(int status, orte_process_name_t* sender,
+                            opal_buffer_t *buffer,
+                            orte_rml_tag_t tg, void *cbdata);
 
 #define ORTE_PMIX_SERVER_MIN_ROOMS    4096
 
 pmix_server_globals_t orte_pmix_server_globals = {0};
 
-static opal_pmix_server_module_t pmix_server = {
+static pmix_server_module_t pmix_server = {
     .client_connected = pmix_server_client_connected_fn,
     .client_finalized = pmix_server_client_finalized_fn,
     .abort = pmix_server_abort_fn,
@@ -109,8 +112,36 @@ static opal_pmix_server_module_t pmix_server = {
     .tool_connected = pmix_tool_connected_fn,
     .log = pmix_server_log_fn,
     .allocate = pmix_server_alloc_fn,
-    .job_control = pmix_server_job_ctrl_fn
+    .job_control = pmix_server_job_ctrl_fn,
+    .iof_pull = pmix_server_iof_pull_fn,
+    .push_stdin = pmix_server_stdin_fn,
+#if PMIX_NUMERIC_VERSION >= 0x00040000
+    .group = pmix_server_group_fn
+#endif
 };
+
+#if PMIX_NUMERIC_VERSION >= 0x00040000
+static char *prrte_fns[] = {
+    "fence_nb",
+    "direct_modex"
+};
+
+typedef struct {
+    char *name;
+    char *string;
+    pmix_data_type_t type;
+    char **description;
+} orte_regattr_input_t;
+
+static orte_regattr_input_t prrte_attributes[] = {
+    // fence_nb
+    {.name = "PMIX_TIMEOUT", .string = PMIX_TIMEOUT, .type = PMIX_INT, .description = (char *[]){"POSITIVE INTEGERS", "Time in seconds before", "declaring not found", NULL}},
+    {.name = ""},
+    // direct_modex
+    {.name = "PMIX_TIMEOUT", .string = PMIX_TIMEOUT, .type = PMIX_INT, .description = (char *[]){"POSITIVE INTEGERS", "Time in seconds before", "declaring not found", NULL}},
+    {.name = ""},
+};
+#endif
 
 void pmix_server_register_params(void)
 {
@@ -201,13 +232,13 @@ static void eviction_cbfunc(struct opal_hotel_t *hotel,
     }
     /* don't let the caller hang */
     if (NULL != req->opcbfunc) {
-        req->opcbfunc(OPAL_ERR_TIMEOUT, req->cbdata);
+        req->opcbfunc(PMIX_ERR_TIMEOUT, req->cbdata);
     } else if (NULL != req->mdxcbfunc) {
-        req->mdxcbfunc(OPAL_ERR_TIMEOUT, NULL, 0, req->cbdata, NULL, NULL);
+        req->mdxcbfunc(PMIX_ERR_TIMEOUT, NULL, 0, req->cbdata, NULL, NULL);
     } else if (NULL != req->spcbfunc) {
-        req->spcbfunc(OPAL_ERR_TIMEOUT, ORTE_JOBID_INVALID, req->cbdata);
+        req->spcbfunc(PMIX_ERR_TIMEOUT, NULL, req->cbdata);
     } else if (NULL != req->lkcbfunc) {
-        req->lkcbfunc(OPAL_ERR_TIMEOUT, NULL, req->cbdata);
+        req->lkcbfunc(PMIX_ERR_TIMEOUT, NULL, 0, req->cbdata);
     }
     OBJ_RELEASE(req);
 }
@@ -218,8 +249,15 @@ static void eviction_cbfunc(struct opal_hotel_t *hotel,
 int pmix_server_init(void)
 {
     int rc;
-    opal_list_t info;
+    opal_list_t ilist;
     opal_value_t *kv;
+    pmix_info_t *info;
+    size_t n, ninfo;
+    pmix_proc_t pname;
+#if PMIX_NUMERIC_VERSION >= 0x00040000
+    pmix_regattr_t *attrs;
+    size_t m, nregs, nattrs, cnt;
+#endif
 
     if (orte_pmix_server_globals.initialized) {
         return ORTE_SUCCESS;
@@ -228,6 +266,8 @@ int pmix_server_init(void)
 
     /* setup the server's state variables */
     OBJ_CONSTRUCT(&orte_pmix_server_globals.reqs, opal_hotel_t);
+    OBJ_CONSTRUCT(&orte_pmix_server_globals.psets, opal_list_t);
+
     /* by the time we init the server, we should know how many nodes we
      * have in our environment - with the exception of mpirun. If the
      * user specified the size of the hotel, then use that value. Otherwise,
@@ -249,35 +289,77 @@ int pmix_server_init(void)
     OBJ_CONSTRUCT(&orte_pmix_server_globals.notifications, opal_list_t);
     orte_pmix_server_globals.server = *ORTE_NAME_INVALID;
 
-    OBJ_CONSTRUCT(&info, opal_list_t);
+    OBJ_CONSTRUCT(&ilist, opal_list_t);
+
+#if HWLOC_API_VERSION < 0x20000
+     /* pass the topology string as we don't
+      * have HWLOC shared memory available - we do
+      * this so the procs won't read the topology
+      * themselves as this could overwhelm the local
+      * system on large-scale SMPs */
+    if (NULL != opal_hwloc_topology) {
+        char *xmlbuffer=NULL;
+        int len;
+        kv = OBJ_NEW(opal_value_t);
+        kv->key = strdup(PMIX_HWLOC_XML_V1);
+        if (0 != hwloc_topology_export_xmlbuffer(opal_hwloc_topology, &xmlbuffer, &len)) {
+            OBJ_RELEASE(kv);
+            OBJ_DESTRUCT(&ilist);
+            return ORTE_ERROR;
+        }
+        kv->data.string = xmlbuffer;
+        kv->type = OPAL_STRING;
+        opal_list_append(&ilist, &kv->super);
+    }
+#else
+    /* if shmem support isn't available, then export
+     * the topology as a v2 xml string */
+    if (!orte_hwloc_shmem_available) {
+        if (NULL != opal_hwloc_topology) {
+            char *xmlbuffer=NULL;
+            int len;
+            kv = OBJ_NEW(opal_value_t);
+            kv->key = strdup(PMIX_HWLOC_XML_V2);
+            if (0 != hwloc_topology_export_xmlbuffer(opal_hwloc_topology, &xmlbuffer, &len, 0)) {
+                OBJ_RELEASE(kv);
+                OBJ_DESTRUCT(&ilist);
+                return ORTE_ERROR;
+            }
+            kv->data.string = xmlbuffer;
+            kv->type = OPAL_STRING;
+            opal_list_append(&ilist, &kv->super);
+        }
+    }
+#endif
+
     /* tell the server our temp directory */
     kv = OBJ_NEW(opal_value_t);
-    kv->key = strdup(OPAL_PMIX_SERVER_TMPDIR);
+    kv->key = strdup(PMIX_SERVER_TMPDIR);
     kv->type = OPAL_STRING;
     kv->data.string = opal_os_path(false, orte_process_info.jobfam_session_dir, NULL);
-    opal_list_append(&info, &kv->super);
+    opal_list_append(&ilist, &kv->super);
     if (!orte_pmix_server_globals.legacy) {
         /* use only one listener */
         kv = OBJ_NEW(opal_value_t);
-        kv->key = strdup(OPAL_PMIX_SINGLE_LISTENER);
+        kv->key = strdup(PMIX_SINGLE_LISTENER);
         kv->type = OPAL_BOOL;
         kv->data.flag = true;
-        opal_list_append(&info, &kv->super);
+        opal_list_append(&ilist, &kv->super);
     }
     /* tell the server to use its own internal monitoring */
     kv = OBJ_NEW(opal_value_t);
-    kv->key = strdup(OPAL_PMIX_SERVER_ENABLE_MONITORING);
+    kv->key = strdup(PMIX_SERVER_ENABLE_MONITORING);
     kv->type = OPAL_BOOL;
     kv->data.flag = true;
-    opal_list_append(&info, &kv->super);
+    opal_list_append(&ilist, &kv->super);
     /* if requested, tell the server to drop a session-level
      * PMIx connection point */
     if (orte_pmix_server_globals.session_server) {
         kv = OBJ_NEW(opal_value_t);
-        kv->key = strdup(OPAL_PMIX_SERVER_TOOL_SUPPORT);
+        kv->key = strdup(PMIX_SERVER_TOOL_SUPPORT);
         kv->type = OPAL_BOOL;
         kv->data.flag = true;
-        opal_list_append(&info, &kv->super);
+        opal_list_append(&ilist, &kv->super);
     }
 
     /* if requested, tell the server to drop a system-level
@@ -287,27 +369,89 @@ int pmix_server_init(void)
     if (orte_pmix_server_globals.system_server &&
         (ORTE_PROC_IS_HNP || ORTE_PROC_IS_MASTER)) {
         kv = OBJ_NEW(opal_value_t);
-        kv->key = strdup(OPAL_PMIX_SERVER_SYSTEM_SUPPORT);
+        kv->key = strdup(PMIX_SERVER_SYSTEM_SUPPORT);
         kv->type = OPAL_BOOL;
         kv->data.flag = true;
-        opal_list_append(&info, &kv->super);
+        opal_list_append(&ilist, &kv->super);
     }
 
-    /* if we are the HNP or MASTER, then we are a gateway */
-    if (ORTE_PROC_IS_HNP || ORTE_PROC_IS_MASTER) {
+    /* if we are the MASTER, then we are the scheduler
+     * as well as a gateway */
+    if (ORTE_PROC_IS_MASTER) {
+#ifdef PMIX_SERVER_SCHEDULER
         kv = OBJ_NEW(opal_value_t);
-        kv->key = strdup(OPAL_PMIX_SERVER_GATEWAY);
+        kv->key = strdup(PMIX_SERVER_SCHEDULER);
         kv->type = OPAL_BOOL;
         kv->data.flag = true;
-        opal_list_append(&info, &kv->super);
+        opal_list_append(&ilist, &kv->super);
+#endif
+#ifdef PMIX_SERVER_GATEWAY
+        kv = OBJ_NEW(opal_value_t);
+        kv->key = strdup(PMIX_SERVER_GATEWAY);
+        kv->type = OPAL_BOOL;
+        kv->data.flag = true;
+        opal_list_append(&ilist, &kv->super);
+#endif
     }
+
+    /* PRRTE always allows remote tool connections */
+    kv = OBJ_NEW(opal_value_t);
+    kv->key = strdup(PMIX_SERVER_REMOTE_CONNECTIONS);
+    kv->type = OPAL_BOOL;
+    kv->data.flag = true;
+    opal_list_append(&ilist, &kv->super);
+
+    /* convert to an info array */
+    ninfo = opal_list_get_size(&ilist) + 2;
+    PMIX_INFO_CREATE(info, ninfo);
+    n = 0;
+    while (NULL != (kv = (opal_value_t*)opal_list_remove_first(&ilist))) {
+        if (OPAL_BOOL == kv->type) {
+            PMIX_INFO_LOAD(&info[n], kv->key, &kv->data.flag, PMIX_BOOL);
+        } else {
+            PMIX_INFO_LOAD(&info[n], kv->key, kv->data.string, PMIX_STRING);
+        }
+        ++n;
+        OBJ_RELEASE(kv);
+    }
+    OPAL_LIST_DESTRUCT(&ilist);
+    /* tell the server our name so we agree on our identifier */
+    OPAL_PMIX_CONVERT_NAME(&pname, ORTE_PROC_MY_NAME);
+    PMIX_INFO_LOAD(&info[n], PMIX_SERVER_NSPACE, pname.nspace, PMIX_STRING);
+    PMIX_INFO_LOAD(&info[n+1], PMIX_SERVER_RANK, &pname.rank, PMIX_PROC_RANK);
 
     /* setup the local server */
-    if (ORTE_SUCCESS != (rc = opal_pmix.server_init(&pmix_server, &info))) {
+    if (ORTE_SUCCESS != (rc = PMIx_server_init(&pmix_server, info, ninfo))) {
         /* pmix will provide a nice show_help output here */
+        PMIX_INFO_FREE(info, ninfo);
         return rc;
     }
-    OPAL_LIST_DESTRUCT(&info);
+    PMIX_INFO_FREE(info, ninfo);
+
+#if PMIX_NUMERIC_VERSION >= 0x00040000
+    /* register our support */
+    nregs = sizeof(prrte_fns) / sizeof(char*);
+    cnt = 0;
+    for (n=0; n < nregs; n++) {
+        nattrs = 0;
+        while (0 != strlen(prrte_attributes[cnt+nattrs].name)) {
+            ++nattrs;
+        }
+        PMIX_REGATTR_CREATE(attrs, nattrs);
+        for (m=0; m < nattrs; m++) {
+            attrs[m].name = strdup(prrte_attributes[m+cnt].name);
+            PMIX_LOAD_KEY(attrs[m].string, prrte_attributes[m+cnt].string);
+            attrs[m].type = prrte_attributes[m+cnt].type;
+            PMIX_ARGV_COPY(attrs[m].description, prrte_attributes[m+cnt].description);
+        }
+        rc = PMIx_Register_attributes(prrte_fns[n], attrs, nattrs);
+        PMIX_REGATTR_FREE(attrs, nattrs);
+        if (PMIX_SUCCESS != rc) {
+            break;
+        }
+        cnt += nattrs + 1;
+    }
+#endif
 
     return rc;
 }
@@ -318,24 +462,30 @@ void pmix_server_start(void)
     orte_data_server_init();
 
     /* setup recv for direct modex requests */
-     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_DIRECT_MODEX,
-                             ORTE_RML_PERSISTENT, pmix_server_dmdx_recv, NULL);
+    orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_DIRECT_MODEX,
+                            ORTE_RML_PERSISTENT, pmix_server_dmdx_recv, NULL);
 
-     /* setup recv for replies to direct modex requests */
-     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_DIRECT_MODEX_RESP,
-                             ORTE_RML_PERSISTENT, pmix_server_dmdx_resp, NULL);
+    /* setup recv for replies to direct modex requests */
+    orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_DIRECT_MODEX_RESP,
+                            ORTE_RML_PERSISTENT, pmix_server_dmdx_resp, NULL);
 
-     /* setup recv for replies to proxy launch requests */
-     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_LAUNCH_RESP,
-                             ORTE_RML_PERSISTENT, pmix_server_launch_resp, NULL);
+    /* setup recv for replies to proxy launch requests */
+    orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_LAUNCH_RESP,
+                            ORTE_RML_PERSISTENT, pmix_server_launch_resp, NULL);
 
-     /* setup recv for replies from data server */
-     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_DATA_CLIENT,
-                             ORTE_RML_PERSISTENT, pmix_server_keyval_client, NULL);
+    /* setup recv for replies from data server */
+    orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_DATA_CLIENT,
+                            ORTE_RML_PERSISTENT, pmix_server_keyval_client, NULL);
 
-     /* setup recv for notifications */
-     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_NOTIFICATION,
-                             ORTE_RML_PERSISTENT, pmix_server_notify, NULL);
+    /* setup recv for notifications */
+    orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_NOTIFICATION,
+                            ORTE_RML_PERSISTENT, pmix_server_notify, NULL);
+
+    if (ORTE_PROC_IS_HNP || ORTE_PROC_IS_MASTER) {
+        /* setup recv for logging requests */
+        orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_LOGGING,
+                                ORTE_RML_PERSISTENT, pmix_server_log, NULL);
+    }
 }
 
 void pmix_server_finalize(void)
@@ -354,16 +504,20 @@ void pmix_server_finalize(void)
     orte_rml.recv_cancel(ORTE_NAME_WILDCARD, ORTE_RML_TAG_LAUNCH_RESP);
     orte_rml.recv_cancel(ORTE_NAME_WILDCARD, ORTE_RML_TAG_DATA_CLIENT);
     orte_rml.recv_cancel(ORTE_NAME_WILDCARD, ORTE_RML_TAG_NOTIFICATION);
+    if (ORTE_PROC_IS_HNP || ORTE_PROC_IS_MASTER) {
+        orte_rml.recv_cancel(ORTE_NAME_WILDCARD, ORTE_RML_TAG_LOGGING);
+    }
 
     /* finalize our local data server */
     orte_data_server_finalize();
 
     /* shutdown the local server */
-    opal_pmix.server_finalize();
+    PMIx_server_finalize();
 
     /* cleanup collectives */
     OBJ_DESTRUCT(&orte_pmix_server_globals.reqs);
     OPAL_LIST_DESTRUCT(&orte_pmix_server_globals.notifications);
+    OPAL_LIST_DESTRUCT(&orte_pmix_server_globals.psets);
 }
 
 static void send_error(int status, opal_process_name_t *idreq,
@@ -439,19 +593,15 @@ static void _mdxresp(int sd, short args, void *cbdata)
                             orte_rml_send_callback, NULL);
 
   done:
-    /* if they asked for a release, give it to them */
-    if (NULL != req->rlcbfunc) {
-        req->rlcbfunc(req->cbdata);
-    }
     OBJ_RELEASE(req);
     return;
 }
 /* the modex_resp function takes place in the local PMIx server's
  * progress thread - we must therefore thread-shift it so we can
  * access our global data */
-static void modex_resp(int status,
-                       const char *data, size_t sz, void *cbdata,
-                       opal_pmix_release_cbfunc_t relcbfunc, void *relcbdata)
+static void modex_resp(pmix_status_t status,
+                       char *data, size_t sz,
+                       void *cbdata)
 {
     pmix_server_req_t *req = (pmix_server_req_t*)cbdata;
     opal_buffer_t xfer;
@@ -466,9 +616,6 @@ static void modex_resp(int status,
     opal_dss.copy_payload(&req->msg, &xfer);
     xfer.base_ptr = NULL; // protect the incoming data
     OBJ_DESTRUCT(&xfer);
-    /* point to the callback */
-    req->rlcbfunc = relcbfunc;
-    req->cbdata = relcbdata;
     opal_event_set(orte_event_base, &(req->ev),
                    -1, OPAL_EV_WRITE, _mdxresp, req);
     opal_event_set_priority(&(req->ev), ORTE_MSG_PRI);
@@ -486,7 +633,7 @@ static void pmix_server_dmdx_recv(int status, orte_process_name_t* sender,
     orte_job_t *jdata;
     orte_proc_t *proc;
     pmix_server_req_t *req;
-
+    pmix_proc_t pproc;
 
     /* unpack the id of the proc whose data is being requested */
     cnt = 1;
@@ -555,7 +702,8 @@ static void pmix_server_dmdx_recv(int status, orte_process_name_t* sender,
     }
 
     /* ask our local pmix server for the data */
-    if (OPAL_SUCCESS != (rc = opal_pmix.server_dmodex_request(&idreq, modex_resp, req))) {
+    OPAL_PMIX_CONVERT_NAME(&pproc, &idreq);
+    if (OPAL_SUCCESS != (rc = PMIx_server_dmodex_request(&pproc, modex_resp, req))) {
         ORTE_ERROR_LOG(rc);
         opal_hotel_checkout(&orte_pmix_server_globals.reqs, req->room_num);
         OBJ_RELEASE(req);
@@ -664,15 +812,85 @@ static void pmix_server_dmdx_resp(int status, orte_process_name_t* sender,
     OBJ_RELEASE(d);  // maintain accounting
 }
 
+static void pmix_server_log(int status, orte_process_name_t* sender,
+                            opal_buffer_t *buffer,
+                            orte_rml_tag_t tg, void *cbdata)
+{
+    int rc;
+    int32_t cnt;
+    size_t n, ninfo;
+    pmix_info_t *info, directives[2];
+    pmix_status_t ret;
+    pmix_proc_t proc;
+    opal_byte_object_t *boptr;
+    pmix_data_buffer_t pbkt;
+
+    (void)opal_snprintf_jobid(proc.nspace, PMIX_MAX_NSLEN, sender->jobid);
+    proc.rank = sender->vpid;
+
+    /* unpack the number of info */
+    cnt = 1;
+    rc = opal_dss.unpack(buffer, &ninfo, &cnt, OPAL_SIZE);
+    if (OPAL_SUCCESS != rc) {
+        ORTE_ERROR_LOG(rc);
+        return;
+    }
+
+    /* unpack the blob */
+    cnt = 1;
+    rc = opal_dss.unpack(buffer, &boptr, &cnt, OPAL_BYTE_OBJECT);
+    if (OPAL_SUCCESS != rc) {
+        ORTE_ERROR_LOG(rc);
+        return;
+    }
+
+    PMIX_INFO_CREATE(info, ninfo);
+    PMIX_DATA_BUFFER_LOAD(&pbkt, boptr->bytes, boptr->size);
+    for (n=0; n < ninfo; n++) {
+        cnt = 1;
+        ret = PMIx_Data_unpack(&proc, &pbkt, (void*)&info[n], &cnt, PMIX_INFO);
+        if (PMIX_SUCCESS != ret) {
+            PMIX_ERROR_LOG(ret);
+            PMIX_INFO_FREE(info, ninfo);
+            PMIX_DATA_BUFFER_DESTRUCT(&pbkt);
+            return;
+        }
+    }
+    PMIX_DATA_BUFFER_DESTRUCT(&pbkt);
+
+    /* mark that we only want it logged once */
+    PMIX_INFO_LOAD(&directives[0], PMIX_LOG_ONCE, NULL, PMIX_BOOL);
+    /* protect against infinite loop should the PMIx server push
+     * this back up to us */
+    PMIX_INFO_LOAD(&directives[1], "orte.log.noloop", NULL, PMIX_BOOL);
+
+    /* pass the array down to be logged */
+    PMIx_Log(info, ninfo, directives, 2);
+    PMIX_INFO_FREE(info, ninfo+1);
+    PMIX_INFO_DESTRUCT(&directives[1]);
+}
+
+
+/****    INSTANTIATE LOCAL OBJECTS    ****/
 static void opcon(orte_pmix_server_op_caddy_t *p)
 {
+    memset(&p->proct, 0, sizeof(pmix_proc_t));
     p->procs = NULL;
+    p->nprocs = 0;
     p->eprocs = NULL;
+    p->neprocs = 0;
     p->info = NULL;
+    p->ninfo = 0;
+    p->directives = NULL;
+    p->ndirs = 0;
+    p->apps = NULL;
+    p->napps = 0;
     p->cbfunc = NULL;
     p->infocbfunc = NULL;
     p->toolcbfunc = NULL;
+    p->spcbfunc = NULL;
     p->cbdata = NULL;
+    p->server_object = NULL;
 }
 OBJ_CLASS_INSTANCE(orte_pmix_server_op_caddy_t,
                    opal_object_t,
@@ -681,7 +899,12 @@ OBJ_CLASS_INSTANCE(orte_pmix_server_op_caddy_t,
 static void rqcon(pmix_server_req_t *p)
 {
     p->operation = NULL;
-    p->range = OPAL_PMIX_RANGE_SESSION;
+    p->flag = true;
+    p->launcher = false;
+    p->uid = 0;
+    p->gid = 0;
+    p->pid = 0;
+    p->range = PMIX_RANGE_SESSION;
     p->proxy = *ORTE_NAME_INVALID;
     p->target = *ORTE_NAME_INVALID;
     p->timeout = orte_pmix_server_globals.timeout;
@@ -692,6 +915,7 @@ static void rqcon(pmix_server_req_t *p)
     p->spcbfunc = NULL;
     p->lkcbfunc = NULL;
     p->rlcbfunc = NULL;
+    p->toolcbfunc = NULL;
     p->cbdata = NULL;
 }
 static void rqdes(pmix_server_req_t *p)
@@ -702,6 +926,11 @@ static void rqdes(pmix_server_req_t *p)
     if (NULL != p->jdata) {
         OBJ_RELEASE(p->jdata);
     }
+#ifdef PMIX_CMD_LINE
+    if (NULL != p->cmdline) {
+        free(p->cmdline);
+    }
+#endif
     OBJ_DESTRUCT(&p->msg);
 }
 OBJ_CLASS_INSTANCE(pmix_server_req_t,
@@ -711,7 +940,11 @@ OBJ_CLASS_INSTANCE(pmix_server_req_t,
 static void mdcon(orte_pmix_mdx_caddy_t *p)
 {
     p->sig = NULL;
+    p->buf = NULL;
     p->cbfunc = NULL;
+    p->mode = 0;
+    p->info = NULL;
+    p->ninfo = 0;
     p->cbdata = NULL;
 }
 static void mddes(orte_pmix_mdx_caddy_t *p)
@@ -719,7 +952,29 @@ static void mddes(orte_pmix_mdx_caddy_t *p)
     if (NULL != p->sig) {
         OBJ_RELEASE(p->sig);
     }
+    if (NULL != p->buf) {
+        OBJ_RELEASE(p->buf);
+    }
 }
 OBJ_CLASS_INSTANCE(orte_pmix_mdx_caddy_t,
                    opal_object_t,
                    mdcon, mddes);
+
+static void pscon(pmix_server_pset_t *p)
+{
+    p->name = NULL;
+    p->members = NULL;
+    p->num_members = 0;
+}
+static void psdes(pmix_server_pset_t *p)
+{
+    if (NULL != p->name) {
+        free(p->name);
+    }
+    if (NULL != p->members) {
+        free(p->members);
+    }
+}
+OBJ_CLASS_INSTANCE(pmix_server_pset_t,
+                   opal_list_item_t,
+                   pscon, psdes);

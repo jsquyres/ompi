@@ -13,8 +13,8 @@
  * Copyright (c) 2011-2012 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2014-2019 Intel, Inc.  All rights reserved.
- * Copyright (c) 2014-2019 Research Organization for Information Science
- *                         and Technology (RIST).  All rights reserved.
+ * Copyright (c) 2014-2017 Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -32,8 +32,8 @@
 #include <errno.h>
 
 #include "opal/util/output.h"
-#include "opal/mca/pmix/pmix-internal.h"
-#include "opal/mca/hwloc/base/base.h"
+#include "opal/pmix/pmix-internal.h"
+#include "opal/hwloc/hwloc-internal.h"
 
 #include "orte/mca/errmgr/errmgr.h"
 #include "orte/util/name_fns.h"
@@ -69,8 +69,8 @@ int orte_ess_base_proc_binding(void)
         if (opal_hwloc_report_bindings || 4 < opal_output_get_verbosity(orte_ess_base_framework.framework_output)) {
             /* print out a shorthand notation to avoid pulling in the entire topology tree */
             map = NULL;
-            OPAL_MODEX_RECV_VALUE_OPTIONAL(ret, OPAL_PMIX_LOCALITY_STRING,
-                                           ORTE_PROC_MY_NAME, &map, OPAL_STRING);
+            OPAL_MODEX_RECV_VALUE_OPTIONAL(ret, PMIX_LOCALITY_STRING,
+                                           ORTE_PROC_MY_NAME, &map, PMIX_STRING);
             if (OPAL_SUCCESS == ret && NULL != map) {
                 opal_output(0, "MCW rank %s bound to %s",
                             ORTE_VPID_PRINT(ORTE_PROC_MY_NAME->vpid), map);
@@ -84,8 +84,8 @@ int orte_ess_base_proc_binding(void)
         orte_proc_is_bound = true;
         /* see if we were launched by a PMIx-enabled system */
         map = NULL;
-        OPAL_MODEX_RECV_VALUE_OPTIONAL(ret, OPAL_PMIX_LOCALITY_STRING,
-                                       ORTE_PROC_MY_NAME, &map, OPAL_STRING);
+        OPAL_MODEX_RECV_VALUE_OPTIONAL(ret, PMIX_LOCALITY_STRING,
+                                       ORTE_PROC_MY_NAME, &map, PMIX_STRING);
         if (OPAL_SUCCESS == ret && NULL != map) {
             /* we were - no need to pull in the topology */
             if (opal_hwloc_report_bindings || 4 < opal_output_get_verbosity(orte_ess_base_framework.framework_output)) {
@@ -278,8 +278,6 @@ int orte_ess_base_proc_binding(void)
                     }
                 }
             }
-        } else {
-            hwloc_bitmap_free(cpus);
         }
     } else {
         OPAL_OUTPUT_VERBOSE((5, orte_ess_base_framework.framework_output,
@@ -323,8 +321,8 @@ int orte_ess_base_proc_binding(void)
     hwloc_bitmap_free(mycpus);
     /* push our cpuset so others can calculate our locality */
     if (NULL != orte_process_info.cpuset) {
-        OPAL_MODEX_SEND_VALUE(ret, OPAL_PMIX_GLOBAL, OPAL_PMIX_CPUSET,
-                              orte_process_info.cpuset, OPAL_STRING);
+        OPAL_MODEX_SEND_VALUE(ret, PMIX_GLOBAL, PMIX_CPUSET,
+                              orte_process_info.cpuset, PMIX_STRING);
     }
     return ORTE_SUCCESS;
 

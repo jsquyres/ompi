@@ -25,8 +25,6 @@
 
 #include "orte_config.h"
 
-#include "opal/mca/pmix/pmix-internal.h"
-
 BEGIN_C_DECLS
 
 ORTE_DECLSPEC int pmix_server_init(void);
@@ -35,7 +33,7 @@ ORTE_DECLSPEC void pmix_server_finalize(void);
 ORTE_DECLSPEC void pmix_server_register_params(void);
 
 
-ORTE_DECLSPEC int orte_pmix_server_register_nspace(orte_job_t *jdata, bool force);
+ORTE_DECLSPEC int orte_pmix_server_register_nspace(orte_job_t *jdata);
 
 END_C_DECLS
 
