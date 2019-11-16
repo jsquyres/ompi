@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "orte/runtime/runtime.h"
 #include "orte/util/proc_info.h"
 #include "orte/util/name_fns.h"

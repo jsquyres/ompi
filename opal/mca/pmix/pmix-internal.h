@@ -23,7 +23,7 @@
 #endif
 
 #include "opal/mca/mca.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 #include "opal/dss/dss.h"
 #include "opal/runtime/opal.h"
 #include "opal/dss/dss.h"
@@ -37,6 +37,10 @@
 
 BEGIN_C_DECLS
 
+/* provide access to the framework verbose output without
+ * exposing the entire base */
+OPAL_DECLSPEC extern bool opal_pmix_collect_all_data;
+OPAL_DECLSPEC extern bool opal_pmix_base_async_modex;
 OPAL_DECLSPEC extern int opal_pmix_verbose_output;
 
 /* define a caddy for pointing to pmix_info_t that
@@ -220,7 +224,7 @@ typedef struct {
     do {                                            \
         pmix_value_t _kv;                           \
         _kv.type = PMIX_BYTE_OBJECT;                \
-        _kv.data.bo.bytes = (uint8_t*)(d);          \
+        _kv.data.bo.bytes = (char*)(d);             \
         _kv.data.bo.size = (sz);                    \
         (r) = PMIx_Put(sc, (s), &(_kv));            \
     } while(0);
@@ -388,7 +392,7 @@ typedef struct {
         if (NULL == _kv) {                                                      \
             (r) = PMIX_ERR_NOT_FOUND;                                           \
         } else if (PMIX_SUCCESS == (r)) {                                       \
-            *(d) = _kv->data.bo.bytes;                                          \
+            *(d) = (uint8_t*)_kv->data.bo.bytes;                                \
             *(sz) = _kv->data.bo.size;                                          \
             _kv->data.bo.bytes = NULL; /* protect the data */                   \
         }                                                                       \
@@ -519,7 +523,7 @@ OPAL_DECLSPEC int opal_pmix_register_cleanup(char *path,
 #endif
 
 /**
- * Structure for hwloc components.
+ * Structure for pmix components.
  */
 struct opal_pmix_base_component_2_0_0_t {
     /** MCA base component */

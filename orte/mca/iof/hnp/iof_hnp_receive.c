@@ -12,7 +12,7 @@
  * Copyright (c) 2007      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.  All rights
  *                         reserved.
- * Copyright (c) 2014-2018 Intel, Inc. All rights reserved.
+ * Copyright (c) 2014-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2017      Mellanox Technologies. All rights reserved.
  * $COPYRIGHT$
  *
@@ -38,7 +38,7 @@
 #endif
 
 #include "opal/dss/dss.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/mca/rml/rml.h"
 #include "orte/mca/errmgr/errmgr.h"

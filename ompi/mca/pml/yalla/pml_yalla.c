@@ -3,6 +3,7 @@
  * Copyright (c) 2015      Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2018      Cisco Systems, Inc.  All rights reserved
+ * Copyright (c) 2019      Intel, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -20,7 +21,7 @@
 #include "opal/runtime/opal.h"
 #include "opal/memoryhooks/memory.h"
 #include "opal/mca/memory/base/base.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "ompi/mca/pml/base/pml_base_bsend.h"
 #include "ompi/message/message.h"
 

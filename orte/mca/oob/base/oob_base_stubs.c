@@ -15,7 +15,7 @@
 #include "orte/constants.h"
 
 #include "opal/util/output.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/util/argv.h"
 #include "opal/util/printf.h"
 

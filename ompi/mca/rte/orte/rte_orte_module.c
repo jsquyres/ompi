@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2012-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
- * Copyright (c) 2013-2017 Intel, Inc. All rights reserved.
+ * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2012-2014 The University of Tennessee and The University
  *                         of Tennessee Research Foundation.  All rights
  *                         reserved.
@@ -21,7 +21,7 @@
 #include "opal/util/proc.h"
 #include "opal/util/opal_getcwd.h"
 #include "opal/util/printf.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/threads/threads.h"
 #include "opal/class/opal_list.h"
 #include "opal/dss/dss.h"

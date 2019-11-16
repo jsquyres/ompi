@@ -24,7 +24,7 @@
 
 #include "opal/class/opal_list.h"
 #include "opal/mca/event/event.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/util/argv.h"
 
 #include "orte/orted/pmix/pmix_server_internal.h"

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) Mellanox Technologies Ltd. 2018. ALL RIGHTS RESERVED.
+ * Copyright (c) 2019      Intel, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -12,7 +13,7 @@
 #include "common_ucx.h"
 #include "opal/mca/base/mca_base_var.h"
 #include "opal/mca/base/mca_base_framework.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/memoryhooks/memory.h"
 
 #include <ucm/api/ucm.h>

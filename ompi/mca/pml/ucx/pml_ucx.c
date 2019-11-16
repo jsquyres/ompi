@@ -5,6 +5,7 @@
  *                         reserved.
  * Copyright (c) 2018      Research Organization for Information Science
  *                         and Technology (RIST).  All rights reserved.
+ * Copyright (c) 2019      Intel, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -15,7 +16,7 @@
 #include "pml_ucx.h"
 
 #include "opal/runtime/opal.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "ompi/attribute/attribute.h"
 #include "ompi/message/message.h"
 #include "ompi/mca/pml/base/pml_base_bsend.h"

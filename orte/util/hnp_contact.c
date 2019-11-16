@@ -41,7 +41,7 @@
 #include "opal/util/os_path.h"
 #include "opal/util/output.h"
 #include "opal/util/os_dirpath.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/mca/errmgr/errmgr.h"
 #include "orte/mca/oob/base/base.h"

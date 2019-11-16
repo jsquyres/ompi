@@ -3,7 +3,7 @@
  *                         All rights reserved.
  * Copyright (c) 2012      Los Alamos National Security, LLC.  All rights
  *                         reserved.
- * Copyright (c) 2015      Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2018      Amazon.com, Inc. or its affiliates.  All Rights reserved.
  * $COPYRIGHT$
  *
@@ -14,7 +14,7 @@
 
 #include "ompi_config.h"
 #include "vprotocol_pessimist_eventlog.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/util/printf.h"
 #include "ompi/dpm/dpm.h"
 

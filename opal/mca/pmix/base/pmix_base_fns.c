@@ -38,79 +38,38 @@
 #include "opal/mca/pmix/base/base.h"
 
 
-int opal_pmix_base_exchange(opal_value_t *indat,
-                            opal_pmix_pdata_t *outdat,
-                            int timeout)
+int opal_pmix_base_exchange(pmix_info_t *indat,
+                            pmix_pdata_t *outdat)
 {
-    int rc;
-    opal_list_t ilist, mlist;
-    opal_value_t *info;
-    opal_pmix_pdata_t *pdat;
+    pmix_status_t rc;
+    pmix_info_t info[2];
+    pmix_persistence_t firstread = PMIX_PERSIST_FIRST_READ;
 
-    /* protect the incoming value */
-    opal_dss.copy((void**)&info, indat, OPAL_VALUE);
-    OBJ_CONSTRUCT(&ilist, opal_list_t);
-    opal_list_append(&ilist, &info->super);
-    /* tell the server to delete upon read */
-    info = OBJ_NEW(opal_value_t);
-    info->key = strdup(OPAL_PMIX_PERSISTENCE);
-    info->type = OPAL_PERSIST;
-    info->data.integer = OPAL_PMIX_PERSIST_FIRST_READ;
-    opal_list_append(&ilist, &info->super);
-
+    /* publish the provided value - it defaults to
+     * "session" range, but we will add a persistence
+     * to delete it upon first read */
+    PMIX_INFO_XFER(&info[0], indat);
+    PMIX_INFO_LOAD(&info[1], PMIX_PERSISTENCE, &firstread, PMIX_PERSIST);
     /* publish it with "session" scope */
-    rc = opal_pmix.publish(&ilist);
-    OPAL_LIST_DESTRUCT(&ilist);
-    if (OPAL_SUCCESS != rc) {
-        return rc;
+    rc = PMIx_Publish(info, 2);
+    PMIX_INFO_DESTRUCT(&info[0]);
+    PMIX_INFO_DESTRUCT(&info[1]);
+    if (PMIX_SUCCESS != rc) {
+        return opal_pmix_convert_status(rc);
     }
 
-    /* lookup the other side's info - if a non-blocking form
-     * of lookup isn't available, then we use the blocking
-     * form and trust that the underlying system will WAIT
-     * until the other side publishes its data */
-    pdat = OBJ_NEW(opal_pmix_pdata_t);
-    pdat->value.key = strdup(outdat->value.key);
-    pdat->value.type = outdat->value.type;
-    /* setup the constraints */
-    OBJ_CONSTRUCT(&mlist, opal_list_t);
+    /* lookup the other side's info */
     /* tell it to wait for the data to arrive */
-    info = OBJ_NEW(opal_value_t);
-    info->key = strdup(OPAL_PMIX_WAIT);
-    info->type = OPAL_BOOL;
-    info->data.flag = true;
-    opal_list_append(&mlist, &info->super);
+    PMIX_INFO_LOAD(&info[0], PMIX_WAIT, NULL, PMIX_BOOL);
     /* pass along the given timeout as we don't know when
      * the other side will publish - it doesn't
      * have to be simultaneous */
-    info = OBJ_NEW(opal_value_t);
-    info->key = strdup(OPAL_PMIX_TIMEOUT);
-    info->type = OPAL_INT;
-    if (0 < opal_pmix_base.timeout) {
-        /* the user has overridden the default */
-        info->data.integer = opal_pmix_base.timeout;
-    } else {
-        info->data.integer = timeout;
-    }
-    opal_list_append(&mlist, &info->super);
+    PMIX_INFO_LOAD(&info[1], PMIX_TIMEOUT, &opal_pmix_base.timeout, PMIX_INT);
+    rc = PMIx_Lookup(outdat, 1, info, 2);
+    PMIX_INFO_DESTRUCT(&info[0]);
+    PMIX_INFO_DESTRUCT(&info[1]);
 
-    /* if a non-blocking version of lookup isn't
-     * available, then use the blocking version */
-    OBJ_CONSTRUCT(&ilist, opal_list_t);
-    opal_list_append(&ilist, &pdat->super);
-    rc = opal_pmix.lookup(&ilist, &mlist);
-    OPAL_LIST_DESTRUCT(&mlist);
-    if (OPAL_SUCCESS != rc) {
-        OPAL_LIST_DESTRUCT(&ilist);
-        return rc;
-    }
-
-    /* pass back the result */
-    outdat->proc = pdat->proc;
-    free(outdat->value.key);
-    rc = opal_value_xfer(&outdat->value, &pdat->value);
-    OPAL_LIST_DESTRUCT(&ilist);
-    return rc;
+    return opal_pmix_convert_status(rc);
 }
 
 pmix_status_t opal_pmix_convert_rc(int rc)

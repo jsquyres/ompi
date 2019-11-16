@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2010      Oracle and/or its affiliates.  All rights reserved.
  * Copyright (c) 2011      Cisco Systems, Inc.  All rights reserved.
- * Copyright (c) 2013-2018 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
  * Copyright (c) 2016-2017 Research Organization for Information Science
@@ -47,7 +47,7 @@
 #include "opal/runtime/opal_progress_threads.h"
 #include "opal/mca/installdirs/installdirs.h"
 #include "opal/mca/pmix/base/base.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/util/show_help.h"
 #include "orte/util/proc_info.h"

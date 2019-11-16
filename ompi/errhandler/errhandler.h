@@ -12,7 +12,7 @@
  *                         All rights reserved.
  * Copyright (c) 2008-2018 Cisco Systems, Inc.  All rights reserved
  * Copyright (c) 2008-2009 Sun Microsystems, Inc.  All rights reserved.
- * Copyright (c) 2015-2016 Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2016      Los Alamos National Security, LLC. All rights
  *                         reserved.
  * Copyright (c) 2016      Research Organization for Information Science
@@ -35,7 +35,7 @@
 #include "opal/prefetch.h"
 #include "opal/class/opal_object.h"
 #include "opal/class/opal_pointer_array.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "ompi/runtime/mpiruntime.h"
 #include "ompi/errhandler/errhandler_predefined.h"

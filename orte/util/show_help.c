@@ -33,7 +33,7 @@
 #include "opal/util/printf.h"
 #include "opal/dss/dss.h"
 #include "opal/mca/event/event.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/mca/errmgr/errmgr.h"
 #include "orte/mca/rml/rml.h"

@@ -43,7 +43,7 @@
 #include "opal/class/opal_pointer_array.h"
 #include "opal/dss/dss.h"
 #include "opal/mca/hwloc/hwloc-internal.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/mca/compress/compress.h"
 
 #include "orte/util/dash_host/dash_host.h"

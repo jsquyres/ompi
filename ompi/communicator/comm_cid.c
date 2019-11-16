@@ -17,7 +17,7 @@
  * Copyright (c) 2012-2016 Los Alamos National Security, LLC.  All rights
  *                         reserved.
  * Copyright (c) 2012      Oak Ridge National Labs.  All rights reserved.
- * Copyright (c) 2013-2016 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2014-2016 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2016      IBM Corporation.  All rights reserved.
@@ -33,7 +33,7 @@
 #include "ompi_config.h"
 
 #include "opal/dss/dss.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/util/printf.h"
 
 #include "ompi/proc/proc.h"

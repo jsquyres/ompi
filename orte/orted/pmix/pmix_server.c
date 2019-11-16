@@ -52,7 +52,7 @@
 #include "opal/class/opal_hotel.h"
 #include "opal/class/opal_list.h"
 #include "opal/mca/base/mca_base_var.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/util/opal_environ.h"
 #include "opal/util/show_help.h"
 #include "opal/util/error.h"

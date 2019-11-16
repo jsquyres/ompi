@@ -13,7 +13,7 @@
  * Copyright (c) 2006-2015 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012-2015 Los Alamos National Security, LLC.  All rights
  *                         reserved.
- * Copyright (c) 2013-2015 Intel, Inc. All rights reserved
+ * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2014-2017 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2015-2017 Mellanox Technologies. All rights reserved.
@@ -37,7 +37,7 @@
 #include "opal/util/arch.h"
 #include "opal/util/show_help.h"
 #include "opal/mca/hwloc/base/base.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/util/argv.h"
 
 #include "ompi/proc/proc.h"

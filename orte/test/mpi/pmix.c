@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015      Mellanox Technologies, Inc.
  *                         All rights reserved.
- * Copyright (c) 2016      Intel, Inc. All rights reserved.
+ * Copyright (c) 2016-2019 Intel, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -22,7 +22,7 @@
 #include <sys/time.h>
 
 #include "opal/class/opal_list.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "ompi/proc/proc.h"
 
 #define DO_FINALIZE(rc,flag,format,args...) \

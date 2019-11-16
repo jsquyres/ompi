@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2014-2018 Intel, Inc.  All rights reserved.
+# Copyright (c) 2014-2019 Intel, Inc.  All rights reserved.
 # Copyright (c) 2015      Cisco Systems, Inc.  All rights reserved.
 # Copyright (c) 2015      Research Organization for Information Science
 #                         and Technology (RIST). All rights reserved.
@@ -13,18 +13,11 @@
 
 EXTRA_DIST = autogen.subdirs
 
-dist_opaldata_DATA = help-pmix-pmix4x.txt
-
 SUBDIRS = openpmix
 
 sources = \
         pmix4x.h \
-        pmix4x_component.c \
-        pmix4x.c \
-        pmix4x_client.c \
-        pmix4x_local.c \
-        pmix4x_server_south.c \
-        pmix4x_server_north.c
+        pmix4x_component.c
 
 # Make the output library in this directory, and name it either
 # mca_<type>_<name>.la (for DSO builds) or libmca_<type>_<name>.la

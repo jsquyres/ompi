@@ -66,7 +66,7 @@
 #include "opal/util/daemon_init.h"
 #include "opal/dss/dss.h"
 #include "opal/mca/hwloc/hwloc-internal.h"
-#include "opal/mca/pmix/pmix.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/mca/compress/compress.h"
 
 #include "orte/util/show_help.h"
