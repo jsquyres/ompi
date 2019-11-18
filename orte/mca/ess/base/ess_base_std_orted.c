@@ -36,10 +36,10 @@
 #endif
 
 #include "opal/dss/dss.h"
-#include "opal/mca/event/event.h"
+#include "opal/event/event-internal.h"
 #include "opal/runtime/opal.h"
-#include "opal/mca/hwloc/base/base.h"
-#include "opal/mca/pmix/base/base.h"
+#include "opal/hwloc/hwloc-internal.h"
+#include "opal/pmix/pmix-internal.h"
 #include "opal/mca/pstat/base/base.h"
 #include "opal/util/arch.h"
 #include "opal/util/opal_environ.h"
@@ -348,21 +348,6 @@ int orte_ess_base_orted_setup(void)
     /* obviously, we have "reported" */
     jdata->num_reported = 1;
 
-    /* setup the PMIx framework - ensure it skips all non-PMIx components,
-     * but do not override anything we were given */
-    opal_setenv("OMPI_MCA_pmix", "^s1,s2,cray,isolated", false, &environ);
-    if (OPAL_SUCCESS != (ret = mca_base_framework_open(&opal_pmix_base_framework, 0))) {
-        ORTE_ERROR_LOG(ret);
-        error = "orte_pmix_base_open";
-        goto error;
-    }
-    if (ORTE_SUCCESS != (ret = opal_pmix_base_select())) {
-        ORTE_ERROR_LOG(ret);
-        error = "opal_pmix_base_select";
-        goto error;
-    }
-    /* set the event base */
-    opal_pmix_base_set_evbase(orte_event_base);
     /* setup the PMIx server - we need this here in case the
      * communications infrastructure wants to register
      * information */
@@ -410,7 +395,8 @@ int orte_ess_base_orted_setup(void)
     pmix_server_start();
 
     if (NULL != orte_process_info.my_hnp_uri) {
-        opal_value_t val;
+        pmix_value_t val;
+        pmix_proc_t proc;
 
         /* extract the HNP's name so we can update the routing table */
         if (ORTE_SUCCESS != (ret = orte_rml_base_parse_uris(orte_process_info.my_hnp_uri,
@@ -423,21 +409,15 @@ int orte_ess_base_orted_setup(void)
          * the connection, but just tells the RML how to reach the HNP
          * if/when we attempt to send to it
          */
-        OBJ_CONSTRUCT(&val, opal_value_t);
-        val.key = OPAL_PMIX_PROC_URI;
-        val.type = OPAL_STRING;
-        val.data.string = orte_process_info.my_hnp_uri;
-        if (OPAL_SUCCESS != (ret = opal_pmix.store_local(ORTE_PROC_MY_HNP, &val))) {
-            ORTE_ERROR_LOG(ret);
-            val.key = NULL;
-            val.data.string = NULL;
-            OBJ_DESTRUCT(&val);
+        PMIX_VALUE_LOAD(&val, orte_process_info.my_hnp_uri, OPAL_STRING);
+        OPAL_PMIX_CONVERT_NAME(&proc, ORTE_PROC_MY_HNP);
+        if (PMIX_SUCCESS != PMIx_Store_internal(&proc, PMIX_PROC_URI, &val)) {
+            PMIX_VALUE_DESTRUCT(&val);
             error = "store HNP URI";
+            ret = OPAL_ERROR;
             goto error;
         }
-        val.key = NULL;
-        val.data.string = NULL;
-        OBJ_DESTRUCT(&val);
+        PMIX_VALUE_DESTRUCT(&val);
     }
 
     /* select the errmgr */
@@ -585,22 +565,23 @@ int orte_ess_base_orted_finalize(void)
     }
     /* shutdown the pmix server */
     pmix_server_finalize();
-    (void) mca_base_framework_close(&opal_pmix_base_framework);
 
     /* close frameworks */
     (void) mca_base_framework_close(&orte_filem_base_framework);
     (void) mca_base_framework_close(&orte_grpcomm_base_framework);
     (void) mca_base_framework_close(&orte_iof_base_framework);
-    (void) mca_base_framework_close(&orte_errmgr_base_framework);
+    /* first stage shutdown of the errmgr, deregister the handler but keep
+     * the required facilities until the rml and oob are offline */
+    orte_errmgr.finalize();
     (void) mca_base_framework_close(&orte_plm_base_framework);
     /* make sure our local procs are dead */
     orte_odls.kill_local_procs(NULL);
-    (void) mca_base_framework_close(&orte_rmaps_base_framework);
     (void) mca_base_framework_close(&orte_rtc_base_framework);
     (void) mca_base_framework_close(&orte_odls_base_framework);
     (void) mca_base_framework_close(&orte_routed_base_framework);
     (void) mca_base_framework_close(&orte_rml_base_framework);
     (void) mca_base_framework_close(&orte_oob_base_framework);
+    (void) mca_base_framework_close(&orte_errmgr_base_framework);
     (void) mca_base_framework_close(&orte_state_base_framework);
     /* remove our use of the session directory tree */
     orte_session_dir_finalize(ORTE_PROC_MY_NAME);

@@ -12,9 +12,9 @@
  *                         All rights reserved.
  * Copyright (c) 2011-2016 Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2014-2018 Intel, Inc. All rights reserved.
- * Copyright (c) 2015-2017 Research Organization for Information Science
- *                         and Technology (RIST). All rights reserved.
+ * Copyright (c) 2014-2019 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2015-2018 Research Organization for Information Science
+ *                         and Technology (RIST).  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -55,6 +55,19 @@ orte_grpcomm_API_module_t orte_grpcomm = {
 };
 
 static bool recv_issued = false;
+
+static int base_register(mca_base_register_flag_t flags)
+{
+    orte_grpcomm_base.context_id = 1;
+    mca_base_var_register("orte", "grpcomm", "base", "starting_context_id",
+                          "Starting value for assigning context id\'s",
+                          MCA_BASE_VAR_TYPE_INT, NULL, 0, 0,
+                          OPAL_INFO_LVL_9,
+                          MCA_BASE_VAR_SCOPE_READONLY,
+                          &orte_grpcomm_base.context_id);
+
+    return ORTE_SUCCESS;
+}
 
 static int orte_grpcomm_base_close(void)
 {
@@ -99,7 +112,7 @@ static int orte_grpcomm_base_open(mca_base_open_flag_t flags)
     return mca_base_framework_components_open(&orte_grpcomm_base_framework, flags);
 }
 
-MCA_BASE_FRAMEWORK_DECLARE(orte, grpcomm, "GRPCOMM", NULL,
+MCA_BASE_FRAMEWORK_DECLARE(orte, grpcomm, "GRPCOMM", base_register,
                            orte_grpcomm_base_open,
                            orte_grpcomm_base_close,
                            mca_grpcomm_base_static_components, 0);

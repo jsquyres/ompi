@@ -13,6 +13,7 @@
 # Copyright (c) 2015      Los Alamos National Security, LLC.  All rights
 #                         reserved.
 # Copyright (c) 2017      IBM Corporation.  All rights reserved.
+# Copyright (c) 2017-2019 Intel, Inc.  All rights reserved.
 # $COPYRIGHT$
 #
 # Additional copyrights may follow
@@ -44,9 +45,8 @@ mcacomponent_LTLIBRARIES = $(component_install)
 mca_plm_alps_la_SOURCES = $(sources)
 mca_plm_alps_la_CPPFLAGS = $(plm_alps_CPPFLAGS)
 mca_plm_alps_la_LDFLAGS = -module -avoid-version $(plm_alps_LDFLAGS)
-mca_plm_alps_la_LIBADD = $(top_builddir)/orte/lib@ORTE_LIB_PREFIX@open-rte.la \
-	$(plm_alps_LIBS) \
-    $(ORTE_TOP_BUILDDIR)/orte/mca/common/alps/lib@ORTE_LIB_PREFIX@mca_common_alps.la
+mca_plm_alps_la_LIBADD = $(plm_alps_LIBS) \
+    $(ORTE_TOP_BUILDDIR)/orte/mca/common/alps/libprtemca_common_alps.la
 
 noinst_LTLIBRARIES = $(component_noinst)
 libmca_plm_alps_la_SOURCES =$(sources)

@@ -14,7 +14,7 @@
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
  * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
- * Copyright (c) 2014-2018 Research Organization for Information Science
+ * Copyright (c) 2014-2019 Research Organization for Information Science
  *                         and Technology (RIST).  All rights reserved.
  * Copyright (c) 2017      IBM Corporation.  All rights reserved.
  * $COPYRIGHT$
@@ -32,8 +32,8 @@
 #include <sys/time.h>
 #endif
 
-#include "opal/mca/hwloc/hwloc-internal.h"
-#include "opal/mca/pmix/pmix-internal.h"
+#include "opal/hwloc/hwloc-internal.h"
+#include "opal/pmix/pmix-internal.h"
 #include "opal/util/argv.h"
 #include "opal/util/output.h"
 #include "opal/class/opal_hash_table.h"
@@ -72,12 +72,11 @@ char *orte_basename = NULL;
 bool orte_coprocessors_detected = false;
 opal_hash_table_t *orte_coprocessors = NULL;
 char *orte_topo_signature = NULL;
-bool orte_no_vm = false;
 char *orte_data_server_uri = NULL;
 
 /* ORTE OOB port flags */
 bool orte_static_ports = false;
-bool orte_standalone_operation = false;
+char *orte_oob_static_ports = NULL;
 
 bool orte_keep_fqdn_hostnames = false;
 bool orte_have_fqdn_allocation = false;
@@ -110,12 +109,6 @@ bool orte_node_info_communicated = false;
 char *orte_launch_agent = NULL;
 char **orted_cmd_line=NULL;
 char **orte_fork_agent=NULL;
-
-/* debugger job */
-bool orte_debugger_dump_proctable = false;
-char *orte_debugger_test_daemon = NULL;
-bool orte_debugger_test_attach = false;
-int orte_debugger_check_rate = -1;
 
 /* exit flags */
 int orte_exit_status = 0;
@@ -187,9 +180,6 @@ bool orte_map_stddiag_to_stdout = false;
 /* maximum size of virtual machine - used to subdivide allocation */
 int orte_max_vm_size = -1;
 
-/* user debugger */
-char *orte_base_user_debugger = NULL;
-
 int orte_debug_output = -1;
 bool orte_debug_daemons_flag = false;
 bool orte_xml_output = false;
@@ -197,6 +187,7 @@ FILE *orte_xml_fp = NULL;
 char *orte_job_ident = NULL;
 bool orte_execute_quiet = false;
 bool orte_report_silent_errors = false;
+bool orte_hwloc_shmem_available = false;
 
 /* See comment in orte/tools/orterun/debuggers.c about this MCA
    param */
@@ -476,9 +467,9 @@ char* orte_get_proc_hostname(orte_process_name_t *proc)
     }
 
     /* if we are an app, get the data from the modex db */
-    OPAL_MODEX_RECV_VALUE(rc, OPAL_PMIX_HOSTNAME,
+    OPAL_MODEX_RECV_VALUE(rc, PMIX_HOSTNAME,
                           (opal_process_name_t*)proc,
-                          &hostname, OPAL_STRING);
+                          &hostname, PMIX_STRING);
 
     /* user is responsible for releasing the data */
     return hostname;
@@ -501,9 +492,9 @@ orte_node_rank_t orte_get_proc_node_rank(orte_process_name_t *proc)
 
     /* if we are an app, get the value from the modex db */
     noderank = &nd;
-    OPAL_MODEX_RECV_VALUE(rc, OPAL_PMIX_NODE_RANK,
+    OPAL_MODEX_RECV_VALUE(rc, PMIX_NODE_RANK,
                           (opal_process_name_t*)proc,
-                          &noderank, ORTE_NODE_RANK);
+                          &noderank, PMIX_UINT16);
     if (OPAL_SUCCESS != rc) {
         nd = ORTE_NODE_RANK_INVALID;
     }
@@ -610,6 +601,7 @@ OBJ_CLASS_INSTANCE(orte_app_context_t,
 
 static void orte_job_construct(orte_job_t* job)
 {
+    job->exit_code = 0;
     job->personality = NULL;
     job->jobid = ORTE_JOBID_INVALID;
     job->offset = 0;
@@ -647,6 +639,8 @@ static void orte_job_construct(orte_job_t* job)
 
     OBJ_CONSTRUCT(&job->attributes, opal_list_t);
     OBJ_CONSTRUCT(&job->launch_msg, opal_buffer_t);
+    OBJ_CONSTRUCT(&job->children, opal_list_t);
+    job->launcher = ORTE_JOBID_INVALID;
 }
 
 static void orte_job_destruct(orte_job_t* job)
@@ -711,14 +705,17 @@ static void orte_job_destruct(orte_job_t* job)
 
     OBJ_DESTRUCT(&job->launch_msg);
 
+    OPAL_LIST_DESTRUCT(&job->children);
+
     if (NULL != orte_job_data && ORTE_JOBID_INVALID != job->jobid) {
         /* remove the job from the global array */
         opal_hash_table_remove_value_uint32(orte_job_data, job->jobid);
     }
+
 }
 
 OBJ_CLASS_INSTANCE(orte_job_t,
-                   opal_list_item_t,
+                   opal_object_t,
                    orte_job_construct,
                    orte_job_destruct);
 
@@ -886,6 +883,9 @@ static void orte_attr_des(orte_attribute_t *p)
         OBJ_DESTRUCT(&p->data.buf);
     } else if (OPAL_STRING == p->type) {
         free(p->data.string);
+    } else if (OPAL_ENVAR == p->type) {
+        free(p->data.envar.envar);
+        free(p->data.envar.value);
     }
 }
 OBJ_CLASS_INSTANCE(orte_attribute_t,

@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2011-2012 Los Alamos National Security, LLC.  All rights
  *                         reserved.
- * Copyright (c) 2014-2018 Intel, Inc. All rights reserved.
+ * Copyright (c) 2014-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2018      Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
@@ -36,6 +36,7 @@
 #include "opal/dss/dss.h"
 #include "opal/util/argv.h"
 #include "opal/mca/if/if.h"
+#include "opal/pmix/pmix-internal.h"
 
 #include "orte/util/show_help.h"
 #include "orte/mca/errmgr/errmgr.h"
@@ -46,7 +47,6 @@
 #include "orte/util/hostfile/hostfile.h"
 #include "orte/util/dash_host/dash_host.h"
 #include "orte/util/proc_info.h"
-#include "orte/util/comm/comm.h"
 #include "orte/util/error_strings.h"
 #include "orte/util/threads.h"
 #include "orte/mca/state/state.h"
@@ -118,6 +118,7 @@ void orte_ras_base_allocate(int fd, short args, void *cbdata)
     orte_app_context_t *app;
     orte_state_caddy_t *caddy = (orte_state_caddy_t*)cbdata;
     char *hosts=NULL;
+    pmix_status_t ret;
 
     ORTE_ACQUIRE_OBJECT(caddy);
 
@@ -460,8 +461,10 @@ void orte_ras_base_allocate(int fd, short args, void *cbdata)
   next_state:
     /* are we to report this event? */
     if (orte_report_events) {
-        if (ORTE_SUCCESS != (rc = orte_util_comm_report_event(ORTE_COMM_EVENT_ALLOCATE))) {
-            ORTE_ERROR_LOG(rc);
+        if (PMIX_SUCCESS != (ret = PMIx_Notify_event(PMIX_NOTIFY_ALLOC_COMPLETE,
+                                                     NULL, PMIX_GLOBAL, NULL, 0,
+                                                     NULL, NULL))) {
+            PMIX_ERROR_LOG(ret);
             ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);
             OBJ_RELEASE(caddy);
         }

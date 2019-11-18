@@ -11,6 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2008-2018 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC.  All rights reserved.
+ * Copyright (c) 2018-2019 Intel, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -36,6 +37,8 @@
 #include "orte/mca/rml/rml_types.h"
 
 BEGIN_C_DECLS
+
+#define ORTE_PMIX_SHOW_HELP   "orte.pmix.show.help"
 
 /**
  * Initializes the output stream system and opens a default
@@ -104,6 +107,9 @@ ORTE_DECLSPEC int orte_show_help_suppress(const char *filename,
 ORTE_DECLSPEC void orte_show_help_recv(int status, orte_process_name_t* sender,
                                        opal_buffer_t *buffer, orte_rml_tag_t tag,
                                        void* cbdata);
+
+ORTE_DECLSPEC char* orte_show_help_string(const char *filename, const char *topic,
+                                          int want_error_header, ...);
 
 END_C_DECLS
 #endif

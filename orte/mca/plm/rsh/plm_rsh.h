@@ -12,8 +12,8 @@
  * Copyright (c) 2011      Los Alamos National Security, LLC.  All rights
  *                         reserved.
  * Copyright (c) 2008      Sun Microsystems, Inc.  All rights reserved.
- * Copyright (c) 2011-2019 IBM Corporation.  All rights reserved.
- * Copyright (c) 2015-2018 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2011      IBM Corporation.  All rights reserved.
+ * Copyright (c) 2015-2019 Intel, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -66,7 +66,6 @@ struct orte_plm_rsh_component_t {
     bool pass_environ_mca_params;
     char *ssh_args;
     char *pass_libpath;
-    char *chdir;
 };
 typedef struct orte_plm_rsh_component_t orte_plm_rsh_component_t;
 

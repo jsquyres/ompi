@@ -17,8 +17,8 @@
  *                         et Automatique. All rights reserved.
  * Copyright (c) 2010      Oracle and/or its affiliates.  All rights reserved.
  * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
- * Copyright (c) 2015-2017 Research Organization for Information Science
- *                         and Technology (RIST). All rights reserved.
+ * Copyright (c) 2015-2019 Research Organization for Information Science
+ *                         and Technology (RIST).  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -49,8 +49,9 @@
 #include <sys/time.h>
 #endif  /* HAVE_SYS_TIME_H */
 
+#include <pmix_server.h>
 
-#include "opal/mca/event/event.h"
+#include "opal/event/event-internal.h"
 #include "opal/mca/base/base.h"
 #include "opal/util/output.h"
 #include "opal/util/cmd_line.h"
@@ -65,8 +66,8 @@
 #include "opal/mca/base/mca_base_var.h"
 #include "opal/util/daemon_init.h"
 #include "opal/dss/dss.h"
-#include "opal/mca/hwloc/hwloc-internal.h"
-#include "opal/mca/pmix/pmix-internal.h"
+#include "opal/hwloc/hwloc-internal.h"
+#include "opal/pmix/pmix-internal.h"
 #include "opal/mca/compress/compress.h"
 
 #include "orte/util/show_help.h"
@@ -76,7 +77,6 @@
 #include "orte/util/nidmap.h"
 #include "orte/util/parse_options.h"
 #include "orte/mca/rml/base/rml_contact.h"
-#include "orte/util/pre_condition_transports.h"
 #include "orte/util/threads.h"
 
 #include "orte/mca/errmgr/errmgr.h"
@@ -107,13 +107,15 @@
 
 #include "orte/orted/orted.h"
 #include "orte/orted/pmix/pmix_server.h"
+#include "orte/orted/orted_submit.h"
+
+orte_cmd_options_t orte_cmd_options = {0};
+opal_cmd_line_t *orte_cmd_line = NULL;
 
 /*
  * Globals
  */
-static opal_event_t *pipe_handler;
 static void shutdown_callback(int fd, short flags, void *arg);
-static void pipe_closed(int fd, short flags, void *arg);
 static void rollup(int status, orte_process_name_t* sender,
                    opal_buffer_t *buffer,
                    orte_rml_tag_t tag, void *cbdata);
@@ -132,13 +134,10 @@ static struct {
     bool debug;
     bool help;
     bool set_sid;
-    bool hnp;
     bool daemonize;
     char* name;
     char* vpid_start;
     char* num_procs;
-    int uri_pipe;
-    int singleton_died_pipe;
     bool abort;
     bool tree_spawn;
     bool test_suicide;
@@ -177,10 +176,6 @@ opal_cmd_line_init_t orte_cmd_line_opts[] = {
       NULL, OPAL_CMD_LINE_TYPE_BOOL,
       "Enable debugging of OpenRTE daemons, storing output in files" },
 
-    { NULL, '\0', NULL, "hnp", 0,
-      &orted_globals.hnp, OPAL_CMD_LINE_TYPE_BOOL,
-      "Direct the orted to act as the HNP"},
-
     { "orte_hnp_uri", '\0', NULL, "hnp-uri", 1,
       NULL, OPAL_CMD_LINE_TYPE_STRING,
       "URI for the HNP"},
@@ -201,18 +196,6 @@ opal_cmd_line_init_t orte_cmd_line_opts[] = {
       NULL, OPAL_CMD_LINE_TYPE_STRING,
       "Set the root for the session directory tree" },
 
-    { NULL, '\0', NULL, "report-uri", 1,
-      &orted_globals.uri_pipe, OPAL_CMD_LINE_TYPE_INT,
-      "Report this process' uri on indicated pipe"},
-
-    { NULL, '\0', NULL, "singleton-died-pipe", 1,
-      &orted_globals.singleton_died_pipe, OPAL_CMD_LINE_TYPE_INT,
-      "Watch on indicated pipe for singleton termination"},
-
-    { "orte_output_directory", '\0', "output-directory", "output-directory", 1,
-      NULL, OPAL_CMD_LINE_TYPE_STRING,
-      "Redirect output from application processes into filename/job/rank/std[out,err,diag]." },
-
     { "orte_output_filename", '\0', "output-filename", "output-filename", 1,
       NULL, OPAL_CMD_LINE_TYPE_STRING,
       "Redirect output from application processes into filename.rank" },
@@ -230,6 +213,35 @@ opal_cmd_line_init_t orte_cmd_line_opts[] = {
       NULL, OPAL_CMD_LINE_TYPE_NULL, NULL }
 };
 
+typedef struct {
+    opal_pmix_lock_t lock;
+    pmix_info_t *info;
+    size_t ninfo;
+} myxfer_t;
+
+static void infocbfunc(pmix_status_t status,
+                       pmix_info_t *info, size_t ninfo,
+                       void *cbdata,
+                       pmix_release_cbfunc_t release_fn,
+                       void *release_cbdata)
+{
+    myxfer_t *xfer = (myxfer_t*)cbdata;
+    size_t n;
+
+    if (NULL != info) {
+        xfer->ninfo = ninfo;
+        PMIX_INFO_CREATE(xfer->info, xfer->ninfo);
+        for (n=0; n < ninfo; n++) {
+            PMIX_INFO_XFER(&xfer->info[n], &info[n]);
+        }
+    }
+
+    if (NULL != release_fn) {
+        release_fn(release_cbdata);
+    }
+    OPAL_PMIX_WAKEUP_THREAD(&xfer->lock);
+}
+
 int orte_daemon(int argc, char *argv[])
 {
     int ret = 0;
@@ -237,15 +249,17 @@ int orte_daemon(int argc, char *argv[])
     int i;
     opal_buffer_t *buffer;
     char hostname[OPAL_MAXHOSTNAMELEN];
-#if OPAL_ENABLE_FT_CR == 1
-    char *tmp_env_var = NULL;
-#endif
-    opal_value_t val;
+    pmix_value_t val;
+    pmix_proc_t proc;
+    pmix_status_t prc;
+    myxfer_t xfer;
+    pmix_data_buffer_t pbuf;
+    pmix_byte_object_t pbo;
+    opal_byte_object_t bo, *boptr;
+    orte_process_name_t target;
 
     /* initialize the globals */
     memset(&orted_globals, 0, sizeof(orted_globals));
-    /* initialize the singleton died pipe to an illegal value so we can detect it was set */
-    orted_globals.singleton_died_pipe = -1;
     bucket = OBJ_NEW(opal_buffer_t);
 
     /* setup to check common command line options that just report and die */
@@ -298,7 +312,6 @@ int orte_daemon(int argc, char *argv[])
 
     /* purge any ess/pmix flags set in the environ when we were launched */
     opal_unsetenv(OPAL_MCA_PREFIX"ess", &orte_launch_environ);
-    opal_unsetenv(OPAL_MCA_PREFIX"pmix", &orte_launch_environ);
 
     /* if orte_daemon_debug is set, let someone know we are alive right
      * away just in case we have a problem along the way
@@ -330,15 +343,6 @@ int orte_daemon(int argc, char *argv[])
         if (1000 < i) i=0;
     }
 
-#if OPAL_ENABLE_FT_CR == 1
-    /* Mark as a tool program */
-    (void) mca_base_var_env_name ("opal_cr_is_tool", &tmp_env_var);
-    opal_setenv(tmp_env_var,
-                "1",
-                true, &environ);
-    free(tmp_env_var);
-#endif
-
     /* detach from controlling terminal
      * otherwise, remain attached so output can get to us
      */
@@ -348,21 +352,9 @@ int orte_daemon(int argc, char *argv[])
         opal_daemon_init(NULL);
     }
 
-    /* Set the flag telling OpenRTE that I am NOT a
-     * singleton, but am "infrastructure" - prevents setting
-     * up incorrect infrastructure that only a singleton would
-     * require.
-     */
-    if (orted_globals.hnp) {
-        if (ORTE_SUCCESS != (ret = orte_init(&argc, &argv, ORTE_PROC_HNP))) {
-            ORTE_ERROR_LOG(ret);
-            return ret;
-        }
-    } else {
-        if (ORTE_SUCCESS != (ret = orte_init(&argc, &argv, ORTE_PROC_DAEMON))) {
-            ORTE_ERROR_LOG(ret);
-            return ret;
-        }
+    if (ORTE_SUCCESS != (ret = orte_init(&argc, &argv, ORTE_PROC_DAEMON))) {
+        ORTE_ERROR_LOG(ret);
+        return ret;
     }
 
     /* finalize the OPAL utils. As they are opened again from orte_init->opal_init
@@ -471,27 +463,16 @@ int orte_daemon(int argc, char *argv[])
     }
     ORTE_PROC_MY_DAEMON->jobid = ORTE_PROC_MY_NAME->jobid;
     ORTE_PROC_MY_DAEMON->vpid = ORTE_PROC_MY_NAME->vpid;
-    OBJ_CONSTRUCT(&val, opal_value_t);
-    val.key = OPAL_PMIX_PROC_URI;
-    val.type = OPAL_STRING;
-    val.data.string = orte_process_info.my_daemon_uri;
-    if (OPAL_SUCCESS != (ret = opal_pmix.store_local(ORTE_PROC_MY_NAME, &val))) {
-        ORTE_ERROR_LOG(ret);
-        val.key = NULL;
-        val.data.string = NULL;
-        OBJ_DESTRUCT(&val);
+    PMIX_VALUE_LOAD(&val, orte_process_info.my_daemon_uri, OPAL_STRING);
+    (void)opal_snprintf_jobid(proc.nspace, PMIX_MAX_NSLEN, ORTE_PROC_MY_NAME->jobid);
+    proc.rank = ORTE_PROC_MY_NAME->vpid;
+    if (PMIX_SUCCESS != (prc = PMIx_Store_internal(&proc, PMIX_PROC_URI, &val))) {
+        PMIX_ERROR_LOG(prc);
+        PMIX_VALUE_DESTRUCT(&val);
+        ret = ORTE_ERROR;
         goto DONE;
     }
-    val.key = NULL;
-    val.data.string = NULL;
-    OBJ_DESTRUCT(&val);
-
-    /* if I am also the hnp, then update that contact info field too */
-    if (ORTE_PROC_IS_HNP) {
-        orte_process_info.my_hnp_uri = strdup(orte_process_info.my_daemon_uri);
-        ORTE_PROC_MY_HNP->jobid = ORTE_PROC_MY_NAME->jobid;
-        ORTE_PROC_MY_HNP->vpid = ORTE_PROC_MY_NAME->vpid;
-    }
+    PMIX_VALUE_DESTRUCT(&val);
 
     /* setup the primary daemon command receive function */
     orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_DAEMON,
@@ -536,150 +517,6 @@ int orte_daemon(int argc, char *argv[])
        but what the heck... :-) */
     opal_progress_set_event_flag(OPAL_EVLOOP_ONCE);
 
-    /* if requested, report my uri to the indicated pipe */
-    if (orted_globals.uri_pipe > 0) {
-        orte_job_t *jdata;
-        orte_proc_t *proc;
-        orte_node_t *node;
-        orte_app_context_t *app;
-        char *tmp, *nptr, *sysinfo;
-        char **singenv=NULL, *string_key, *env_str;
-
-        /* setup the singleton's job */
-        jdata = OBJ_NEW(orte_job_t);
-        /* default to ompi for now */
-        opal_argv_append_nosize(&jdata->personality, "ompi");
-        orte_plm_base_create_jobid(jdata);
-        opal_hash_table_set_value_uint32(orte_job_data, jdata->jobid, jdata);
-
-        /* must create a map for it (even though it has no
-         * info in it) so that the job info will be picked
-         * up in subsequent pidmaps or other daemons won't
-         * know how to route
-         */
-        jdata->map = OBJ_NEW(orte_job_map_t);
-
-        /* setup an app_context for the singleton */
-        app = OBJ_NEW(orte_app_context_t);
-        app->app = strdup("singleton");
-        app->num_procs = 1;
-        opal_pointer_array_add(jdata->apps, app);
-        jdata->num_apps = 1;
-
-        /* setup a proc object for the singleton - since we
-         * -must- be the HNP, and therefore we stored our
-         * node on the global node pool, and since the singleton
-         * -must- be on the same node as us, indicate that
-         */
-        proc = OBJ_NEW(orte_proc_t);
-        proc->name.jobid = jdata->jobid;
-        proc->name.vpid = 0;
-        proc->parent = 0;
-        ORTE_FLAG_SET(proc, ORTE_PROC_FLAG_ALIVE);
-        proc->state = ORTE_PROC_STATE_RUNNING;
-        proc->app_idx = 0;
-        /* obviously, it is on my node */
-        node = (orte_node_t*)opal_pointer_array_get_item(orte_node_pool, 0);
-        proc->node = node;
-        OBJ_RETAIN(node);  /* keep accounting straight */
-        opal_pointer_array_add(jdata->procs, proc);
-        jdata->num_procs = 1;
-        /* add the node to the job map */
-        OBJ_RETAIN(node);
-        opal_pointer_array_add(jdata->map->nodes, node);
-        jdata->map->num_nodes++;
-        /* and it obviously is on the node */
-        OBJ_RETAIN(proc);
-        opal_pointer_array_add(node->procs, proc);
-        node->num_procs++;
-        /* and obviously it is one of my local procs */
-        OBJ_RETAIN(proc);
-        opal_pointer_array_add(orte_local_children, proc);
-        jdata->num_local_procs = 1;
-        /* set the trivial */
-        proc->local_rank = 0;
-        proc->node_rank = 0;
-        proc->app_rank = 0;
-        proc->state = ORTE_PROC_STATE_RUNNING;
-        proc->app_idx = 0;
-        ORTE_FLAG_SET(proc, ORTE_PROC_FLAG_LOCAL);
-
-        /* set the ORTE_JOB_TRANSPORT_KEY from the environment */
-        orte_pre_condition_transports(jdata, NULL);
-
-        /* register the singleton's nspace with our PMIx server */
-        if (ORTE_SUCCESS != (ret = orte_pmix_server_register_nspace(jdata, false))) {
-          ORTE_ERROR_LOG(ret);
-          goto DONE;
-        }
-        /* use setup fork to create the envars needed by the singleton */
-        if (OPAL_SUCCESS != (ret = opal_pmix.server_setup_fork(&proc->name, &singenv))) {
-            ORTE_ERROR_LOG(ret);
-            goto DONE;
-        }
-
-        /* append the transport key to the envars needed by the singleton */
-        if (!orte_get_attribute(&jdata->attributes, ORTE_JOB_TRANSPORT_KEY, (void**)&string_key, OPAL_STRING) || NULL == string_key) {
-            ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
-            goto DONE;
-        }
-        opal_asprintf(&env_str, OPAL_MCA_PREFIX"orte_precondition_transports=%s", string_key);
-        opal_argv_append_nosize(&singenv, env_str);
-        free(env_str);
-
-        nptr = opal_argv_join(singenv, '*');
-        opal_argv_free(singenv);
-
-        /* create a string that contains our uri + sysinfo + PMIx server URI envars */
-        orte_util_convert_sysinfo_to_string(&sysinfo, orte_local_cpu_type, orte_local_cpu_model);
-        opal_asprintf(&tmp, "%s[%s]%s", orte_process_info.my_daemon_uri, sysinfo, nptr);
-        free(sysinfo);
-        free(nptr);
-
-        /* pass that info to the singleton */
-        if (OPAL_SUCCESS != (ret = opal_fd_write(orted_globals.uri_pipe, strlen(tmp)+1, tmp))) { ; /* need to add 1 to get the NULL */
-            ORTE_ERROR_LOG(ret);
-            goto DONE;
-        }
-
-        /* cleanup */
-        free(tmp);
-        close(orted_globals.uri_pipe);
-
-        /* since a singleton spawned us, we need to harvest
-         * any MCA params from the local environment so
-         * we can pass them along to any subsequent daemons
-         * we may start as the result of a comm_spawn
-         */
-        for (i=0; NULL != environ[i]; i++) {
-            if (0 == strncmp(environ[i], OPAL_MCA_PREFIX, 9)) {
-                /* make a copy to manipulate */
-                tmp = strdup(environ[i]);
-                /* find the equal sign */
-                nptr = strchr(tmp, '=');
-                *nptr = '\0';
-                nptr++;
-                /* add the mca param to the orted cmd line */
-                opal_argv_append_nosize(&orted_cmd_line, "-"OPAL_MCA_CMD_LINE_ID);
-                opal_argv_append_nosize(&orted_cmd_line, &tmp[9]);
-                opal_argv_append_nosize(&orted_cmd_line, nptr);
-                free(tmp);
-            }
-        }
-    }
-
-    /* if we were given a pipe to monitor for singleton termination, set that up */
-    if (orted_globals.singleton_died_pipe > 0) {
-        /* register shutdown handler */
-        pipe_handler = (opal_event_t*)malloc(sizeof(opal_event_t));
-        opal_event_set(orte_event_base, pipe_handler,
-                       orted_globals.singleton_died_pipe,
-                       OPAL_EV_READ,
-                       pipe_closed,
-                       pipe_handler);
-        opal_event_add(pipe_handler, NULL);
-    }
-
     /* If I have a parent, then save his contact info so
      * any messages we send can flow thru him.
      */
@@ -698,20 +535,15 @@ int orte_daemon(int argc, char *argv[])
             ORTE_ERROR_LOG(ret);
             goto DONE;
         }
-        OBJ_CONSTRUCT(&val, opal_value_t);
-        val.key = OPAL_PMIX_PROC_URI;
-        val.type = OPAL_STRING;
-        val.data.string = orte_parent_uri;
-        if (OPAL_SUCCESS != (ret = opal_pmix.store_local(ORTE_PROC_MY_PARENT, &val))) {
-            ORTE_ERROR_LOG(ret);
-            val.key = NULL;
-            val.data.string = NULL;
-            OBJ_DESTRUCT(&val);
+        PMIX_VALUE_LOAD(&val, orte_parent_uri, OPAL_STRING);
+        OPAL_PMIX_CONVERT_NAME(&proc, ORTE_PROC_MY_PARENT);
+        if (PMIX_SUCCESS != (prc = PMIx_Store_internal(&proc, PMIX_PROC_URI, &val))) {
+            PMIX_ERROR_LOG(prc);
+            PMIX_VALUE_DESTRUCT(&val);
+            ret = ORTE_ERROR;
             goto DONE;
         }
-        val.key = NULL;
-        val.data.string = NULL;
-        OBJ_DESTRUCT(&val);
+        PMIX_VALUE_DESTRUCT(&val);
 
         /* tell the routed module that we have a path
          * back to the HNP
@@ -734,237 +566,232 @@ int orte_daemon(int argc, char *argv[])
         }
     }
 
-    /* if we are not the HNP...the only time we will be an HNP
-     * is if we are launched by a singleton to provide support
-     * for it
-     */
-    if (!ORTE_PROC_IS_HNP) {
-        orte_process_name_t target;
+    /* setup the rollup callback */
+    orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_ORTED_CALLBACK,
+                            ORTE_RML_PERSISTENT, rollup, NULL);
 
-        /* setup the rollup callback */
-        orte_rml.recv_buffer_nb(ORTE_NAME_WILDCARD, ORTE_RML_TAG_ORTED_CALLBACK,
-                                ORTE_RML_PERSISTENT, rollup, NULL);
-
-        /* define the target jobid */
-        target.jobid = ORTE_PROC_MY_NAME->jobid;
-        if (NULL != orte_parent_uri) {
-            /* we start by sending to ourselves */
-            target.vpid = ORTE_PROC_MY_NAME->vpid;
-            /* since we will be waiting for any children to send us
-             * their rollup info before sending to our parent, save
-             * a little time in the launch phase by "warming up" the
-             * connection to our parent while we wait for our children */
-            buffer = OBJ_NEW(opal_buffer_t);  // zero-byte message
-            node_regex_waiting = true;
-            orte_rml.recv_buffer_nb(ORTE_PROC_MY_PARENT, ORTE_RML_TAG_NODE_REGEX_REPORT,
-                                    ORTE_RML_PERSISTENT, node_regex_report, &node_regex_waiting);
-            if (0 > (ret = orte_rml.send_buffer_nb(ORTE_PROC_MY_PARENT, buffer,
-                                                   ORTE_RML_TAG_WARMUP_CONNECTION,
-                                                   orte_rml_send_callback, NULL))) {
-                ORTE_ERROR_LOG(ret);
-                OBJ_RELEASE(buffer);
-                goto DONE;
-            }
-        } else {
-            target.vpid = 0;
-        }
-
-        /* send the information to the orted report-back point - this function
-         * will process the data, but also counts the number of
-         * orteds that reported back so the launch procedure can continue.
-         * We need to do this at the last possible second as the HNP
-         * can turn right around and begin issuing orders to us
-         */
-
-        buffer = OBJ_NEW(opal_buffer_t);
-        /* insert our name for rollup purposes */
-        if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, ORTE_PROC_MY_NAME, 1, ORTE_NAME))) {
-            ORTE_ERROR_LOG(ret);
-            OBJ_RELEASE(buffer);
-            goto DONE;
-        }
-
-        /* get any connection info we may have pushed */
-        {
-            opal_value_t *vptr = NULL, *kv;
-            opal_list_t *modex;
-            int32_t flag;
-
-            if (opal_pmix.legacy_get()) {
-                if (OPAL_SUCCESS != (ret = opal_pmix.get(ORTE_PROC_MY_NAME, OPAL_PMIX_PROC_URI, NULL, &vptr)) || NULL == vptr) {
-                    /* just pack a marker indicating we don't have any to share */
-                    flag = 0;
-                    if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &flag, 1, OPAL_INT32))) {
-                        ORTE_ERROR_LOG(ret);
-                        OBJ_RELEASE(buffer);
-                        goto DONE;
-                    }
-                } else {
-                    flag = 1;
-                    if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &flag, 1, OPAL_INT32))) {
-                        ORTE_ERROR_LOG(ret);
-                        OBJ_RELEASE(buffer);
-                        goto DONE;
-                    }
-                    if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &vptr, 1, OPAL_VALUE))) {
-                        ORTE_ERROR_LOG(ret);
-                        OBJ_RELEASE(buffer);
-                        goto DONE;
-                    }
-                    OBJ_RELEASE(vptr);
-                }
-            } else {
-                if (OPAL_SUCCESS != (ret = opal_pmix.get(ORTE_PROC_MY_NAME, NULL, NULL, &vptr)) || NULL == vptr) {
-                    /* just pack a marker indicating we don't have any to share */
-                    flag = 0;
-                    if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &flag, 1, OPAL_INT32))) {
-                        ORTE_ERROR_LOG(ret);
-                        OBJ_RELEASE(buffer);
-                        goto DONE;
-                    }
-                } else {
-                    /* the data is returned as a list of key-value pairs in the opal_value_t */
-                    if (OPAL_PTR == vptr->type) {
-                        modex = (opal_list_t*)vptr->data.ptr;
-                        flag = (int32_t)opal_list_get_size(modex);
-                        if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &flag, 1, OPAL_INT32))) {
-                            ORTE_ERROR_LOG(ret);
-                            OBJ_RELEASE(buffer);
-                            goto DONE;
-                        }
-                        OPAL_LIST_FOREACH(kv, modex, opal_value_t) {
-                            if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &kv, 1, OPAL_VALUE))) {
-                                ORTE_ERROR_LOG(ret);
-                                OBJ_RELEASE(buffer);
-                                goto DONE;
-                            }
-                        }
-                        OPAL_LIST_RELEASE(modex);
-                    } else {
-                        /* single value */
-                        flag = 1;
-                        if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &flag, 1, OPAL_INT32))) {
-                            ORTE_ERROR_LOG(ret);
-                            OBJ_RELEASE(buffer);
-                            goto DONE;
-                        }
-                        if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &vptr, 1, OPAL_VALUE))) {
-                            ORTE_ERROR_LOG(ret);
-                            OBJ_RELEASE(buffer);
-                            goto DONE;
-                        }
-                        OBJ_RELEASE(vptr);
-                    }
-                }
-            }
-        }
-
-        /* include our node name */
-        opal_dss.pack(buffer, &orte_process_info.nodename, 1, OPAL_STRING);
-
-        /* if requested, include any non-loopback aliases for this node */
-        if (orte_retain_aliases) {
-            char **aliases=NULL;
-            uint8_t naliases, ni;
-            char hostname[OPAL_MAXHOSTNAMELEN];
-
-            /* if we stripped the prefix or removed the fqdn,
-             * include full hostname as an alias
-             */
-            gethostname(hostname, sizeof(hostname));
-            if (strlen(orte_process_info.nodename) < strlen(hostname)) {
-                opal_argv_append_nosize(&aliases, hostname);
-            }
-            opal_ifgetaliases(&aliases);
-            naliases = opal_argv_count(aliases);
-            if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &naliases, 1, OPAL_UINT8))) {
-                ORTE_ERROR_LOG(ret);
-                OBJ_RELEASE(buffer);
-                opal_argv_free(aliases);
-                goto DONE;
-            }
-            for (ni=0; ni < naliases; ni++) {
-                if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &aliases[ni], 1, OPAL_STRING))) {
-                    ORTE_ERROR_LOG(ret);
-                    OBJ_RELEASE(buffer);
-                    opal_argv_free(aliases);
-                    goto DONE;
-                }
-            }
-            opal_argv_free(aliases);
-        }
-
-        /* always send back our topology signature - this is a small string
-         * and won't hurt anything */
-        if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &orte_topo_signature, 1, OPAL_STRING))) {
-            ORTE_ERROR_LOG(ret);
-        }
-
-        /* if we are rank=1, then send our topology back - otherwise, mpirun
-         * will request it if necessary */
-        if (1 == ORTE_PROC_MY_NAME->vpid) {
-            opal_buffer_t data;
-            int8_t flag;
-            uint8_t *cmpdata;
-            size_t cmplen;
-
-            /* setup an intermediate buffer */
-            OBJ_CONSTRUCT(&data, opal_buffer_t);
-
-            if (ORTE_SUCCESS != (ret = opal_dss.pack(&data, &opal_hwloc_topology, 1, OPAL_HWLOC_TOPO))) {
-                ORTE_ERROR_LOG(ret);
-            }
-            if (opal_compress.compress_block((uint8_t*)data.base_ptr, data.bytes_used,
-                                 &cmpdata, &cmplen)) {
-                /* the data was compressed - mark that we compressed it */
-                flag = 1;
-                if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &flag, 1, OPAL_INT8))) {
-                    ORTE_ERROR_LOG(ret);
-                    free(cmpdata);
-                    OBJ_DESTRUCT(&data);
-                }
-                /* pack the compressed length */
-                if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &cmplen, 1, OPAL_SIZE))) {
-                    ORTE_ERROR_LOG(ret);
-                    free(cmpdata);
-                    OBJ_DESTRUCT(&data);
-                }
-                /* pack the uncompressed length */
-                if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &data.bytes_used, 1, OPAL_SIZE))) {
-                    ORTE_ERROR_LOG(ret);
-                    free(cmpdata);
-                    OBJ_DESTRUCT(&data);
-                }
-                /* pack the compressed info */
-                if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, cmpdata, cmplen, OPAL_UINT8))) {
-                    ORTE_ERROR_LOG(ret);
-                    free(cmpdata);
-                    OBJ_DESTRUCT(&data);
-                }
-                OBJ_DESTRUCT(&data);
-                free(cmpdata);
-            } else {
-                /* mark that it was not compressed */
-                flag = 0;
-                if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &flag, 1, OPAL_INT8))) {
-                    ORTE_ERROR_LOG(ret);
-                    OBJ_DESTRUCT(&data);
-                    free(cmpdata);
-                }
-                /* transfer the payload across */
-                opal_dss.copy_payload(buffer, &data);
-                OBJ_DESTRUCT(&data);
-            }
-        }
-
-        /* send it to the designated target */
-        if (0 > (ret = orte_rml.send_buffer_nb(&target, buffer,
-                                               ORTE_RML_TAG_ORTED_CALLBACK,
+    /* define the target jobid */
+    target.jobid = ORTE_PROC_MY_NAME->jobid;
+    if (orte_static_ports || NULL != orte_parent_uri) {
+        /* we start by sending to ourselves */
+        target.vpid = ORTE_PROC_MY_NAME->vpid;
+        /* since we will be waiting for any children to send us
+         * their rollup info before sending to our parent, save
+         * a little time in the launch phase by "warming up" the
+         * connection to our parent while we wait for our children */
+        buffer = OBJ_NEW(opal_buffer_t);  // zero-byte message
+        orte_rml.recv_buffer_nb(ORTE_PROC_MY_PARENT, ORTE_RML_TAG_NODE_REGEX_REPORT,
+                                ORTE_RML_PERSISTENT, node_regex_report, &node_regex_waiting);
+        node_regex_waiting = true;
+        if (0 > (ret = orte_rml.send_buffer_nb(ORTE_PROC_MY_PARENT, buffer,
+                                               ORTE_RML_TAG_WARMUP_CONNECTION,
                                                orte_rml_send_callback, NULL))) {
             ORTE_ERROR_LOG(ret);
             OBJ_RELEASE(buffer);
             goto DONE;
         }
+    } else {
+        target.vpid = 0;
+    }
+
+    /* send the information to the orted report-back point - this function
+     * will process the data, but also counts the number of
+     * orteds that reported back so the launch procedure can continue.
+     * We need to do this at the last possible second as the HNP
+     * can turn right around and begin issuing orders to us
+     */
+
+    buffer = OBJ_NEW(opal_buffer_t);
+    /* insert our name for rollup purposes */
+    if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, ORTE_PROC_MY_NAME, 1, ORTE_NAME))) {
+        ORTE_ERROR_LOG(ret);
+        OBJ_RELEASE(buffer);
+        goto DONE;
+    }
+
+    /* get any connection info we may have pushed */
+    {
+        pmix_info_t *info;
+        size_t ninfo;
+        pmix_value_t *vptr;
+
+        OPAL_PMIX_CONVERT_NAME(&proc, ORTE_PROC_MY_NAME);
+        boptr = &bo;
+        bo.bytes = NULL;
+        bo.size = 0;
+        if (PMIX_SUCCESS == PMIx_Get(&proc, NULL, NULL, 0, &vptr) && NULL != vptr) {
+            /* the data is returned as a pmix_data_array_t */
+            if (PMIX_DATA_ARRAY != vptr->type || NULL == vptr->data.darray ||
+                PMIX_INFO != vptr->data.darray->type || NULL == vptr->data.darray->array) {
+                ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
+                OBJ_RELEASE(buffer);
+                goto DONE;
+            }
+            /* use the PMIx data support to pack it */
+            info = (pmix_info_t*)vptr->data.darray->array;
+            ninfo = vptr->data.darray->size;
+            PMIX_DATA_BUFFER_CONSTRUCT(&pbuf);
+            if (PMIX_SUCCESS != (prc = PMIx_Data_pack(&proc, &pbuf, &ninfo, 1, PMIX_SIZE))) {
+                PMIX_ERROR_LOG(prc);
+                ret = ORTE_ERROR;
+                OBJ_RELEASE(buffer);
+                goto DONE;
+            }
+            if (PMIX_SUCCESS != (prc = PMIx_Data_pack(&proc, &pbuf, info, ninfo, PMIX_INFO))) {
+                PMIX_ERROR_LOG(prc);
+                ret = ORTE_ERROR;
+                OBJ_RELEASE(buffer);
+                goto DONE;
+            }
+            PMIX_DATA_BUFFER_UNLOAD(&pbuf, pbo.bytes, pbo.size);
+            bo.bytes = (uint8_t*)pbo.bytes;
+            bo.size = pbo.size;
+            PMIX_VALUE_RELEASE(vptr);
+        }
+        if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &boptr, 1, OPAL_BYTE_OBJECT))) {
+            ORTE_ERROR_LOG(ret);
+            OBJ_RELEASE(buffer);
+            goto DONE;
+        }
+    }
+
+    /* include our node name */
+    opal_dss.pack(buffer, &orte_process_info.nodename, 1, OPAL_STRING);
+
+    /* if requested, include any non-loopback aliases for this node */
+    if (orte_retain_aliases) {
+        char **aliases=NULL;
+        uint8_t naliases, ni;
+        char hostname[OPAL_MAXHOSTNAMELEN];
+
+        /* if we stripped the prefix or removed the fqdn,
+         * include full hostname as an alias
+         */
+        gethostname(hostname, sizeof(hostname));
+        if (strlen(orte_process_info.nodename) < strlen(hostname)) {
+            opal_argv_append_nosize(&aliases, hostname);
+        }
+        opal_ifgetaliases(&aliases);
+        naliases = opal_argv_count(aliases);
+        if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &naliases, 1, OPAL_UINT8))) {
+            ORTE_ERROR_LOG(ret);
+            OBJ_RELEASE(buffer);
+            opal_argv_free(aliases);
+            goto DONE;
+        }
+        for (ni=0; ni < naliases; ni++) {
+            if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &aliases[ni], 1, OPAL_STRING))) {
+                ORTE_ERROR_LOG(ret);
+                OBJ_RELEASE(buffer);
+                opal_argv_free(aliases);
+                goto DONE;
+            }
+        }
+        opal_argv_free(aliases);
+    }
+
+    /* always send back our topology signature - this is a small string
+     * and won't hurt anything */
+    if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &orte_topo_signature, 1, OPAL_STRING))) {
+        ORTE_ERROR_LOG(ret);
+    }
+
+    /* if we are rank=1, then send our topology back - otherwise, mpirun
+     * will request it if necessary */
+    if (1 == ORTE_PROC_MY_NAME->vpid) {
+        opal_buffer_t data;
+        int8_t flag;
+        uint8_t *cmpdata;
+        size_t cmplen;
+
+        /* setup an intermediate buffer */
+        OBJ_CONSTRUCT(&data, opal_buffer_t);
+
+        if (ORTE_SUCCESS != (ret = opal_dss.pack(&data, &opal_hwloc_topology, 1, OPAL_HWLOC_TOPO))) {
+            ORTE_ERROR_LOG(ret);
+        }
+        if (opal_compress.compress_block((uint8_t*)data.base_ptr, data.bytes_used,
+                                         &cmpdata, &cmplen)) {
+            /* the data was compressed - mark that we compressed it */
+            flag = 1;
+            if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &flag, 1, OPAL_INT8))) {
+                ORTE_ERROR_LOG(ret);
+                free(cmpdata);
+                OBJ_DESTRUCT(&data);
+            }
+            /* pack the compressed length */
+            if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &cmplen, 1, OPAL_SIZE))) {
+                ORTE_ERROR_LOG(ret);
+                free(cmpdata);
+                OBJ_DESTRUCT(&data);
+            }
+            /* pack the uncompressed length */
+            if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &data.bytes_used, 1, OPAL_SIZE))) {
+                ORTE_ERROR_LOG(ret);
+                free(cmpdata);
+                OBJ_DESTRUCT(&data);
+            }
+            /* pack the compressed info */
+            if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, cmpdata, cmplen, OPAL_UINT8))) {
+                ORTE_ERROR_LOG(ret);
+                free(cmpdata);
+                OBJ_DESTRUCT(&data);
+            }
+            OBJ_DESTRUCT(&data);
+            free(cmpdata);
+        } else {
+            /* mark that it was not compressed */
+            flag = 0;
+            if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &flag, 1, OPAL_INT8))) {
+                ORTE_ERROR_LOG(ret);
+                OBJ_DESTRUCT(&data);
+                free(cmpdata);
+            }
+            /* transfer the payload across */
+            opal_dss.copy_payload(buffer, &data);
+            OBJ_DESTRUCT(&data);
+        }
+    }
+
+    /* collect our network inventory */
+    memset(&xfer, 0, sizeof(myxfer_t));
+    OPAL_PMIX_CONSTRUCT_LOCK(&xfer.lock);
+    if (PMIX_SUCCESS != (prc = PMIx_server_collect_inventory(NULL, 0, infocbfunc, &xfer))) {
+        PMIX_ERROR_LOG(prc);
+        ret = ORTE_ERR_NOT_SUPPORTED;
+        goto DONE;
+    }
+    OPAL_PMIX_WAIT_THREAD(&xfer.lock);
+    if (NULL != xfer.info) {
+        PMIX_DATA_BUFFER_CONSTRUCT(&pbuf);
+        if (PMIX_SUCCESS != (prc = PMIx_Data_pack(NULL, &pbuf, &xfer.ninfo, 1, PMIX_SIZE))) {
+            PMIX_ERROR_LOG(prc);
+            ret = ORTE_ERROR;
+            OBJ_RELEASE(buffer);
+            goto DONE;
+        }
+        if (PMIX_SUCCESS != (prc = PMIx_Data_pack(NULL, &pbuf, xfer.info, xfer.ninfo, PMIX_INFO))) {
+            PMIX_ERROR_LOG(prc);
+            ret = ORTE_ERROR;
+            OBJ_RELEASE(buffer);
+            goto DONE;
+        }
+        PMIX_DATA_BUFFER_UNLOAD(&pbuf, pbo.bytes, pbo.size);
+        bo.bytes = (uint8_t*)pbo.bytes;
+        bo.size = pbo.size;
+        if (ORTE_SUCCESS != (ret = opal_dss.pack(buffer, &boptr, 1, OPAL_BYTE_OBJECT))) {
+            ORTE_ERROR_LOG(ret);
+            OBJ_RELEASE(buffer);
+            goto DONE;
+        }
+    }
+    /* send it to the designated target */
+    if (0 > (ret = orte_rml.send_buffer_nb(&target, buffer,
+                                           ORTE_RML_TAG_ORTED_CALLBACK,
+                                           orte_rml_send_callback, NULL))) {
+        ORTE_ERROR_LOG(ret);
+        OBJ_RELEASE(buffer);
+        goto DONE;
     }
 
     /* if we are tree-spawning, then we need to capture the MCA params
@@ -1032,7 +859,7 @@ int orte_daemon(int argc, char *argv[])
     /* ensure all local procs are dead */
     orte_odls.kill_local_procs(NULL);
 
- DONE:
+  DONE:
     /* update the exit status, in case it wasn't done */
     ORTE_UPDATE_EXIT_STATUS(ret);
 
@@ -1048,15 +875,6 @@ int orte_daemon(int argc, char *argv[])
         fprintf(stderr, "exiting with status %d\n", orte_exit_status);
     }
     exit(orte_exit_status);
-}
-
-static void pipe_closed(int fd, short flags, void *arg)
-{
-    opal_event_t *ev = (opal_event_t*)arg;
-
-    /* no error here - we just want to terminate */
-    opal_event_free(ev);
-    ORTE_ACTIVATE_JOB_STATE(NULL, ORTE_JOB_STATE_DAEMONS_TERMINATED);
 }
 
 static void shutdown_callback(int fd, short flags, void *arg)
@@ -1099,8 +917,12 @@ static void rollup(int status, orte_process_name_t* sender,
 {
     int ret;
     orte_process_name_t child;
-    int32_t i, flag, cnt;
-    opal_value_t *kv;
+    int32_t flag, cnt;
+    opal_byte_object_t *boptr;
+    pmix_data_buffer_t pbkt;
+    pmix_info_t *info;
+    pmix_proc_t proc;
+    pmix_status_t prc;
 
     ncollected++;
 
@@ -1125,15 +947,31 @@ static void rollup(int status, orte_process_name_t* sender,
             ORTE_ERROR_LOG(ret);
             goto report;
         }
-        for (i=0; i < flag; i++) {
+        if (0 < flag) {
+            (void)opal_snprintf_jobid(proc.nspace, PMIX_MAX_NSLEN, sender->jobid);
+            proc.rank = sender->vpid;
+            /* we have connection info */
             cnt = 1;
-            if (ORTE_SUCCESS != (ret = opal_dss.unpack(buffer, &kv, &cnt, OPAL_VALUE))) {
+            if (ORTE_SUCCESS != (ret = opal_dss.unpack(buffer, &boptr, &cnt, OPAL_BYTE_OBJECT))) {
                 ORTE_ERROR_LOG(ret);
                 goto report;
             }
-            /* store this in a daemon wireup buffer for later distribution */
-            opal_pmix.store_local(&child, kv);
-            OBJ_RELEASE(kv);
+            /* it was packed using PMIx, so unpack it the same way */
+            PMIX_DATA_BUFFER_LOAD(&pbkt, boptr->bytes, boptr->size);
+            PMIX_INFO_CREATE(info, (size_t)flag);
+            if (PMIX_SUCCESS != (prc = PMIx_Data_unpack(&proc, &pbkt, (void*)info, &flag, PMIX_INFO))) {
+                PMIX_ERROR_LOG(prc);
+                goto report;
+            }
+            for (cnt=0; cnt < flag; cnt++) {
+                prc = PMIx_Store_internal(&proc, PMIX_PROC_URI, &info[cnt].value);
+                if (PMIX_SUCCESS != prc) {
+                    PMIX_ERROR_LOG(prc);
+                    PMIX_INFO_FREE(info, (size_t)flag);
+                    goto report;
+                }
+            }
+            PMIX_INFO_FREE(info, (size_t)flag);
         }
     }
 

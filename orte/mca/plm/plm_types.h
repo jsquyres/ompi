@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2011-2012 Los Alamos National Security, LLC.  All rights
  *                         reserved.
- * Copyright (c) 2014-2018 Intel, Inc. All rights reserved.
+ * Copyright (c) 2014-2019 Intel, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -129,9 +129,7 @@ typedef int32_t orte_job_state_t;
 #define ORTE_JOB_STATE_RUNNING                  14  /* all procs have been fork'd */
 #define ORTE_JOB_STATE_SUSPENDED                15  /* job has been suspended */
 #define ORTE_JOB_STATE_REGISTERED               16  /* all procs registered for sync */
-#define ORTE_JOB_STATE_READY_FOR_DEBUGGERS      17  /* job ready for debugger init after spawn */
 #define ORTE_JOB_STATE_LOCAL_LAUNCH_COMPLETE    18  /* all local procs have attempted launch */
-#define ORTE_JOB_STATE_DEBUGGER_DETACH          19  /* a debugger has detached */
 
 /*
  * Define a "boundary" so we can easily and quickly determine
@@ -225,6 +223,7 @@ typedef uint8_t orte_plm_cmd_flag_t;
 #define ORTE_PLM_LAUNCH_JOB_CMD         1
 #define ORTE_PLM_UPDATE_PROC_STATE      2
 #define ORTE_PLM_REGISTERED_CMD         3
+#define ORTE_PLM_ALLOC_JOBID_CMD        4
 
 END_C_DECLS
 

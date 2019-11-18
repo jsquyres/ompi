@@ -22,7 +22,7 @@
 #include <sys/time.h>
 
 #include "opal/class/opal_list.h"
-#include "opal/mca/pmix/pmix-internal.h"
+#include "opal/mca/pmix/pmix.h"
 #include "ompi/proc/proc.h"
 
 #define DO_FINALIZE(rc,flag,format,args...) \

@@ -14,7 +14,7 @@
  *                         et Automatique. All rights reserved.
  * Copyright (c) 2011-2012 Los Alamos National Security, LLC.
  * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
- * Copyright (c) 2014-2018 Research Organization for Information Science
+ * Copyright (c) 2014-2019 Research Organization for Information Science
  *                         and Technology (RIST).  All rights reserved.
  * Copyright (c) 2016      IBM Corporation.  All rights reserved.
  * $COPYRIGHT$
@@ -42,8 +42,8 @@
 #include "opal/util/printf.h"
 #include "opal/class/opal_pointer_array.h"
 #include "opal/dss/dss.h"
-#include "opal/mca/hwloc/hwloc-internal.h"
-#include "opal/mca/pmix/pmix-internal.h"
+#include "opal/hwloc/hwloc-internal.h"
+#include "opal/pmix/pmix-internal.h"
 #include "opal/mca/compress/compress.h"
 
 #include "orte/util/dash_host/dash_host.h"
@@ -61,9 +61,6 @@
 #include "orte/mca/rml/rml_types.h"
 #include "orte/mca/routed/routed.h"
 #include "orte/mca/grpcomm/base/base.h"
-#if OPAL_ENABLE_FT_CR == 1
-#include "orte/mca/snapc/base/base.h"
-#endif
 #include "orte/mca/filem/filem.h"
 #include "orte/mca/filem/base/base.h"
 #include "orte/mca/grpcomm/base/base.h"
@@ -74,7 +71,6 @@
 #include "orte/runtime/orte_locks.h"
 #include "orte/runtime/orte_quit.h"
 #include "orte/util/name_fns.h"
-#include "orte/util/pre_condition_transports.h"
 #include "orte/util/proc_info.h"
 #include "orte/util/threads.h"
 #include "orte/mca/state/state.h"
@@ -130,11 +126,7 @@ void orte_plm_base_daemons_reported(int fd, short args, void *cbdata)
     orte_state_caddy_t *caddy = (orte_state_caddy_t*)cbdata;
     orte_topology_t *t;
     orte_node_t *node;
-    int i, rc;
-    uint8_t u8;
-    opal_buffer_t buf;
-    orte_grpcomm_signature_t *sig;
-    orte_daemon_cmd_flag_t command = ORTE_DAEMON_PASS_NODE_INFO_CMD;
+    int i;
 
     ORTE_ACQUIRE_OBJECT(caddy);
 
@@ -180,78 +172,6 @@ void orte_plm_base_daemons_reported(int fd, short args, void *cbdata)
     }
     /* ensure we update the routing plan */
     orte_routed.update_routing_plan();
-
-    /* prep the buffer */
-    OBJ_CONSTRUCT(&buf, opal_buffer_t);
-    /* load the command */
-    if (ORTE_SUCCESS != (rc = opal_dss.pack(&buf, &command, 1, ORTE_DAEMON_CMD))) {
-        ORTE_ERROR_LOG(rc);
-        OBJ_DESTRUCT(&buf);
-        ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);
-        OBJ_RELEASE(caddy);
-        return;
-    }
-
-
-    /* if we did not execute a tree-spawn, then the daemons do
-     * not currently have a nidmap for the job - in that case,
-     * send one to them */
-    if (!orte_nidmap_communicated) {
-        u8 = 1;
-        if (ORTE_SUCCESS != (rc = opal_dss.pack(&buf, &u8, 1, OPAL_UINT8))) {
-            ORTE_ERROR_LOG(rc);
-            OBJ_DESTRUCT(&buf);
-            ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);
-            OBJ_RELEASE(caddy);
-            return;
-        }
-        if (OPAL_SUCCESS != (rc = orte_util_nidmap_create(orte_node_pool, &buf))) {
-            ORTE_ERROR_LOG(rc);
-            OBJ_DESTRUCT(&buf);
-            ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);
-            OBJ_RELEASE(caddy);
-            return;
-        }
-        orte_nidmap_communicated = true;
-    } else {
-        u8 = 0;
-        if (ORTE_SUCCESS != (rc = opal_dss.pack(&buf, &u8, 1, OPAL_UINT8))) {
-            ORTE_ERROR_LOG(rc);
-            OBJ_DESTRUCT(&buf);
-            ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);
-            OBJ_RELEASE(caddy);
-            return;
-        }
-    }
-
-    /* we always send the topologies and the #slots on each node. Note
-     * that we cannot send the #slots until after the above step since,
-     * for unmanaged allocations, we might have just determined it! */
-    if (OPAL_SUCCESS != (rc = orte_util_pass_node_info(&buf))) {
-        ORTE_ERROR_LOG(rc);
-        OBJ_DESTRUCT(&buf);
-        ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);
-        OBJ_RELEASE(caddy);
-        return;
-    }
-
-    /* goes to all daemons */
-    sig = OBJ_NEW(orte_grpcomm_signature_t);
-    sig->signature = (orte_process_name_t*)malloc(sizeof(orte_process_name_t));
-    sig->signature[0].jobid = ORTE_PROC_MY_NAME->jobid;
-    sig->signature[0].vpid = ORTE_VPID_WILDCARD;
-    sig->sz = 1;
-    if (ORTE_SUCCESS != (rc = orte_grpcomm.xcast(sig, ORTE_RML_TAG_DAEMON, &buf))) {
-        ORTE_ERROR_LOG(rc);
-        OBJ_RELEASE(sig);
-        OBJ_DESTRUCT(&buf);
-        ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);
-        OBJ_RELEASE(caddy);
-        return;
-    }
-    OBJ_DESTRUCT(&buf);
-    /* maintain accounting */
-    OBJ_RELEASE(sig);
 
     /* progress the job */
     caddy->jdata->state = ORTE_JOB_STATE_DAEMONS_REPORTED;
@@ -347,9 +267,6 @@ void orte_plm_base_setup_job(int fd, short args, void *cbdata)
     int i;
     orte_app_context_t *app;
     orte_state_caddy_t *caddy = (orte_state_caddy_t*)cbdata;
-    char *key;
-    orte_job_t *parent;
-    orte_process_name_t name, *nptr;
 
     ORTE_ACQUIRE_OBJECT(caddy);
 
@@ -386,55 +303,6 @@ void orte_plm_base_setup_job(int fd, short args, void *cbdata)
     if (!ORTE_FLAG_TEST(caddy->jdata, ORTE_JOB_FLAG_RECOVERABLE) &&
         orte_enable_recovery) {
         ORTE_FLAG_SET(caddy->jdata, ORTE_JOB_FLAG_RECOVERABLE);
-    }
-
-    /* setup transport keys in case the MPI layer needs them. If
-     * this is a dynamic spawn, then use the same keys as the
-     * parent process had so the new/old procs can communicate.
-     * Otherwise we can use the jobfam and stepid as unique keys
-     * because they are unique values assigned by the RM
-     */
-     nptr = &name;
-     if (orte_get_attribute(&caddy->jdata->attributes, ORTE_JOB_LAUNCH_PROXY, (void**)&nptr, OPAL_NAME)) {
-        /* get the parent jdata */
-        if (NULL == (parent = orte_get_job_data_object(name.jobid))) {
-            ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
-            ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);
-            OBJ_RELEASE(caddy);
-            return;
-        }
-        /* a tool might be the parent calling spawn, so cannot require that
-         * a job transport key has been assigned to it */
-        key = NULL;
-        if (orte_get_attribute(&parent->attributes, ORTE_JOB_TRANSPORT_KEY, (void**)&key, OPAL_STRING) &&
-            NULL != key) {
-            /* record it */
-            orte_set_attribute(&caddy->jdata->attributes, ORTE_JOB_TRANSPORT_KEY, ORTE_ATTR_LOCAL, key, OPAL_STRING);
-            /* add the transport key envar to each app */
-            for (i=0; i < caddy->jdata->apps->size; i++) {
-                if (NULL == (app = (orte_app_context_t*)opal_pointer_array_get_item(caddy->jdata->apps, i))) {
-                    continue;
-                }
-                opal_setenv(OPAL_MCA_PREFIX"orte_precondition_transports", key, true, &app->env);
-            }
-            free(key);
-        } else {
-            if (ORTE_SUCCESS != (rc = orte_pre_condition_transports(caddy->jdata, NULL))) {
-                ORTE_ERROR_LOG(rc);
-                ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);
-                OBJ_RELEASE(caddy);
-                return;
-            }
-        }
-    } else {
-        /* this will also record the transport key attribute in the job object, and
-         * adds the key envar to each app */
-        if (ORTE_SUCCESS != (rc = orte_pre_condition_transports(caddy->jdata, NULL))) {
-            ORTE_ERROR_LOG(rc);
-            ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);
-            OBJ_RELEASE(caddy);
-            return;
-        }
     }
 
     /* if app recovery is not defined, set apps to defaults */
@@ -657,8 +525,8 @@ void orte_plm_base_send_launch_msg(int fd, short args, void *cbdata)
         size_t cmplen;
         /* report the size of the launch message */
         compressed = opal_compress.compress_block((uint8_t*)jdata->launch_msg.base_ptr,
-                                              jdata->launch_msg.bytes_used,
-                                              &cmpdata, &cmplen);
+                                                  jdata->launch_msg.bytes_used,
+                                                  &cmpdata, &cmplen);
         if (compressed) {
             opal_output(0, "LAUNCH MSG RAW SIZE: %d COMPRESSED SIZE: %d",
                         (int)jdata->launch_msg.bytes_used, (int)cmplen);
@@ -724,7 +592,6 @@ void orte_plm_base_post_launch(int fd, short args, void *cbdata)
     int32_t rc;
     orte_job_t *jdata;
     orte_state_caddy_t *caddy = (orte_state_caddy_t*)cbdata;
-    orte_process_name_t name;
     orte_timer_t *timer=NULL;
     int ret;
     opal_buffer_t *answer;
@@ -753,23 +620,6 @@ void orte_plm_base_post_launch(int fd, short args, void *cbdata)
     }
     /* update job state */
     caddy->jdata->state = caddy->job_state;
-
-    /* complete wiring up the iof */
-    OPAL_OUTPUT_VERBOSE((5, orte_plm_base_framework.framework_output,
-                         "%s plm:base:launch wiring up iof for job %s",
-                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
-                         ORTE_JOBID_PRINT(jdata->jobid)));
-
-    /* push stdin - the IOF will know what to do with the specified target */
-    name.jobid = jdata->jobid;
-    name.vpid = jdata->stdin_target;
-
-    if (ORTE_SUCCESS != (rc = orte_iof.push(&name, ORTE_IOF_STDIN, 0))) {
-        ORTE_ERROR_LOG(rc);
-        ORTE_FORCED_TERMINATE(ORTE_ERROR_DEFAULT_EXIT_CODE);
-        OBJ_RELEASE(caddy);
-        return;
-    }
 
     /* if this isn't a dynamic spawn, just cleanup */
     if (ORTE_JOBID_INVALID == jdata->originator.jobid) {
@@ -855,11 +705,6 @@ void orte_plm_base_registered(int fd, short args, void *cbdata)
     /* update job state */
     jdata->state = caddy->job_state;
 
-   /* if this wasn't a debugger job, then need to init_after_spawn for debuggers */
-    if (!ORTE_FLAG_TEST(jdata, ORTE_JOB_FLAG_DEBUGGER_DAEMON)) {
-        ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_READY_FOR_DEBUGGERS);
-    }
-
     OBJ_RELEASE(caddy);
 }
 
@@ -933,7 +778,7 @@ void orte_plm_base_daemon_topology(int status, orte_process_name_t* sender,
         }
         /* decompress the data */
         if (opal_compress.decompress_block(&cmpdata, cmplen,
-                                       packed_data, inlen)) {
+                                           packed_data, inlen)) {
             /* the data has been uncompressed */
             opal_dss.load(&datbuf, cmpdata, cmplen);
             data = &datbuf;
@@ -1072,6 +917,12 @@ void orte_plm_base_daemon_topology(int status, orte_process_name_t* sender,
     }
 }
 
+static void opcbfunc(pmix_status_t status, void *cbdata)
+{
+    opal_pmix_lock_t *lock = (opal_pmix_lock_t*)cbdata;
+    OPAL_PMIX_WAKEUP_THREAD(lock);
+}
+
 void orte_plm_base_daemon_callback(int status, orte_process_name_t* sender,
                                    opal_buffer_t *buffer,
                                    orte_rml_tag_t tag, void *cbdata)
@@ -1088,9 +939,8 @@ void orte_plm_base_daemon_callback(int status, orte_process_name_t* sender,
     int i;
     bool found;
     orte_daemon_cmd_flag_t cmd;
-    int32_t flag;
-    opal_value_t *kv;
     char *myendian;
+    pmix_proc_t pproc;
 
     /* get the daemon job, if necessary */
     if (NULL == jdatorted) {
@@ -1109,8 +959,14 @@ void orte_plm_base_daemon_callback(int status, orte_process_name_t* sender,
 
     /* multiple daemons could be in this buffer, so unpack until we exhaust the data */
     idx = 1;
+    OPAL_PMIX_CONVERT_NAME(&pproc, ORTE_PROC_MY_NAME);
     while (OPAL_SUCCESS == (rc = opal_dss.unpack(buffer, &dname, &idx, ORTE_NAME))) {
         char *nodename = NULL;
+        pmix_status_t ret;
+        pmix_info_t *info;
+        size_t n, ninfo;
+        opal_byte_object_t *bptr;
+        pmix_data_buffer_t pbuf;
 
         OPAL_OUTPUT_VERBOSE((5, orte_plm_base_framework.framework_output,
                              "%s plm:base:orted_report_launch from daemon %s",
@@ -1127,24 +983,57 @@ void orte_plm_base_daemon_callback(int status, orte_process_name_t* sender,
         /* record that this daemon is alive */
         ORTE_FLAG_SET(daemon, ORTE_PROC_FLAG_ALIVE);
 
-        /* unpack the flag indicating the number of connection blobs
-         * in the report */
+        /* unpack the byte object containing the info array */
         idx = 1;
-        if (ORTE_SUCCESS != (rc = opal_dss.unpack(buffer, &flag, &idx, OPAL_INT32))) {
+        if (ORTE_SUCCESS != (rc = opal_dss.unpack(buffer, &bptr, &idx, OPAL_BYTE_OBJECT))) {
             ORTE_ERROR_LOG(rc);
             orted_failed_launch = true;
             goto CLEANUP;
         }
-        for (i=0; i < flag; i++) {
+        /* if nothing is present, then ignore it */
+        if (0 == bptr->size) {
+            free(bptr);
+        } else {
+            /* load the bytes into a PMIx data buffer for unpacking */
+            PMIX_DATA_BUFFER_LOAD(&pbuf, bptr->bytes, bptr->size);
+            bptr->bytes = NULL;
+            free(bptr);
+            /* setup the daemon name */
+            pproc.rank = dname.vpid;
+            /* unpack the number of info structs */
             idx = 1;
-            if (ORTE_SUCCESS != (rc = opal_dss.unpack(buffer, &kv, &idx, OPAL_VALUE))) {
-                ORTE_ERROR_LOG(rc);
+            ret = PMIx_Data_unpack(&pproc, &pbuf, &ninfo, &idx, PMIX_SIZE);
+            if (PMIX_SUCCESS != ret) {
+                PMIX_ERROR_LOG(ret);
+                PMIX_DATA_BUFFER_DESTRUCT(&pbuf);
+                rc = ORTE_ERROR;
                 orted_failed_launch = true;
                 goto CLEANUP;
             }
-            /* store this in a daemon wireup buffer for later distribution */
-            opal_pmix.store_local(&dname, kv);
-            OBJ_RELEASE(kv);
+            PMIX_INFO_CREATE(info, ninfo);
+            idx = ninfo;
+            ret = PMIx_Data_unpack(&pproc, &pbuf, info, &idx, PMIX_INFO);
+            if (PMIX_SUCCESS != ret) {
+                PMIX_ERROR_LOG(ret);
+                PMIX_INFO_FREE(info, ninfo);
+                PMIX_DATA_BUFFER_DESTRUCT(&pbuf);
+                rc = ORTE_ERROR;
+                orted_failed_launch = true;
+                goto CLEANUP;
+            }
+            PMIX_DATA_BUFFER_DESTRUCT(&pbuf);
+
+            for (n=0; n < ninfo; n++) {
+                /* store this in a daemon wireup buffer for later distribution */
+                if (PMIX_SUCCESS != (ret = PMIx_Store_internal(&pproc, info[n].key, &info[n].value))) {
+                    PMIX_ERROR_LOG(ret);
+                    PMIX_INFO_FREE(info, ninfo);
+                    rc = ORTE_ERROR;
+                    orted_failed_launch = true;
+                    goto CLEANUP;
+                }
+            }
+            PMIX_INFO_FREE(info, ninfo);
         }
 
         /* unpack the node name */
@@ -1260,7 +1149,7 @@ void orte_plm_base_daemon_callback(int status, orte_process_name_t* sender,
                 }
                 /* decompress the data */
                 if (opal_compress.decompress_block(&cmpdata, cmplen,
-                                               packed_data, inlen)) {
+                                                   packed_data, inlen)) {
                     /* the data has been uncompressed */
                     opal_dss.load(&datbuf, cmpdata, cmplen);
                     data = &datbuf;
@@ -1276,6 +1165,52 @@ void orte_plm_base_daemon_callback(int status, orte_process_name_t* sender,
                 ORTE_ERROR_LOG(rc);
                 orted_failed_launch = true;
                 goto CLEANUP;
+            }
+        }
+
+        /* see if they provided their inventory */
+        idx = 1;
+        if (ORTE_SUCCESS == opal_dss.unpack(buffer, &bptr, &idx, OPAL_BYTE_OBJECT)) {
+            /* if nothing is present, then ignore it */
+            if (0 == bptr->size) {
+                free(bptr);
+            } else {
+                opal_pmix_lock_t lock;
+                /* load the bytes into a PMIx data buffer for unpacking */
+                PMIX_DATA_BUFFER_LOAD(&pbuf, bptr->bytes, bptr->size);
+                free(bptr);
+                idx = 1;
+                ret = PMIx_Data_unpack(NULL, &pbuf, &ninfo, &idx, PMIX_SIZE);
+                if (PMIX_SUCCESS != ret) {
+                    PMIX_ERROR_LOG(ret);
+                    PMIX_DATA_BUFFER_DESTRUCT(&pbuf);
+                    rc = ORTE_ERROR;
+                    orted_failed_launch = true;
+                    goto CLEANUP;
+                }
+                PMIX_INFO_CREATE(info, ninfo);
+                idx = ninfo;
+                ret = PMIx_Data_unpack(NULL, &pbuf, info, &idx, PMIX_INFO);
+                if (PMIX_SUCCESS != ret) {
+                    PMIX_ERROR_LOG(ret);
+                    PMIX_INFO_FREE(info, ninfo);
+                    PMIX_DATA_BUFFER_DESTRUCT(&pbuf);
+                    rc = ORTE_ERROR;
+                    orted_failed_launch = true;
+                    goto CLEANUP;
+                }
+                PMIX_DATA_BUFFER_DESTRUCT(&pbuf);
+                OPAL_PMIX_CONSTRUCT_LOCK(&lock);
+                ret = PMIx_server_deliver_inventory(info, ninfo, NULL, 0, opcbfunc, &lock);
+                if (PMIX_SUCCESS != ret) {
+                    PMIX_ERROR_LOG(ret);
+                    PMIX_INFO_FREE(info, ninfo);
+                    rc = ORTE_ERROR;
+                    orted_failed_launch = true;
+                    goto CLEANUP;
+                }
+                OPAL_PMIX_WAIT_THREAD(&lock);
+                OPAL_PMIX_DESTRUCT_LOCK(&lock);
             }
         }
 

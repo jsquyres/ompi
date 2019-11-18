@@ -37,12 +37,8 @@
 #include "opal/util/output.h"
 #include "opal/util/argv.h"
 #include "opal/mca/backtrace/backtrace.h"
-#include "opal/mca/event/event.h"
+#include "opal/event/event-internal.h"
 
-#if OPAL_ENABLE_FT_CR == 1
-#include "orte/mca/rml/rml.h"
-#include "orte/mca/state/state.h"
-#endif
 #include "orte/mca/rml/base/base.h"
 #include "orte/mca/rml/rml_types.h"
 #include "orte/mca/routed/routed.h"

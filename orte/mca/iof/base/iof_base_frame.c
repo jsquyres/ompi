@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC.  All rights reserved.
  * Copyright (c) 2013      Cisco Systems, Inc.  All rights reserved.
- * Copyright (c) 2015-2018 Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2015-2018 Research Organization for Information Science
  *                         and Technology (RIST).  All rights reserved.
  * Copyright (c) 2017      IBM Corporation.  All rights reserved.
@@ -179,9 +179,6 @@ static void orte_iof_base_proc_construct(orte_iof_proc_t* ptr)
     ptr->stdinev = NULL;
     ptr->revstdout = NULL;
     ptr->revstderr = NULL;
-#if OPAL_PMIX_V1
-    ptr->revstddiag = NULL;
-#endif
     ptr->subscribers = NULL;
     ptr->copy = true;
 }
@@ -196,11 +193,6 @@ static void orte_iof_base_proc_destruct(orte_iof_proc_t* ptr)
     if (NULL != ptr->revstderr) {
         OBJ_RELEASE(ptr->revstderr);
     }
-#if OPAL_PMIX_V1
-    if (NULL != ptr->revstddiag) {
-        OBJ_RELEASE(ptr->revstddiag);
-    }
-#endif
     if (NULL != ptr->subscribers) {
         OPAL_LIST_RELEASE(ptr->subscribers);
     }
@@ -222,7 +214,7 @@ static void orte_iof_base_sink_construct(orte_iof_sink_t* ptr)
 }
 static void orte_iof_base_sink_destruct(orte_iof_sink_t* ptr)
 {
-    if (NULL != ptr->wev && 0 <= ptr->wev->fd) {
+    if (NULL != ptr->wev) {
         OPAL_OUTPUT_VERBOSE((20, orte_iof_base_framework.framework_output,
                              "%s iof: closing sink for process %s on fd %d",
                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
@@ -250,14 +242,16 @@ static void orte_iof_base_read_event_destruct(orte_iof_read_event_t* rev)
 {
     orte_iof_proc_t *proct = (orte_iof_proc_t*)rev->proc;
 
-    opal_event_free(rev->ev);
     if (0 <= rev->fd) {
+        opal_event_free(rev->ev);
         OPAL_OUTPUT_VERBOSE((20, orte_iof_base_framework.framework_output,
                              "%s iof: closing fd %d for process %s",
                              ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), rev->fd,
                              (NULL == proct) ? "UNKNOWN" : ORTE_NAME_PRINT(&proct->name)));
         close(rev->fd);
         rev->fd = -1;
+    } else {
+        free(rev->ev);
     }
     if (NULL != rev->sink) {
         OBJ_RELEASE(rev->sink);
@@ -283,7 +277,11 @@ static void orte_iof_base_write_event_construct(orte_iof_write_event_t* wev)
 }
 static void orte_iof_base_write_event_destruct(orte_iof_write_event_t* wev)
 {
-    opal_event_free(wev->ev);
+    if (0 <= wev->fd) {
+        opal_event_free(wev->ev);
+    } else {
+        free(wev->ev);
+    }
     if (ORTE_PROC_IS_HNP && NULL != orte_xml_fp) {
         int xmlfd = fileno(orte_xml_fp);
         if (xmlfd == wev->fd) {

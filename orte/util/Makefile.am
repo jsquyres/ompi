@@ -50,18 +50,15 @@ headers += \
         util/error_strings.h \
         util/context_fns.h \
         util/parse_options.h \
-        util/pre_condition_transports.h \
-        util/hnp_contact.h \
         util/hostfile/hostfile.h \
         util/hostfile/hostfile_lex.h \
         util/dash_host/dash_host.h \
-        util/comm/comm.h \
         util/attr.h \
         util/listener.h \
-        util/threads.h \
-        util/nidmap.h
+        util/nidmap.h \
+        util/threads.h
 
-lib@ORTE_LIB_PREFIX@open_rte_la_SOURCES += \
+libprteopen_rte_la_SOURCES += \
         util/error_strings.c \
         util/name_fns.c \
         util/proc_info.c \
@@ -69,12 +66,9 @@ lib@ORTE_LIB_PREFIX@open_rte_la_SOURCES += \
         util/show_help.c \
         util/context_fns.c \
         util/parse_options.c \
-        util/pre_condition_transports.c \
-        util/hnp_contact.c \
         util/hostfile/hostfile_lex.l \
         util/hostfile/hostfile.c \
         util/dash_host/dash_host.c \
-        util/comm/comm.c \
         util/attr.c \
         util/listener.c \
         util/nidmap.c

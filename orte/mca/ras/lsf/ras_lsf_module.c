@@ -32,11 +32,10 @@
 
 #include "opal/util/argv.h"
 #include "opal/util/net.h"
-#include "opal/mca/hwloc/hwloc-internal.h"
+#include "opal/hwloc/hwloc-internal.h"
 
 #include "orte/mca/rmaps/rmaps_types.h"
 #include "orte/mca/errmgr/errmgr.h"
-#include "orte/mca/rmaps/base/base.h"
 #include "orte/runtime/orte_globals.h"
 #include "orte/util/show_help.h"
 
@@ -121,7 +120,7 @@ static int allocate(orte_job_t *jdata, opal_list_t *nodes)
             directives_given = true;
         }
     } else if ((ORTE_MAPPING_GIVEN & ORTE_GET_MAPPING_DIRECTIVE(orte_rmaps_base.mapping)) ||
-               OPAL_BINDING_POLICY_IS_SET(opal_hwloc_binding_policy)) {
+               OPAL_BINDING_POLICY_IS_SET(opal_hwloc_binding_policy) {
             directives_given = true;
     }
 

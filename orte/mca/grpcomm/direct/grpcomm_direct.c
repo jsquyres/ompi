@@ -23,7 +23,7 @@
 
 #include "opal/dss/dss.h"
 #include "opal/class/opal_list.h"
-#include "opal/mca/pmix/pmix-internal.h"
+#include "opal/pmix/pmix-internal.h"
 #include "opal/mca/compress/compress.h"
 
 #include "orte/mca/errmgr/errmgr.h"
@@ -46,7 +46,7 @@ static int xcast(orte_vpid_t *vpids,
                  size_t nprocs,
                  opal_buffer_t *buf);
 static int allgather(orte_grpcomm_coll_t *coll,
-                     opal_buffer_t *buf);
+                     opal_buffer_t *buf, int mode);
 
 /* Module def */
 orte_grpcomm_base_module_t orte_grpcomm_direct_module = {
@@ -122,7 +122,7 @@ static int xcast(orte_vpid_t *vpids,
 }
 
 static int allgather(orte_grpcomm_coll_t *coll,
-                     opal_buffer_t *buf)
+                     opal_buffer_t *buf, int mode)
 {
     int rc;
     opal_buffer_t *relay;
@@ -138,6 +138,13 @@ static int allgather(orte_grpcomm_coll_t *coll,
     relay = OBJ_NEW(opal_buffer_t);
     /* pack the signature */
     if (OPAL_SUCCESS != (rc = opal_dss.pack(relay, &coll->sig, 1, ORTE_SIGNATURE))) {
+        ORTE_ERROR_LOG(rc);
+        OBJ_RELEASE(relay);
+        return rc;
+    }
+
+    /* pack the mode */
+    if (OPAL_SUCCESS != (rc = opal_dss.pack(relay, &mode, 1, OPAL_INT))) {
         ORTE_ERROR_LOG(rc);
         OBJ_RELEASE(relay);
         return rc;
@@ -163,7 +170,7 @@ static void allgather_recv(int status, orte_process_name_t* sender,
                            void* cbdata)
 {
     int32_t cnt;
-    int rc, ret;
+    int rc, ret, mode;
     orte_grpcomm_signature_t *sig;
     opal_buffer_t *reply;
     orte_grpcomm_coll_t *coll;
@@ -187,6 +194,12 @@ static void allgather_recv(int status, orte_process_name_t* sender,
         return;
     }
 
+    /* unpack the mode */
+    cnt = 1;
+    if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &mode, &cnt, OPAL_INT))) {
+        ORTE_ERROR_LOG(rc);
+        return;
+    }
     /* increment nprocs reported for collective */
     coll->nreported++;
     /* capture any provided content */
@@ -221,6 +234,25 @@ static void allgather_recv(int status, orte_process_name_t* sender,
                 OBJ_RELEASE(sig);
                 return;
             }
+            /* pack the mode */
+            if (OPAL_SUCCESS != (rc = opal_dss.pack(reply, &mode, 1, OPAL_INT))) {
+                ORTE_ERROR_LOG(rc);
+                OBJ_RELEASE(reply);
+                OBJ_RELEASE(sig);
+                return;
+            }
+            /* if we were asked to provide a context id, do so */
+            if (1 == mode) {
+                size_t sz;
+                sz = orte_grpcomm_base.context_id;
+                ++orte_grpcomm_base.context_id;
+                if (OPAL_SUCCESS != (rc = opal_dss.pack(reply, &sz, 1, OPAL_SIZE))) {
+                    ORTE_ERROR_LOG(rc);
+                    OBJ_RELEASE(reply);
+                    OBJ_RELEASE(sig);
+                    return;
+                }
+            }
             /* transfer the collected bucket */
             opal_dss.copy_payload(reply, &coll->bucket);
             /* send the release via xcast */
@@ -235,6 +267,13 @@ static void allgather_recv(int status, orte_process_name_t* sender,
             reply = OBJ_NEW(opal_buffer_t);
             /* pack the signature */
             if (OPAL_SUCCESS != (rc = opal_dss.pack(reply, &sig, 1, ORTE_SIGNATURE))) {
+                ORTE_ERROR_LOG(rc);
+                OBJ_RELEASE(reply);
+                OBJ_RELEASE(sig);
+                return;
+            }
+            /* pack the mode */
+            if (OPAL_SUCCESS != (rc = opal_dss.pack(reply, &mode, 1, OPAL_INT))) {
                 ORTE_ERROR_LOG(rc);
                 OBJ_RELEASE(reply);
                 OBJ_RELEASE(sig);
@@ -260,8 +299,7 @@ static void xcast_recv(int status, orte_process_name_t* sender,
     int ret, cnt;
     opal_buffer_t *relay=NULL, *rly;
     orte_daemon_cmd_flag_t command = ORTE_DAEMON_NULL_CMD;
-    opal_buffer_t wireup, datbuf, *data;
-    opal_byte_object_t *bo;
+    opal_buffer_t datbuf, *data;
     int8_t flag;
     orte_job_t *jdata;
     orte_proc_t *rec;
@@ -270,9 +308,6 @@ static void xcast_recv(int status, orte_process_name_t* sender,
     orte_rml_tag_t tag;
     size_t inlen, cmplen;
     uint8_t *packed_data, *cmpdata;
-    int32_t nvals, i;
-    opal_value_t kv, *kval;
-    orte_process_name_t dmn;
 
     OPAL_OUTPUT_VERBOSE((1, orte_grpcomm_base_framework.framework_output,
                          "%s grpcomm:direct:xcast:recv: with %d bytes",
@@ -368,152 +403,10 @@ static void xcast_recv(int status, orte_process_name_t* sender,
         return;
     }
 
-    /* if this is headed for the daemon command processor,
-     * then we first need to check for add_local_procs
-     * as that command includes some needed wireup info */
-    if (ORTE_RML_TAG_DAEMON == tag) {
-        /* peek at the command */
-        cnt=1;
-        if (ORTE_SUCCESS == (ret = opal_dss.unpack(data, &command, &cnt, ORTE_DAEMON_CMD))) {
-            /* if it is an exit cmd, then flag that we are quitting so we will properly
-             * handle connection losses from our downstream peers */
-            if (ORTE_DAEMON_EXIT_CMD == command ||
-                ORTE_DAEMON_HALT_VM_CMD == command) {
-                orte_orteds_term_ordered = true;
-                if (ORTE_DAEMON_HALT_VM_CMD == command) {
-                    /* this is an abnormal termination */
-                    orte_abnormal_term_ordered = true;
-                }
-                /* copy the msg for relay to ourselves */
-                relay = OBJ_NEW(opal_buffer_t);
-                /* repack the command */
-                if (OPAL_SUCCESS != (ret = opal_dss.pack(relay, &command, 1, ORTE_DAEMON_CMD))) {
-                    ORTE_ERROR_LOG(ret);
-                    goto relay;
-                }
-                opal_dss.copy_payload(relay, data);
-            } else if (ORTE_DAEMON_ADD_LOCAL_PROCS == command ||
-                       ORTE_DAEMON_DVM_NIDMAP_CMD == command ||
-                       ORTE_DAEMON_DVM_ADD_PROCS == command) {
-                /* setup our internal relay buffer */
-                relay = OBJ_NEW(opal_buffer_t);
-                /* repack the command */
-                if (OPAL_SUCCESS != (ret = opal_dss.pack(relay, &command, 1, ORTE_DAEMON_CMD))) {
-                    ORTE_ERROR_LOG(ret);
-                    goto relay;
-                }
-                /* unpack flag indicating if nidmap included */
-                cnt = 1;
-                if (OPAL_SUCCESS != (ret = opal_dss.unpack(data, &flag, &cnt, OPAL_INT8))) {
-                    ORTE_ERROR_LOG(ret);
-                    goto relay;
-                }
-                if (1 == flag) {
-                    if (ORTE_SUCCESS != (ret = orte_util_decode_nidmap(data))) {
-                        ORTE_ERROR_LOG(ret);
-                        goto relay;
-                    }
-                    if (!ORTE_PROC_IS_HNP) {
-                        /* update the routing plan - the HNP already did
-                         * it when it computed the VM, so don't waste time
-                         * re-doing it here */
-                        orte_routed.update_routing_plan();
-                    }
-                    /* routing is now possible */
-                    orte_routed_base.routing_enabled = true;
+    /* copy the msg for relay to ourselves */
+    relay = OBJ_NEW(opal_buffer_t);
+    opal_dss.copy_payload(relay, data);
 
-                    /* unpack the wireup byte object */
-                    cnt=1;
-                    if (ORTE_SUCCESS != (ret = opal_dss.unpack(data, &bo, &cnt, OPAL_BYTE_OBJECT))) {
-                        ORTE_ERROR_LOG(ret);
-                        goto relay;
-                    }
-                    if (0 < bo->size) {
-                        /* load it into a buffer */
-                        OBJ_CONSTRUCT(&wireup, opal_buffer_t);
-                        opal_dss.load(&wireup, bo->bytes, bo->size);
-                        /* decode it, pushing the info into our database */
-                        if (opal_pmix.legacy_get()) {
-                            OBJ_CONSTRUCT(&kv, opal_value_t);
-                            kv.key = OPAL_PMIX_PROC_URI;
-                            kv.type = OPAL_STRING;
-                            cnt=1;
-                            while (OPAL_SUCCESS == (ret = opal_dss.unpack(&wireup, &dmn, &cnt, ORTE_NAME))) {
-                                cnt = 1;
-                                if (ORTE_SUCCESS != (ret = opal_dss.unpack(&wireup, &kv.data.string, &cnt, OPAL_STRING))) {
-                                    ORTE_ERROR_LOG(ret);
-                                    break;
-                                }
-                                if (OPAL_SUCCESS != (ret = opal_pmix.store_local(&dmn, &kv))) {
-                                    ORTE_ERROR_LOG(ret);
-                                    free(kv.data.string);
-                                    break;
-                                }
-                                free(kv.data.string);
-                                kv.data.string = NULL;
-                            }
-                            if (ORTE_ERR_UNPACK_READ_PAST_END_OF_BUFFER != ret) {
-                                ORTE_ERROR_LOG(ret);
-                            }
-                        } else {
-                           cnt=1;
-                           while (OPAL_SUCCESS == (ret = opal_dss.unpack(&wireup, &dmn, &cnt, ORTE_NAME))) {
-                               cnt = 1;
-                               if (ORTE_SUCCESS != (ret = opal_dss.unpack(&wireup, &nvals, &cnt, OPAL_INT32))) {
-                                   ORTE_ERROR_LOG(ret);
-                                   break;
-                               }
-                               for (i=0; i < nvals; i++) {
-                                cnt = 1;
-                                if (ORTE_SUCCESS != (ret = opal_dss.unpack(&wireup, &kval, &cnt, OPAL_VALUE))) {
-                                    ORTE_ERROR_LOG(ret);
-                                    break;
-                                }
-                                OPAL_OUTPUT_VERBOSE((5, orte_grpcomm_base_framework.framework_output,
-                                                     "%s STORING MODEX DATA FOR PROC %s KEY %s",
-                                                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
-                                                     ORTE_NAME_PRINT(&dmn), kval->key));
-                                if (OPAL_SUCCESS != (ret = opal_pmix.store_local(&dmn, kval))) {
-                                    ORTE_ERROR_LOG(ret);
-                                    OBJ_RELEASE(kval);
-                                    break;
-                                }
-                                OBJ_RELEASE(kval);
-                            }
-                            }
-                            if (ORTE_ERR_UNPACK_READ_PAST_END_OF_BUFFER != ret) {
-                                ORTE_ERROR_LOG(ret);
-                            }
-                        }
-                        /* done with the wireup buffer - dump it */
-                        OBJ_DESTRUCT(&wireup);
-                    }
-                    free(bo);
-                }
-                /* copy the remainder of the payload - we don't pass wiring info
-                 * to the odls */
-                opal_dss.copy_payload(relay, data);
-            } else {
-                relay = OBJ_NEW(opal_buffer_t);
-                /* repack the command */
-                if (OPAL_SUCCESS != (ret = opal_dss.pack(relay, &command, 1, ORTE_DAEMON_CMD))) {
-                    ORTE_ERROR_LOG(ret);
-                    goto relay;
-                }
-                /* copy the msg for relay to ourselves */
-                opal_dss.copy_payload(relay, data);
-            }
-        } else {
-            ORTE_ERROR_LOG(ret);
-            goto CLEANUP;
-        }
-    } else {
-        /* copy the msg for relay to ourselves */
-        relay = OBJ_NEW(opal_buffer_t);
-        opal_dss.copy_payload(relay, data);
-    }
-
-  relay:
     if (!orte_do_not_launch) {
         /* get the list of next recipients from the routed module */
         orte_routed.get_routing_list(&coll);
@@ -600,7 +493,7 @@ static void barrier_release(int status, orte_process_name_t* sender,
                             void* cbdata)
 {
     int32_t cnt;
-    int rc, ret;
+    int rc, ret, mode;
     orte_grpcomm_signature_t *sig;
     orte_grpcomm_coll_t *coll;
 
@@ -618,6 +511,13 @@ static void barrier_release(int status, orte_process_name_t* sender,
     /* unpack the return status */
     cnt = 1;
     if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &ret, &cnt, OPAL_INT))) {
+        ORTE_ERROR_LOG(rc);
+        return;
+    }
+
+    /* unpack the mode */
+    cnt = 1;
+    if (OPAL_SUCCESS != (rc = opal_dss.unpack(buffer, &mode, &cnt, OPAL_INT))) {
         ORTE_ERROR_LOG(rc);
         return;
     }

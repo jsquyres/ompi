@@ -742,7 +742,6 @@ int orte_util_parse_node_info(opal_buffer_t *buf)
     opal_byte_object_t *boptr;
     uint16_t *slots = NULL;
     uint8_t *flags = NULL;
-    uint8_t *topologies = NULL;
     uint8_t *bytes = NULL;
     orte_topology_t *t2;
     hwloc_topology_t topo;
@@ -1025,9 +1024,6 @@ int orte_util_parse_node_info(opal_buffer_t *buf)
     }
     if (NULL != flags) {
         free(flags);
-    }
-    if (NULL != topologies) {
-        free(topologies);
     }
     return rc;
 }

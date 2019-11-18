@@ -10,9 +10,9 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2009-2013 Cisco Systems, Inc.  All rights reserved.
- * Copyright (c) 2013-2018 Intel, Inc. All rights reserved.
- * Copyright (c) 2015      Research Organization for Information Science
- *                         and Technology (RIST). All rights reserved.
+ * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2015-2018 Research Organization for Information Science
+ *                         and Technology (RIST).  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -26,7 +26,7 @@
 #include <string.h>
 
 #include "opal/util/output.h"
-#include "opal/mca/hwloc/base/base.h"
+#include "opal/hwloc/hwloc-internal.h"
 
 #include "orte/util/show_help.h"
 #include "orte/util/name_fns.h"
@@ -45,11 +45,11 @@ int orte_rmaps_rr_byslot(orte_job_t *jdata,
 {
     int i, nprocs_mapped;
     orte_node_t *node;
-    orte_proc_t *proc;
     int num_procs_to_assign, extra_procs_to_assign=0, nxtra_nodes=0;
     hwloc_obj_t obj=NULL;
     float balance;
     bool add_one=false;
+    orte_proc_t *proc;
 
     opal_output_verbose(2, orte_rmaps_base_framework.framework_output,
                         "mca:rmaps:rr: mapping by slot for job %s slots %d num_procs %lu",
@@ -234,13 +234,13 @@ int orte_rmaps_rr_bynode(orte_job_t *jdata,
 {
     int j, nprocs_mapped, nnodes;
     orte_node_t *node;
-    orte_proc_t *proc;
     int num_procs_to_assign, navg;
     int extra_procs_to_assign=0, nxtra_nodes=0;
     hwloc_obj_t obj=NULL;
     float balance;
     bool add_one=false;
     bool oversubscribed=false;
+    orte_proc_t *proc;
 
     opal_output_verbose(2, orte_rmaps_base_framework.framework_output,
                         "mca:rmaps:rr: mapping by node for job %s app %d slots %d num_procs %lu",
@@ -423,9 +423,9 @@ int orte_rmaps_rr_bynode(orte_job_t *jdata,
                 obj = hwloc_get_root_obj(node->topology->topo);
             }
 
-           OPAL_OUTPUT_VERBOSE((20, orte_rmaps_base_framework.framework_output,
+            OPAL_OUTPUT_VERBOSE((20, orte_rmaps_base_framework.framework_output,
                                  "%s ADDING PROC TO NODE %s",
-                                ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), node->name));
+                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), node->name));
             if (NULL == (proc = orte_rmaps_base_setup_proc(jdata, node, app->idx))) {
                 return ORTE_ERR_OUT_OF_RESOURCE;
             }
@@ -471,12 +471,12 @@ int orte_rmaps_rr_byobj(orte_job_t *jdata,
 {
     int i, nmapped, nprocs_mapped;
     orte_node_t *node;
-    orte_proc_t *proc;
     int nprocs, start;
     hwloc_obj_t obj=NULL;
     unsigned int nobjs;
     bool add_one;
     bool second_pass;
+    orte_proc_t *proc;
 
     /* there are two modes for mapping by object: span and not-span. The
      * span mode essentially operates as if there was just a single
@@ -661,10 +661,10 @@ static int byobj_span(orte_job_t *jdata,
 {
     int i, j, nprocs_mapped, navg;
     orte_node_t *node;
-    orte_proc_t *proc;
     int nprocs, nxtra_objs;
     hwloc_obj_t obj=NULL;
     unsigned int nobjs;
+    orte_proc_t *proc;
 
     opal_output_verbose(2, orte_rmaps_base_framework.framework_output,
                         "mca:rmaps:rr: mapping span by %s for job %s slots %d num_procs %lu",

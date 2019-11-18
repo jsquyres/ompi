@@ -63,13 +63,11 @@
 #include "opal/util/opal_environ.h"
 #include "opal/util/os_dirpath.h"
 #include "opal/util/output.h"
-#include "opal/util/basename.h"
 #include "opal/util/argv.h"
 #include "opal/util/printf.h"
 
 #include "orte/mca/errmgr/errmgr.h"
 #include "orte/util/name_fns.h"
-#include "orte/util/show_help.h"
 #include "orte/runtime/orte_globals.h"
 
 #include "orte/mca/iof/iof.h"
@@ -122,12 +120,6 @@ orte_iof_base_setup_prefork(orte_iof_base_io_conf_t *opts)
             return ORTE_ERR_SYS_LIMITS_PIPES;
         }
     }
-#if OPAL_PMIX_V1
-    if (pipe(opts->p_internal) < 0) {
-        ORTE_ERROR_LOG(ORTE_ERR_SYS_LIMITS_PIPES);
-        return ORTE_ERR_SYS_LIMITS_PIPES;
-    }
-#endif
     return ORTE_SUCCESS;
 }
 
@@ -136,9 +128,6 @@ int
 orte_iof_base_setup_child(orte_iof_base_io_conf_t *opts, char ***env)
 {
     int ret;
-#if OPAL_PMIX_V1
-    char *str;
-#endif
 
     if (opts->connect_stdin) {
         close(opts->p_stdin[1]);
@@ -147,9 +136,6 @@ orte_iof_base_setup_child(orte_iof_base_io_conf_t *opts, char ***env)
     if( !orte_iof_base.redirect_app_stderr_to_stdout ) {
         close(opts->p_stderr[0]);
     }
-#if OPAL_PMIX_V1
-    close(opts->p_internal[0]);
-#endif
 
     if (opts->usepty) {
         /* disable echo */
@@ -223,20 +209,6 @@ orte_iof_base_setup_child(orte_iof_base_io_conf_t *opts, char ***env)
         }
     }
 
-#if OPAL_PMIX_V1
-    if (!orte_map_stddiag_to_stderr && !orte_map_stddiag_to_stdout ) {
-        /* Set an environment variable that the new child process can use
-           to get the fd of the pipe connected to the INTERNAL IOF tag. */
-        opal_asprintf(&str, "%d", opts->p_internal[1]);
-        if (NULL != str) {
-            opal_setenv("OPAL_OUTPUT_STDERR_FD", str, true, env);
-            free(str);
-        }
-    } else if( orte_map_stddiag_to_stdout ) {
-        opal_setenv("OPAL_OUTPUT_INTERNAL_TO_STDOUT", "1", true, env);
-    }
-#endif
-
     return ORTE_SUCCESS;
 }
 
@@ -272,14 +244,6 @@ orte_iof_base_setup_parent(const orte_process_name_t* name,
         }
     }
 
-#if OPAL_PMIX_V1
-    ret = orte_iof.push(name, ORTE_IOF_STDDIAG, opts->p_internal[0]);
-    if(ORTE_SUCCESS != ret) {
-        ORTE_ERROR_LOG(ret);
-        return ret;
-    }
-#endif
-
     return ORTE_SUCCESS;
 }
 
@@ -293,9 +257,9 @@ int orte_iof_base_setup_output_files(const orte_process_name_t* dst_name,
     char *p, **s;
     bool usejobid = true;
 
-    /* see if we are to output to a directory */
+    /* see if we are to output to a file */
     dirname = NULL;
-    if (orte_get_attribute(&jobdat->attributes, ORTE_JOB_OUTPUT_TO_DIRECTORY, (void**)&dirname, OPAL_STRING) &&
+    if (orte_get_attribute(&jobdat->attributes, ORTE_JOB_OUTPUT_TO_FILE, (void**)&dirname, OPAL_STRING) &&
         NULL != dirname) {
         np = jobdat->num_procs / 10;
         /* determine the number of digits required for max vpid */
@@ -315,12 +279,6 @@ int orte_iof_base_setup_output_files(const orte_process_name_t* dst_name,
                     usejobid = false;
                 } else if (0 == strcasecmp(s[i], "nocopy")) {
                     proct->copy = false;
-                } else {
-                    orte_show_help("help-iof-base",
-                                   "unrecognized-directive",
-                                   true, "output-directory", s[i]);
-                    opal_argv_free(s);
-                    return ORTE_ERROR;
                 }
             }
         }
@@ -380,87 +338,7 @@ int orte_iof_base_setup_output_files(const orte_process_name_t* dst_name,
                                      orte_iof_base_write_handler);
             }
         }
-#if OPAL_PMIX_V1
-        if (NULL != proct->revstddiag && NULL == proct->revstddiag->sink) {
-            /* always tie the sink for stddiag to stderr */
-            OBJ_RETAIN(proct->revstderr->sink);
-            proct->revstddiag->sink = proct->revstderr->sink;
-        }
-#endif
-        return ORTE_SUCCESS;
     }
 
-    /* see if we are to output to a file */
-    dirname = NULL;
-    if (orte_get_attribute(&jobdat->attributes, ORTE_JOB_OUTPUT_TO_FILE, (void**)&dirname, OPAL_STRING) &&
-        NULL != dirname) {
-        np = jobdat->num_procs / 10;
-        /* determine the number of digits required for max vpid */
-        numdigs = 1;
-        while (np > 0) {
-            numdigs++;
-            np = np / 10;
-        }
-        /* check for a conditional in the directory name */
-        if (NULL != (p = strchr(dirname, ':'))) {
-            *p = '\0';
-            ++p;
-            /* could me more than one directive */
-            s = opal_argv_split(p, ',');
-            for (i=0; NULL != s[i]; i++) {
-                if (0 == strcasecmp(s[i], "nocopy")) {
-                    proct->copy = false;
-                } else {
-                    orte_show_help("help-iof-base",
-                                   "unrecognized-directive",
-                                   true, "output-filename", s[i]);
-                    opal_argv_free(s);
-                    return ORTE_ERROR;
-                }
-            }
-        }
-
-        /* construct the directory where the output files will go */
-        outdir = opal_dirname(dirname);
-
-        /* ensure the directory exists */
-        if (OPAL_SUCCESS != (rc = opal_os_dirpath_create(outdir, S_IRWXU|S_IRGRP|S_IXGRP))) {
-            ORTE_ERROR_LOG(rc);
-            free(outdir);
-            return rc;
-        }
-        if (NULL != proct->revstdout && NULL == proct->revstdout->sink) {
-            /* setup the stdout sink */
-            opal_asprintf(&outfile, "%s.%d.%0*lu", dirname,
-                          (int)ORTE_LOCAL_JOBID(proct->name.jobid),
-                          numdigs, (unsigned long)proct->name.vpid);
-            fdout = open(outfile, O_CREAT|O_RDWR|O_TRUNC, 0644);
-            free(outfile);
-            if (fdout < 0) {
-                /* couldn't be opened */
-                ORTE_ERROR_LOG(ORTE_ERR_FILE_OPEN_FAILURE);
-                return ORTE_ERR_FILE_OPEN_FAILURE;
-            }
-            /* define a sink to that file descriptor */
-            ORTE_IOF_SINK_DEFINE(&proct->revstdout->sink, dst_name,
-                                 fdout, ORTE_IOF_STDOUTALL,
-                                 orte_iof_base_write_handler);
-        }
-
-        if (NULL != proct->revstderr && NULL == proct->revstderr->sink) {
-            /* we only create one file - all output goes there */
-            OBJ_RETAIN(proct->revstdout->sink);
-            proct->revstdout->sink->tag = ORTE_IOF_STDMERGE;  // show that it is merged
-            proct->revstderr->sink = proct->revstdout->sink;
-       }
-#if OPAL_PMIX_V1
-        if (NULL != proct->revstddiag && NULL == proct->revstddiag->sink) {
-            /* always tie the sink for stddiag to stderr */
-            OBJ_RETAIN(proct->revstderr->sink);
-            proct->revstddiag->sink = proct->revstderr->sink;
-        }
-#endif
-        return ORTE_SUCCESS;
-    }
     return ORTE_SUCCESS;
 }

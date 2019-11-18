@@ -12,10 +12,9 @@
  *                         All rights reserved.
  * Copyright (c) 2008      Voltaire. All rights reserved
  * Copyright (c) 2011      Cisco Systems, Inc.  All rights reserved.
- * Copyright (c) 2014-2018 Intel, Inc. All rights reserved.
+ * Copyright (c) 2014-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2015      Los Alamos National Security, LLC. All rights
  *                         reserved.
- * Copyright (c) 2019 IBM Corporation. All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -29,7 +28,7 @@
 #include <string.h>
 
 #include "opal/mca/base/base.h"
-#include "opal/mca/hwloc/base/base.h"
+#include "opal/hwloc/hwloc-internal.h"
 
 #include "orte/util/show_help.h"
 
@@ -109,7 +108,7 @@ static int orte_rmaps_rank_file_open(void)
     /* ensure we flag mapping by user */
     if ((OPAL_BIND_TO_CPUSET == OPAL_GET_BINDING_POLICY(opal_hwloc_binding_policy) &&
         !OPAL_BIND_ORDERED_REQUESTED(opal_hwloc_binding_policy)) ||
-        NULL != orte_rankfile) {
+         NULL != orte_rankfile) {
         if (ORTE_MAPPING_GIVEN & ORTE_GET_MAPPING_DIRECTIVE(orte_rmaps_base.mapping)) {
             /* if a non-default mapping is already specified, then we
              * have an error

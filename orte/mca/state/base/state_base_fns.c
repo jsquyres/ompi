@@ -21,10 +21,12 @@
 #if HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
+#include <pmix.h>
+#include <pmix_server.h>
 
 #include "opal/class/opal_list.h"
-#include "opal/mca/event/event.h"
-#include "opal/mca/pmix/pmix-internal.h"
+#include "opal/event/event-internal.h"
+#include "opal/pmix/pmix-internal.h"
 #include "opal/util/argv.h"
 
 #include "orte/orted/pmix/pmix_server_internal.h"
@@ -96,7 +98,7 @@ void orte_state_base_activate_job_state(orte_job_t *jdata,
         s = (orte_state_t*)any;
     } else {
         OPAL_OUTPUT_VERBOSE((1, orte_state_base_framework.framework_output,
-                             "ACTIVATE: ANY STATE NOT FOUND"));
+                             "ACTIVATE: JOB STATE %s NOT REGISTERED", orte_job_state_to_str(state)));
         return;
     }
     if (NULL == s->cbfunc) {
@@ -524,10 +526,15 @@ static void _send_notification(int status,
     opal_buffer_t *buf;
     orte_grpcomm_signature_t sig;
     int rc;
-    opal_value_t kv, *kvptr;
     orte_process_name_t daemon;
-
-    buf = OBJ_NEW(opal_buffer_t);
+    opal_byte_object_t bo, *boptr;
+    pmix_byte_object_t pbo;
+    pmix_info_t *info;
+    size_t ninfo;
+    pmix_proc_t pname, psource;
+    pmix_data_buffer_t pbkt;
+    pmix_data_range_t range = PMIX_RANGE_CUSTOM;
+    pmix_status_t code, ret;
 
     opal_output_verbose(5, orte_state_base_framework.framework_output,
                         "%s state:base:sending notification %s proc %s target %s",
@@ -536,47 +543,65 @@ static void _send_notification(int status,
                         ORTE_NAME_PRINT(proc),
                         ORTE_NAME_PRINT(target));
 
-    /* pack the status */
-    if (ORTE_SUCCESS != (rc = opal_dss.pack(buf, &status, 1, OPAL_INT))) {
-        ORTE_ERROR_LOG(rc);
-        OBJ_RELEASE(buf);
+    /* pack the info for sending */
+    PMIX_DATA_BUFFER_CONSTRUCT(&pbkt);
+    OPAL_PMIX_CONVERT_NAME(&pname, ORTE_PROC_MY_NAME);
+
+    /* pack the status code */
+    code = opal_pmix_convert_rc(status);
+    if (PMIX_SUCCESS != (ret = PMIx_Data_pack(&pname, &pbkt, &code, 1, PMIX_STATUS))) {
+        PMIX_ERROR_LOG(ret);
+        return;
+    }
+    /* pack the source - it cannot be me as that will cause
+     * the pmix server to upcall the event back to me */
+    OPAL_PMIX_CONVERT_NAME(&psource, proc);
+    if (PMIX_SUCCESS != (ret = PMIx_Data_pack(&pname, &pbkt, &psource, 1, PMIX_PROC))) {
+        PMIX_ERROR_LOG(ret);
+        return;
+    }
+    /* pack the range */
+    if (PMIX_SUCCESS != (ret = PMIx_Data_pack(&pname, &pbkt, &range, 1, PMIX_DATA_RANGE))) {
+        PMIX_ERROR_LOG(ret);
         return;
     }
 
-    /* the source is the proc */
-    if (ORTE_SUCCESS != (rc = opal_dss.pack(buf, proc, 1, ORTE_NAME))) {
-        ORTE_ERROR_LOG(rc);
-        OBJ_RELEASE(buf);
-        return;
-    }
+    /* setup the info */
+    ninfo = 2;
+    PMIX_INFO_CREATE(info, ninfo);
+    PMIX_INFO_LOAD(&info[0], PMIX_EVENT_AFFECTED_PROC, &psource, PMIX_PROC);
+    OPAL_PMIX_CONVERT_NAME(&psource, target);
+    PMIX_INFO_LOAD(&info[1], PMIX_EVENT_CUSTOM_RANGE, &psource, PMIX_PROC);
 
-    if (ORTE_VPID_WILDCARD == target->vpid) {
-        /* we will only pass the affected proc */
-        rc = 1;
-    } else {
-        /* we have to pass the target */
-        rc = 2;
-    }
-    if (ORTE_SUCCESS != (rc = opal_dss.pack(buf, &rc, 1, OPAL_INT))) {
-        ORTE_ERROR_LOG(rc);
-        OBJ_RELEASE(buf);
+    /* pack the number of infos */
+    if (PMIX_SUCCESS != (ret = PMIx_Data_pack(&pname, &pbkt, &ninfo, 1, PMIX_SIZE))) {
+        PMIX_ERROR_LOG(ret);
+        PMIX_INFO_FREE(info, ninfo);
         return;
     }
+    /* pack the infos themselves */
+    if (PMIX_SUCCESS != (ret = PMIx_Data_pack(&pname, &pbkt, info, ninfo, PMIX_INFO))) {
+        PMIX_ERROR_LOG(ret);
+        PMIX_INFO_FREE(info, ninfo);
+        return;
+    }
+    PMIX_INFO_FREE(info, ninfo);
 
-    /* pass along the affected proc(s) */
-    OBJ_CONSTRUCT(&kv, opal_value_t);
-    kv.key = strdup(OPAL_PMIX_EVENT_AFFECTED_PROC);
-    kv.type = OPAL_NAME;
-    kv.data.name.jobid = proc->jobid;
-    kv.data.name.vpid = proc->vpid;
-    kvptr = &kv;
-    if (ORTE_SUCCESS != (rc = opal_dss.pack(buf, &kvptr, 1, OPAL_VALUE))) {
+    /* unload the data buffer */
+    PMIX_DATA_BUFFER_UNLOAD(&pbkt, pbo.bytes, pbo.size);
+    bo.bytes = (uint8_t*)pbo.bytes;
+    bo.size = pbo.size;
+
+    /* insert into opal_buffer_t */
+    buf = OBJ_NEW(opal_buffer_t);
+    boptr = &bo;
+    if (OPAL_SUCCESS != (rc = opal_dss.pack(buf, &boptr, 1, OPAL_BYTE_OBJECT))) {
         ORTE_ERROR_LOG(rc);
-        OBJ_DESTRUCT(&kv);
         OBJ_RELEASE(buf);
+        free(bo.bytes);
         return;
     }
-    OBJ_DESTRUCT(&kv);
+    free(bo.bytes);
 
     if (ORTE_VPID_WILDCARD == target->vpid) {
         /* xcast it to everyone */
@@ -592,20 +617,6 @@ static void _send_notification(int status,
         OBJ_DESTRUCT(&sig);
         OBJ_RELEASE(buf);
     } else {
-        /* pass along the proc to be notified */
-        OBJ_CONSTRUCT(&kv, opal_value_t);
-        kv.key = strdup(OPAL_PMIX_EVENT_CUSTOM_RANGE);
-        kv.type = OPAL_NAME;
-        kv.data.name.jobid = target->jobid;
-        kv.data.name.vpid = target->vpid;
-        kvptr = &kv;
-        if (ORTE_SUCCESS != (rc = opal_dss.pack(buf, &kvptr, 1, OPAL_VALUE))) {
-            ORTE_ERROR_LOG(rc);
-            OBJ_DESTRUCT(&kv);
-            OBJ_RELEASE(buf);
-            return;
-        }
-        OBJ_DESTRUCT(&kv);
         /* get the daemon hosting the proc to be notified */
         daemon.jobid = ORTE_PROC_MY_NAME->jobid;
         daemon.vpid = orte_get_proc_daemon_vpid(target);
@@ -625,6 +636,12 @@ static void _send_notification(int status,
     }
 }
 
+static void opcbfunc(pmix_status_t status, void *cbdata)
+{
+    opal_pmix_lock_t *lock = (opal_pmix_lock_t*)cbdata;
+    OPAL_PMIX_WAKEUP_THREAD(lock);
+}
+
 void orte_state_base_track_procs(int fd, short argc, void *cbdata)
 {
     orte_state_caddy_t *caddy = (orte_state_caddy_t*)cbdata;
@@ -634,6 +651,7 @@ void orte_state_base_track_procs(int fd, short argc, void *cbdata)
     orte_proc_t *pdata;
     int i;
     orte_process_name_t parent, target;
+    opal_pmix_lock_t lock;
 
     ORTE_ACQUIRE_OBJECT(caddy);
     proc = &caddy->name;
@@ -659,11 +677,7 @@ void orte_state_base_track_procs(int fd, short argc, void *cbdata)
         }
         jdata->num_launched++;
         if (jdata->num_launched == jdata->num_procs) {
-            if (ORTE_FLAG_TEST(jdata, ORTE_JOB_FLAG_DEBUGGER_DAEMON)) {
-                ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_READY_FOR_DEBUGGERS);
-            } else {
-                ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_RUNNING);
-            }
+            ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_RUNNING);
         }
     } else if (ORTE_PROC_STATE_REGISTERED == state) {
         /* update the proc state */
@@ -703,8 +717,15 @@ void orte_state_base_track_procs(int fd, short argc, void *cbdata)
             pdata->state = state;
         }
         if (ORTE_FLAG_TEST(pdata, ORTE_PROC_FLAG_LOCAL)) {
+            pmix_proc_t pproc;
             /* tell the PMIx subsystem to cleanup this client */
-            opal_pmix.server_deregister_client(proc, NULL, NULL);
+            (void)opal_snprintf_jobid(pproc.nspace, PMIX_MAX_NSLEN, proc->jobid);
+            pproc.rank = proc->vpid;
+            OPAL_PMIX_CONSTRUCT_LOCK(&lock);
+            PMIx_server_deregister_client(&pproc, opcbfunc, &lock);
+            OPAL_PMIX_WAIT_THREAD(&lock);
+            OPAL_PMIX_DESTRUCT_LOCK(&lock);
+
             /* Clean up the session directory as if we were the process
              * itself.  This covers the case where the process died abnormally
              * and didn't cleanup its own session directory.
@@ -777,6 +798,8 @@ void orte_state_base_check_all_complete(int fd, short args, void *cbdata)
     int32_t i32, *i32ptr;
     uint32_t u32;
     void *nptr;
+    pmix_proc_t pproc;
+    opal_pmix_lock_t lock;
 
     ORTE_ACQUIRE_OBJECT(caddy);
     jdata = caddy->jdata;
@@ -807,9 +830,11 @@ void orte_state_base_check_all_complete(int fd, short args, void *cbdata)
     }
 
     /* tell the PMIx server to release its data */
-    if (NULL != opal_pmix.server_deregister_nspace) {
-        opal_pmix.server_deregister_nspace(jdata->jobid, NULL, NULL);
-    }
+    (void)opal_snprintf_jobid(pproc.nspace, PMIX_MAX_NSLEN, jdata->jobid);
+    OPAL_PMIX_CONSTRUCT_LOCK(&lock);
+    PMIx_server_deregister_nspace(pproc.nspace, opcbfunc, &lock);
+    OPAL_PMIX_WAIT_THREAD(&lock);
+    OPAL_PMIX_DESTRUCT_LOCK(&lock);
 
     i32ptr = &i32;
     if (orte_get_attribute(&jdata->attributes, ORTE_JOB_NUM_NONZERO_EXIT, (void**)&i32ptr, OPAL_INT32) && !orte_abort_non_zero_exit) {
@@ -922,9 +947,8 @@ void orte_state_base_check_all_complete(int fd, short args, void *cbdata)
     one_still_alive = false;
     j = opal_hash_table_get_first_key_uint32(orte_job_data, &u32, (void **)&job, &nptr);
     while (OPAL_SUCCESS == j) {
-        /* skip the daemon job and all jobs from other families */
-        if (job->jobid == ORTE_PROC_MY_NAME->jobid ||
-            ORTE_JOB_FAMILY(job->jobid) != ORTE_JOB_FAMILY(ORTE_PROC_MY_NAME->jobid)) {
+        /* skip the daemon job */
+        if (job->jobid == ORTE_PROC_MY_NAME->jobid) {
             goto next;
         }
         /* if this is the job we are checking AND it normally terminated,
@@ -955,10 +979,6 @@ void orte_state_base_check_all_complete(int fd, short args, void *cbdata)
                  * is maintained!
                  */
                 if (1 < j) {
-                    if (ORTE_FLAG_TEST(jdata, ORTE_JOB_FLAG_DEBUGGER_DAEMON)) {
-                        /* this was a debugger daemon. notify that a debugger has detached */
-                        ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_DEBUGGER_DETACH);
-                    }
                     opal_hash_table_set_value_uint32(orte_job_data, jdata->jobid, NULL);
                     OBJ_RELEASE(jdata);
                 }

@@ -10,7 +10,7 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2013      Los Alamos National Security, LLC.  All rights reserved.
- * Copyright (c) 2015-2018 Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2019 Intel, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -30,6 +30,7 @@
 
 #include "orte/mca/mca.h"
 #include "opal/class/opal_list.h"
+#include "opal/mca/base/mca_base_framework.h"
 #include "opal/util/printf.h"
 
 #include "orte/mca/plm/plm.h"

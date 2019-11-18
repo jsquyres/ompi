@@ -12,11 +12,10 @@
  * Copyright (c) 2011-2014 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2011-2012 Los Alamos National Security, LLC.
  *                         All rights reserved.
- * Copyright (c) 2013-2018 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2015-2017 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2018      Inria.  All rights reserved.
- * Copyright (c) 2019 IBM Corporation. All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -37,7 +36,7 @@
 #include "opal/util/output.h"
 #include "orte/mca/mca.h"
 #include "opal/mca/base/base.h"
-#include "opal/mca/hwloc/base/base.h"
+#include "opal/hwloc/hwloc-internal.h"
 #include "opal/threads/tsd.h"
 
 #include "orte/types.h"
@@ -176,10 +175,9 @@ static int bind_generic(orte_job_t *jdata,
 
             if (!hwloc_bitmap_intersects(locale->cpuset, tmp_obj->cpuset))
                 continue;
-// From the old 3.x code trg_obj was picked via a call to
-// opal_hwloc_base_find_min_bound_target_under_obj() which
-// skiped over unavailable objects (via opal_hwloc_base_get_npus).
-            if (rdata && rdata->available && !hwloc_bitmap_intersects(rdata->available, tmp_obj->cpuset))
+
+            /* if there are no available cpus under this object, then ignore it */
+            if (NULL != rdata && NULL != rdata->available && !hwloc_bitmap_intersects(rdata->available, tmp_obj->cpuset))
                 continue;
 
             data = (opal_hwloc_obj_data_t*)tmp_obj->userdata;
@@ -319,7 +317,7 @@ static int bind_in_place(orte_job_t *jdata,
         if (NULL == (node = (orte_node_t*)opal_pointer_array_get_item(map->nodes, i))) {
             continue;
         }
-        if (!orte_no_vm && (int)ORTE_PROC_MY_NAME->vpid != node->index) {
+        if ((int)ORTE_PROC_MY_NAME->vpid != node->index) {
             continue;
         }
         if (!orte_do_not_launch) {
@@ -533,7 +531,7 @@ static int bind_to_cpuset(orte_job_t *jdata)
         if (NULL == (node = (orte_node_t*)opal_pointer_array_get_item(map->nodes, i))) {
             continue;
         }
-        if (!orte_no_vm && (int)ORTE_PROC_MY_NAME->vpid != node->index) {
+        if ((int)ORTE_PROC_MY_NAME->vpid != node->index) {
             continue;
         }
         if (!orte_do_not_launch) {
@@ -766,7 +764,7 @@ int orte_rmaps_base_compute_bindings(orte_job_t *jdata)
         if (NULL == (node = (orte_node_t*)opal_pointer_array_get_item(jdata->map->nodes, i))) {
             continue;
         }
-        if (!orte_no_vm && !orte_do_not_launch &&
+        if (!orte_do_not_launch &&
             (int)ORTE_PROC_MY_NAME->vpid != node->index) {
             continue;
         }

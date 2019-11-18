@@ -32,13 +32,12 @@
 #endif
 #include <stdlib.h>
 
-#include "opal/mca/event/event.h"
+#include "opal/event/event-internal.h"
 #include "opal/runtime/opal.h"
 
 #include "orte/util/show_help.h"
 #include "orte/mca/mca.h"
 #include "opal/mca/base/base.h"
-#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/util/output.h"
 #include "opal/util/malloc.h"
 #include "opal/util/argv.h"
@@ -71,7 +70,7 @@
 
 static int env_set_name(void);
 
-static int rte_init(void);
+static int rte_init(int argc, char **argv);
 static int rte_finalize(void);
 
 orte_ess_base_module_t orte_ess_env_module = {
@@ -81,7 +80,7 @@ orte_ess_base_module_t orte_ess_env_module = {
     NULL
 };
 
-static int rte_init(void)
+static int rte_init(int argc, char **argv)
 {
     int ret;
     char *error = NULL;

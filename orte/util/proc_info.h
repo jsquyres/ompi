@@ -11,7 +11,7 @@
  *                         All rights reserved.
  * Copyright (c) 2011-2012 Los Alamos National Security, LLC.
  *                         All rights reserved.
- * Copyright (c) 2013-2017 Intel, Inc. All rights reserved.
+ * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2017      Cisco Systems, Inc.  All rights reserved
  * $COPYRIGHT$
  *
@@ -41,7 +41,7 @@
 #include "orte/types.h"
 
 #include "opal/dss/dss_types.h"
-#include "opal/mca/hwloc/hwloc-internal.h"
+#include "opal/hwloc/hwloc-internal.h"
 #include "opal/util/proc.h"
 
 BEGIN_C_DECLS
@@ -58,7 +58,9 @@ typedef uint32_t orte_proc_type_t;
 #define ORTE_PROC_DVM           0x0102   // DVM + daemon
 #define ORTE_PROC_IOF_ENDPT     0x1000
 #define ORTE_PROC_MASTER_ACTUAL 0x4000
-#define ORTE_PROC_MASTER        (ORTE_PROC_MASTER_ACTUAL + ORTE_PROC_HNP)
+#define ORTE_PROC_MASTER        (ORTE_PROC_MASTER_ACTUAL | ORTE_PROC_HNP)
+#define ORTE_PROC_LAUNCHER_ACT  0x8000
+#define ORTE_PROC_LAUNCHER      (ORTE_PROC_LAUNCHER_ACT | ORTE_PROC_TOOL)
 
 #define ORTE_PROC_IS_SINGLETON      (ORTE_PROC_SINGLETON & orte_process_info.proc_type)
 #define ORTE_PROC_IS_DAEMON         (ORTE_PROC_DAEMON & orte_process_info.proc_type)
@@ -70,6 +72,7 @@ typedef uint32_t orte_proc_type_t;
 #define ORTE_PROC_IS_DVM            (ORTE_PROC_DVM & orte_process_info.proc_type)
 #define ORTE_PROC_IS_IOF_ENDPT      (ORTE_PROC_IOF_ENDPT & orte_process_info.proc_type)
 #define ORTE_PROC_IS_MASTER         (ORTE_PROC_MASTER_ACTUAL & orte_process_info.proc_type)
+#define ORTE_PROC_IS_LAUNCHER       (ORTE_PROC_LAUNCHER_ACT & orte_process_info.proc_type)
 
 
 /**

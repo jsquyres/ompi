@@ -16,8 +16,8 @@
  * Copyright (c) 2010      Oracle and/or its affiliates.  All rights
  *                         reserved.
  * Copyright (c) 2009-2018 Cisco Systems, Inc.  All rights reserved
- * Copyright (c) 2011-2019 IBM Corporation.  All rights reserved.
- * Copyright (c) 2015-2018 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2011      IBM Corporation.  All rights reserved.
+ * Copyright (c) 2015-2019 Intel, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -222,14 +222,6 @@ static int rsh_component_register(void)
                                             OPAL_INFO_LVL_2,
                                             MCA_BASE_VAR_SCOPE_READONLY,
                                             &mca_plm_rsh_component.pass_libpath);
-
-    mca_plm_rsh_component.chdir = NULL;
-    (void) mca_base_component_var_register (c, "chdir",
-                                            "Change working directory after rsh/ssh, but before exec of orted",
-                                            MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0,
-                                            OPAL_INFO_LVL_2,
-                                            MCA_BASE_VAR_SCOPE_READONLY,
-                                            &mca_plm_rsh_component.chdir);
 
     return ORTE_SUCCESS;
 }

@@ -194,6 +194,9 @@ typedef int (*orte_iof_base_output_fn_t)(const orte_process_name_t* peer,
                                          orte_iof_tag_t source_tag,
                                          const char *msg);
 
+typedef int (*orte_iof_base_push_stdin_fn_t)(const orte_process_name_t* dst_name,
+                                             uint8_t *data, size_t sz);
+
 /* Flag that a job is complete */
 typedef void (*orte_iof_base_complete_fn_t)(const orte_job_t *jdata);
 
@@ -209,14 +212,15 @@ typedef int (*orte_iof_base_ft_event_fn_t)(int state);
  *  IOF module.
  */
 struct orte_iof_base_module_2_0_0_t {
-    orte_iof_base_init_fn_t     init;
-    orte_iof_base_push_fn_t     push;
-    orte_iof_base_pull_fn_t     pull;
-    orte_iof_base_close_fn_t    close;
-    orte_iof_base_output_fn_t   output;
-    orte_iof_base_complete_fn_t complete;
-    orte_iof_base_finalize_fn_t finalize;
-    orte_iof_base_ft_event_fn_t ft_event;
+    orte_iof_base_init_fn_t         init;
+    orte_iof_base_push_fn_t         push;
+    orte_iof_base_pull_fn_t         pull;
+    orte_iof_base_close_fn_t        close;
+    orte_iof_base_output_fn_t       output;
+    orte_iof_base_complete_fn_t     complete;
+    orte_iof_base_finalize_fn_t     finalize;
+    orte_iof_base_ft_event_fn_t     ft_event;
+    orte_iof_base_push_stdin_fn_t   push_stdin;
 };
 
 typedef struct orte_iof_base_module_2_0_0_t orte_iof_base_module_2_0_0_t;

@@ -12,7 +12,7 @@
  * Copyright (c) 2008      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2012-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
- * Copyright (c) 2015-2018 Intel, Inc. All rights reserved.
+ * Copyright (c) 2015-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2017      IBM Corporation.  All rights reserved.
  * Copyright (c) 2017      Mellanox Technologies. All rights reserved.
  * Copyright (c) 2018      Research Organization for Information Science
@@ -50,7 +50,7 @@
 #include "opal/class/opal_list.h"
 #include "opal/class/opal_bitmap.h"
 #include "orte/mca/mca.h"
-#include "opal/mca/event/event.h"
+#include "opal/event/event-internal.h"
 #include "opal/util/fd.h"
 
 #include "orte/mca/iof/iof.h"
@@ -129,9 +129,6 @@ typedef struct {
     orte_iof_sink_t *stdinev;
     orte_iof_read_event_t *revstdout;
     orte_iof_read_event_t *revstderr;
-#if OPAL_PMIX_V1
-    orte_iof_read_event_t *revstddiag;
-#endif
     opal_list_t *subscribers;
     bool copy;
 } orte_iof_proc_t;

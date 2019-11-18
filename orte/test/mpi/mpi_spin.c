@@ -10,7 +10,7 @@
 #include "mpi.h"
 
 #include "opal/dss/dss.h"
-#include "opal/mca/pmix/pmix-internal.h"
+#include "opal/mca/pmix/pmix.h"
 #include "opal/util/output.h"
 #include "orte/util/name_fns.h"
 #include "orte/constants.h"

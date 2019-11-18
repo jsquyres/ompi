@@ -15,8 +15,8 @@
  * Copyright (c) 2011-2017 Oak Ridge National Labs.  All rights reserved.
  * Copyright (c) 2017      UT-Battelle, LLC. All rights reserved.
  * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
- * Copyright (c) 2015-2019 Research Organization for Information Science
- *                         and Technology (RIST).  All rights reserved.
+ * Copyright (c) 2015      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2018      IBM Corporation.  All rights reserved.
  * $COPYRIGHT$
  *
@@ -138,13 +138,9 @@ static opal_cmd_line_init_t cmd_line_init[] = {
     { "orte_timestamp_output", '\0', "timestamp-output", "timestamp-output", 0,
       &orte_cmd_options.timestamp_output, OPAL_CMD_LINE_TYPE_BOOL,
       "Timestamp all application process output", OPAL_CMD_LINE_OTYPE_OUTPUT },
-    { "orte_output_directory", '\0', "output-directory", "output-directory", 1,
-      &orte_cmd_options.output_directory, OPAL_CMD_LINE_TYPE_STRING,
-      "Redirect output from application processes into filename/job/rank/std[out,err,diag]. A relative path value will be converted to an absolute path. The directory name may include a colon followed by a comma-delimited list of optional case-insensitive directives. Supported directives currently include NOJOBID (do not include a job-id directory level) and NOCOPY (do not copy the output to the stdout/err streams)",
-      OPAL_CMD_LINE_OTYPE_OUTPUT },
     { "orte_output_filename", '\0', "output-filename", "output-filename", 1,
       &orte_cmd_options.output_filename, OPAL_CMD_LINE_TYPE_STRING,
-      "Redirect output from application processes into filename.rank. A relative path value will be converted to an absolute path. The directory name may include a colon followed by a comma-delimited list of optional case-insensitive directives. Supported directives currently include NOCOPY (do not copy the output to the stdout/err streams)",
+      "Redirect output from application processes into filename/job/rank/std[out,err,diag]. A relative path value will be converted to an absolute path",
       OPAL_CMD_LINE_OTYPE_OUTPUT },
     { NULL, '\0', "merge-stderr-to-stdout", "merge-stderr-to-stdout", 0,
       &orte_cmd_options.merge, OPAL_CMD_LINE_TYPE_BOOL,
@@ -500,6 +496,11 @@ static opal_cmd_line_init_t cmd_line_init[] = {
     { NULL, '\0', "personality", "personality", 1,
       &orte_cmd_options.personality, OPAL_CMD_LINE_TYPE_STRING,
       "Comma-separated list of programming model, languages, and containers being used (default=\"ompi\")",
+      OPAL_CMD_LINE_OTYPE_LAUNCH },
+
+    { NULL, '\0', "pset", "pset", 1,
+      &orte_cmd_options.pset, OPAL_CMD_LINE_TYPE_STRING,
+      "User-specified name assigned to the processes in their given application",
       OPAL_CMD_LINE_OTYPE_LAUNCH },
 
     { NULL, '\0', "dvm", "dvm", 0,
@@ -910,7 +911,7 @@ static int setup_fork(orte_job_t *jdata,
         opal_setenv("OMPI_MCA_orte_hnp_uri", orte_process_info.my_hnp_uri, true, &app->env);
     }
 
-    /* setup yield schedule - do not override any user-supplied directive! */
+    /* setup yield schedule */
     if (oversubscribed) {
         opal_setenv("OMPI_MCA_mpi_oversubscribe", "1", true, &app->env);
     } else {
@@ -973,8 +974,7 @@ static int setup_fork(orte_job_t *jdata,
     if (NULL != (param = opal_shmem_base_best_runnable_component_name())) {
         opal_setenv("OMPI_MCA_shmem_RUNTIME_QUERY_hint", param, true, &app->env);
         free(param);
-    }
-
+     }
     /* Set an info MCA param that tells the launched processes that
      * any binding policy was applied by us (e.g., so that
      * MPI_INIT doesn't try to bind itself)

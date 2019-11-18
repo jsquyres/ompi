@@ -14,6 +14,8 @@
  *                         All rights reserved.
  * Copyright (c) 2016-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2017      IBM Corporation. All rights reserved.
+ * Copyright (c) 2019      Research Organization for Information Science
+ *                         and Technology (RIST).  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -32,10 +34,11 @@
 #include "opal/util/output.h"
 #include "opal/util/printf.h"
 #include "opal/dss/dss.h"
-#include "opal/mca/event/event.h"
-#include "opal/mca/pmix/pmix-internal.h"
+#include "opal/event/event-internal.h"
+#include "opal/pmix/pmix-internal.h"
 
 #include "orte/mca/errmgr/errmgr.h"
+#include "orte/mca/iof/iof.h"
 #include "orte/mca/rml/rml.h"
 #include "orte/mca/rml/rml_types.h"
 #include "orte/mca/routed/routed.h"
@@ -367,7 +370,7 @@ static void show_accumulated_duplicates(int fd, short event, void *context)
             tli->tli_count_since_last_display = 0;
 
             if (first) {
-                if (orte_xml_output) {
+               if (orte_xml_output) {
                     fprintf(orte_xml_fp, "<stderr>Set MCA parameter \"orte_base_help_aggregate\" to 0 to see all help / error messages</stderr>\n");
                     fflush(orte_xml_fp);
                 } else {
@@ -444,14 +447,18 @@ static int show_help(const char *filename, const char *topic,
     }
     /* Not already displayed */
     else if (ORTE_ERR_NOT_FOUND == rc) {
-        if (orte_xml_output) {
-            char *tmp;
-            tmp = xml_format((unsigned char*)output);
-            fprintf(orte_xml_fp, "%s", tmp);
-            fflush(orte_xml_fp);
-            free(tmp);
+        if (NULL != orte_iof.output) {
+            orte_iof.output(sender, ORTE_IOF_STDDIAG, output);
         } else {
-            opal_output(orte_help_output, "%s", output);
+            if (orte_xml_output) {
+                char *tmp;
+                tmp = xml_format((unsigned char*)output);
+                fprintf(orte_xml_fp, "%s", tmp);
+                fflush(orte_xml_fp);
+                free(tmp);
+            } else {
+                opal_output(orte_help_output, "%s", output);
+            }
         }
         if (!show_help_timer_set) {
             show_help_time_last_displayed = now;
@@ -591,6 +598,20 @@ void orte_show_help_finalize(void)
     }
 }
 
+char* orte_show_help_string(const char *filename, const char *topic,
+                            int want_error_header, ...)
+{
+    va_list arglist;
+    char *output;
+
+    va_start(arglist, want_error_header);
+    output = opal_show_help_vstring(filename, topic, want_error_header,
+                                    arglist);
+    va_end(arglist);
+
+    return output;
+}
+
 int orte_show_help(const char *filename, const char *topic,
                    int want_error_header, ...)
 {
@@ -617,12 +638,6 @@ int orte_show_help(const char *filename, const char *topic,
     return rc;
 }
 
-static void cbfunc(int status, void *cbdata)
-{
-    volatile bool *active = (volatile bool*)cbdata;
-    *active = false;
-}
-
 int orte_show_help_norender(const char *filename, const char *topic,
                             int want_error_header, const char *output)
 {
@@ -630,10 +645,6 @@ int orte_show_help_norender(const char *filename, const char *topic,
     int8_t have_output = 1;
     opal_buffer_t *buf;
     bool am_inside = false;
-    opal_list_t info;
-    opal_value_t *kv;
-    volatile bool active;
-    struct timespec tp;
 
     if (!ready) {
         /* if we are finalizing, then we have no way to process
@@ -651,11 +662,9 @@ int orte_show_help_norender(const char *filename, const char *topic,
 
     /* if we are the HNP, or the RML has not yet been setup,
      * or ROUTED has not been setup,
-     * or we weren't given an HNP, or we are running in standalone
-     * mode, then all we can do is process this locally
+     * or we weren't given an HNP, then all we can do is process this locally
      */
-    if (ORTE_PROC_IS_HNP || ORTE_PROC_IS_TOOL ||
-        orte_standalone_operation) {
+    if (ORTE_PROC_IS_HNP || ORTE_PROC_IS_TOOL) {
         rc = show_help(filename, topic, output, ORTE_PROC_MY_NAME);
         goto CLEANUP;
     } else if (ORTE_PROC_IS_DAEMON) {
@@ -706,33 +715,27 @@ int orte_show_help_norender(const char *filename, const char *topic,
         } else {
             /* if we are not a daemon (i.e., we are an app) and if PMIx
              * support for "log" is available, then use that channel */
-            if (NULL != opal_pmix.log) {
-                OBJ_CONSTRUCT(&info, opal_list_t);
-                kv = OBJ_NEW(opal_value_t),
-                kv->key = strdup(OPAL_PMIX_LOG_MSG);
-                kv->type = OPAL_BYTE_OBJECT;
-                opal_dss.unload(buf, (void**)&kv->data.bo.bytes, &kv->data.bo.size);
-                opal_list_append(&info, &kv->super);
-                active = true;
-                tp.tv_sec = 0;
-                tp.tv_nsec = 1000000;
-                opal_pmix.log(&info, cbfunc, (void*)&active);
-                while (active) {
-                    nanosleep(&tp, NULL);
-                }
-                OBJ_RELEASE(buf);
-                kv->data.bo.bytes = NULL;
-                OPAL_LIST_DESTRUCT(&info);
-                rc = ORTE_SUCCESS;
-                goto CLEANUP;
-            } else {
-                rc = show_help(filename, topic, output, ORTE_PROC_MY_NAME);
+            pmix_status_t ret;
+            pmix_info_t info;
+            pmix_byte_object_t pbo;
+            int32_t nsize;
+
+            opal_dss.unload(buf, (void**)&pbo.bytes, &nsize);
+            pbo.size = nsize;
+            PMIX_INFO_LOAD(&info, OPAL_PMIX_SHOW_HELP, &pbo, PMIX_BYTE_OBJECT);
+            ret = PMIx_Log(&info, 1, NULL, 0);
+            if (PMIX_SUCCESS != ret) {
+                PMIX_ERROR_LOG(ret);
             }
+            PMIX_INFO_DESTRUCT(&info);
+            OBJ_RELEASE(buf);
+            rc = ORTE_SUCCESS;
+            goto CLEANUP;
         }
         am_inside = false;
     }
 
-CLEANUP:
+  CLEANUP:
     return rc;
 }
 

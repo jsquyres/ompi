@@ -11,8 +11,10 @@
  *                         All rights reserved.
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
- * Copyright (c) 2013-2018 Intel, Inc. All rights reserved.
+ * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2017      Cisco Systems, Inc.  All rights reserved
+ * Copyright (c) 2018      Research Organization for Information Science
+ *                         and Technology (RIST).  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -33,9 +35,10 @@
 #include "opal/class/opal_list.h"
 #include "opal/class/opal_hash_table.h"
 #include "opal/dss/dss_types.h"
-#include "orte/mca/mca.h"
-#include "opal/mca/hwloc/hwloc-internal.h"
+#include "opal/mca/base/mca_base_framework.h"
+#include "opal/hwloc/hwloc-internal.h"
 
+#include "orte/mca/mca.h"
 #include "orte/mca/odls/odls_types.h"
 #include "orte/mca/rml/rml_types.h"
 #include "orte/mca/grpcomm/grpcomm.h"
@@ -71,6 +74,7 @@ typedef struct {
     opal_list_t ongoing;
     opal_hash_table_t sig_table;
     char *transports;
+    size_t context_id;
 } orte_grpcomm_base_t;
 
 ORTE_DECLSPEC extern orte_grpcomm_base_t orte_grpcomm_base;
@@ -81,7 +85,7 @@ ORTE_DECLSPEC int orte_grpcomm_API_xcast(orte_grpcomm_signature_t *sig,
                                          opal_buffer_t *buf);
 
 ORTE_DECLSPEC int orte_grpcomm_API_allgather(orte_grpcomm_signature_t *sig,
-                                             opal_buffer_t *buf,
+                                             opal_buffer_t *buf, int mode,
                                              orte_grpcomm_cbfunc_t cbfunc,
                                              void *cbdata);
 

@@ -13,9 +13,9 @@
  * Copyright (c) 2011      Oak Ridge National Labs.  All rights reserved.
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
- * Copyright (c) 2011-2018 Cisco Systems, Inc.  All rights reserved
+ * Copyright (c) 2011-2017 Cisco Systems, Inc.  All rights reserved
  * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
- * Copyright (c) 2014-2018 Research Organization for Information Science
+ * Copyright (c) 2014-2019 Research Organization for Information Science
  *                         and Technology (RIST).  All rights reserved.
  * Copyright (c) 2017      Mellanox Technologies Ltd. All rights reserved.
  * Copyright (c) 2017      IBM Corporation. All rights reserved.
@@ -42,8 +42,9 @@
 #include <sys/param.h>
 #endif
 #include <time.h>
-
 #include <signal.h>
+#include <pmix.h>
+#include <pmix_server.h>
 
 #include "opal_stdint.h"
 #include "opal/util/opal_environ.h"
@@ -54,10 +55,9 @@
 #include "opal/util/printf.h"
 #include "opal/util/sys_limits.h"
 #include "opal/dss/dss.h"
-#include "opal/mca/hwloc/hwloc-internal.h"
-#include "opal/mca/shmem/base/base.h"
+#include "opal/hwloc/hwloc-internal.h"
 #include "opal/mca/pstat/pstat.h"
-#include "opal/mca/pmix/base/base.h"
+#include "opal/pmix/pmix-internal.h"
 
 #include "orte/mca/errmgr/errmgr.h"
 #include "orte/mca/rml/rml.h"
@@ -100,30 +100,63 @@
 #include "orte/mca/odls/base/base.h"
 #include "orte/mca/odls/base/odls_private.h"
 
-static void setup_cbfunc(int status,
-                         opal_list_t *info,
+typedef struct {
+    orte_job_t *jdata;
+    pmix_info_t *info;
+    size_t ninfo;
+    opal_pmix_lock_t lock;
+} orte_odls_jcaddy_t;
+
+
+static void setup_cbfunc(pmix_status_t status,
+                         pmix_info_t info[], size_t ninfo,
                          void *provided_cbdata,
-                         opal_pmix_op_cbfunc_t cbfunc, void *cbdata)
+                         pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
-    orte_job_t *jdata = (orte_job_t*)provided_cbdata;
-    opal_value_t *kv;
+    orte_odls_jcaddy_t *cd = (orte_odls_jcaddy_t*)provided_cbdata;
+    orte_job_t *jdata = cd->jdata;
     opal_buffer_t cache, *bptr;
+    pmix_data_buffer_t pbuf;
+    pmix_byte_object_t pbo;
+    opal_byte_object_t bo, *boptr;
     int rc = ORTE_SUCCESS;
+
+    /* release any info */
+    if (NULL != cd->info) {
+        PMIX_INFO_FREE(cd->info, cd->ninfo);
+    }
 
     OBJ_CONSTRUCT(&cache, opal_buffer_t);
     if (NULL != info) {
-        /* cycle across the provided info */
-        OPAL_LIST_FOREACH(kv, info, opal_value_t) {
-            if (OPAL_SUCCESS != (rc = opal_dss.pack(&cache, &kv, 1, OPAL_VALUE))) {
-                ORTE_ERROR_LOG(rc);
-            }
+        PMIX_DATA_BUFFER_CONSTRUCT(&pbuf);
+        /* pack the provided info */
+        if (PMIX_SUCCESS != (rc = PMIx_Data_pack(NULL, &pbuf, &ninfo, 1, PMIX_SIZE))) {
+            PMIX_ERROR_LOG(rc);
+            PMIX_DATA_BUFFER_DESTRUCT(&pbuf);
+            OBJ_DESTRUCT(&cache);
+            goto done;
         }
+        if (PMIX_SUCCESS != (rc = PMIx_Data_pack(NULL, &pbuf, info, ninfo, PMIX_INFO))) {
+            PMIX_ERROR_LOG(rc);
+            PMIX_DATA_BUFFER_DESTRUCT(&pbuf);
+            OBJ_DESTRUCT(&cache);
+            goto done;
+        }
+        /* unload it */
+        PMIX_DATA_BUFFER_UNLOAD(&pbuf, pbo.bytes, pbo.size);
+        /* pass it along */
+        bo.bytes = (uint8_t*)pbo.bytes;
+        bo.size = pbo.size;
+        boptr = &bo;
+        opal_dss.pack(&cache, &boptr, 1, OPAL_BYTE_OBJECT);
+        free(pbo.bytes);
     }
     /* add the results */
     bptr = &cache;
     opal_dss.pack(&jdata->launch_msg, &bptr, 1, OPAL_BUFFER);
     OBJ_DESTRUCT(&cache);
 
+  done:
     /* release our caller */
     if (NULL != cbfunc) {
         cbfunc(rc, cbdata);
@@ -132,26 +165,33 @@ static void setup_cbfunc(int status,
     /* move to next stage */
     ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_SEND_LAUNCH_MSG);
 
+    /* release the original thread */
+    OPAL_PMIX_WAKEUP_THREAD(&cd->lock);
+
 }
+
 /* IT IS CRITICAL THAT ANY CHANGE IN THE ORDER OF THE INFO PACKED IN
  * THIS FUNCTION BE REFLECTED IN THE CONSTRUCT_CHILD_LIST PARSER BELOW
 */
 int orte_odls_base_default_get_add_procs_data(opal_buffer_t *buffer,
                                               orte_jobid_t job)
 {
-    int rc, v;
+    int rc, n;
     orte_job_t *jdata=NULL, *jptr;
     orte_job_map_t *map=NULL;
     opal_buffer_t *wireup, jobdata, priorjob;
-    opal_byte_object_t bo, *boptr;
-    int32_t numbytes;
     int8_t flag;
     void *nptr;
     uint32_t key;
-    orte_proc_t *dmn, *proc;
-    opal_value_t *val = NULL, *kv;
-    opal_list_t *modex, ilist;
-    int n;
+    orte_proc_t *proc;
+    pmix_info_t *info;
+    pmix_proc_t pproc;
+    pmix_status_t ret;
+    orte_node_t *node;
+    int i, k;
+    char **list, **procs, **micro, *tmp, *regex;
+    orte_odls_jcaddy_t cd = {0};
+    orte_proc_t *pptr;
 
     /* get the job data pointer */
     if (NULL == (jdata = orte_get_job_data_object(job))) {
@@ -166,229 +206,63 @@ int orte_odls_base_default_get_add_procs_data(opal_buffer_t *buffer,
         return ORTE_SUCCESS;
     }
 
-    /* provide the nidmap - i.e., the map of hostnames
-     * and the vpid of the daemon running on each node.
-     * In a DVM, we should only have to do this once */
-    if (1 < orte_process_info.num_procs &&
-        (!orte_node_info_communicated ||
-         orte_get_attribute(&jdata->attributes, ORTE_JOB_LAUNCHED_DAEMONS, NULL, OPAL_BOOL))) {
-        /* mark that we did include this info */
+    /* setup the daemon job */
+    OPAL_PMIX_CONVERT_JOBID(pproc.nspace, ORTE_PROC_MY_NAME->jobid);
+
+    /* we need to ensure that any new daemons get a complete
+     * copy of all active jobs so the grpcomm collectives can
+     * properly work should a proc from one of the other jobs
+     * interact with this one */
+    if (orte_get_attribute(&jdata->attributes, ORTE_JOB_LAUNCHED_DAEMONS, NULL, OPAL_BOOL)) {
         flag = 1;
         opal_dss.pack(buffer, &flag, 1, OPAL_INT8);
-        /* load the nidmap */
-        if (ORTE_SUCCESS != (rc = orte_util_nidmap_create(orte_node_pool, buffer))) {
-            ORTE_ERROR_LOG(rc);
-            return rc;
-        }
-
-        /* get wireup info for daemons */
-        if (NULL == (jptr = orte_get_job_data_object(ORTE_PROC_MY_NAME->jobid))) {
-            ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);
-            return ORTE_ERR_BAD_PARAM;
-        }
-        wireup = OBJ_NEW(opal_buffer_t);
-        /* always include data for mpirun as the daemons can't have it yet */
-        val = NULL;
-        if (opal_pmix.legacy_get()) {
-            if (OPAL_SUCCESS != (rc = opal_pmix.get(ORTE_PROC_MY_NAME, OPAL_PMIX_PROC_URI, NULL, &val)) || NULL == val) {
-                ORTE_ERROR_LOG(rc);
-                OBJ_RELEASE(wireup);
-                return rc;
-            } else {
-                /* pack the name of the daemon */
-                if (ORTE_SUCCESS != (rc = opal_dss.pack(wireup, ORTE_PROC_MY_NAME, 1, ORTE_NAME))) {
+        OBJ_CONSTRUCT(&jobdata, opal_buffer_t);
+        rc = opal_hash_table_get_first_key_uint32(orte_job_data, &key, (void **)&jptr, &nptr);
+        while (OPAL_SUCCESS == rc) {
+            /* skip the one we are launching now */
+            if (NULL != jptr && jptr != jdata &&
+                ORTE_PROC_MY_NAME->jobid != jptr->jobid) {
+                OBJ_CONSTRUCT(&priorjob, opal_buffer_t);
+                /* pack the job struct */
+                if (ORTE_SUCCESS != (rc = opal_dss.pack(&priorjob, &jptr, 1, ORTE_JOB))) {
                     ORTE_ERROR_LOG(rc);
-                    OBJ_RELEASE(wireup);
-                    return rc;
-                }
-                /* pack the URI */
-               if (ORTE_SUCCESS != (rc = opal_dss.pack(wireup, &val->data.string, 1, OPAL_STRING))) {
-                    ORTE_ERROR_LOG(rc);
-                    OBJ_RELEASE(wireup);
-                    return rc;
-                }
-                OBJ_RELEASE(val);
-            }
-        } else {
-            if (OPAL_SUCCESS != (rc = opal_pmix.get(ORTE_PROC_MY_NAME, NULL, NULL, &val)) || NULL == val) {
-                ORTE_ERROR_LOG(rc);
-                OBJ_RELEASE(wireup);
-                return rc;
-            }
-            /* the data is returned as a list of key-value pairs in the opal_value_t */
-            if (OPAL_PTR != val->type) {
-                ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
-                OBJ_RELEASE(wireup);
-                return ORTE_ERR_NOT_FOUND;
-            }
-            if (ORTE_SUCCESS != (rc = opal_dss.pack(wireup, ORTE_PROC_MY_NAME, 1, ORTE_NAME))) {
-                ORTE_ERROR_LOG(rc);
-                OBJ_RELEASE(wireup);
-                return rc;
-            }
-            modex = (opal_list_t*)val->data.ptr;
-            numbytes = (int32_t)opal_list_get_size(modex);
-            if (ORTE_SUCCESS != (rc = opal_dss.pack(wireup, &numbytes, 1, OPAL_INT32))) {
-                ORTE_ERROR_LOG(rc);
-                OBJ_RELEASE(wireup);
-                return rc;
-            }
-            OPAL_LIST_FOREACH(kv, modex, opal_value_t) {
-                if (ORTE_SUCCESS != (rc = opal_dss.pack(wireup, &kv, 1, OPAL_VALUE))) {
-                    ORTE_ERROR_LOG(rc);
-                    OBJ_RELEASE(wireup);
-                    return rc;
-                }
-            }
-            OPAL_LIST_RELEASE(modex);
-            OBJ_RELEASE(val);
-        }
-        /* provide a complete map of connection info */
-        for (v=1; v < jptr->procs->size; v++) {
-            if (NULL == (dmn = (orte_proc_t*)opal_pointer_array_get_item(jptr->procs, v))) {
-                continue;
-            }
-            val = NULL;
-            if (opal_pmix.legacy_get()) {
-                if (OPAL_SUCCESS != (rc = opal_pmix.get(&dmn->name, OPAL_PMIX_PROC_URI, NULL, &val)) || NULL == val) {
-                    ORTE_ERROR_LOG(rc);
-                    OBJ_RELEASE(buffer);
-                    OBJ_RELEASE(wireup);
-                    return rc;
-                } else {
-                    /* pack the name of the daemon */
-                    if (ORTE_SUCCESS != (rc = opal_dss.pack(wireup, &dmn->name, 1, ORTE_NAME))) {
-                        ORTE_ERROR_LOG(rc);
-                        OBJ_RELEASE(buffer);
-                        OBJ_RELEASE(wireup);
-                        return rc;
-                    }
-                    /* pack the URI */
-                   if (ORTE_SUCCESS != (rc = opal_dss.pack(wireup, &val->data.string, 1, OPAL_STRING))) {
-                        ORTE_ERROR_LOG(rc);
-                        OBJ_RELEASE(buffer);
-                        OBJ_RELEASE(wireup);
-                        return rc;
-                    }
-                    OBJ_RELEASE(val);
-                }
-            } else {
-                if (OPAL_SUCCESS != (rc = opal_pmix.get(&dmn->name, NULL, NULL, &val)) || NULL == val) {
-                    ORTE_ERROR_LOG(rc);
-                    OBJ_RELEASE(buffer);
-                    return rc;
-                } else {
-                    /* the data is returned as a list of key-value pairs in the opal_value_t */
-                    if (OPAL_PTR != val->type) {
-                        ORTE_ERROR_LOG(ORTE_ERR_NOT_FOUND);
-                        OBJ_RELEASE(buffer);
-                        return ORTE_ERR_NOT_FOUND;
-                    }
-                    if (ORTE_SUCCESS != (rc = opal_dss.pack(wireup, &dmn->name, 1, ORTE_NAME))) {
-                        ORTE_ERROR_LOG(rc);
-                        OBJ_RELEASE(buffer);
-                        OBJ_RELEASE(wireup);
-                        return rc;
-                    }
-                    modex = (opal_list_t*)val->data.ptr;
-                    numbytes = (int32_t)opal_list_get_size(modex);
-                    if (ORTE_SUCCESS != (rc = opal_dss.pack(wireup, &numbytes, 1, OPAL_INT32))) {
-                        ORTE_ERROR_LOG(rc);
-                        OBJ_RELEASE(buffer);
-                        OBJ_RELEASE(wireup);
-                        return rc;
-                    }
-                    OPAL_LIST_FOREACH(kv, modex, opal_value_t) {
-                        if (ORTE_SUCCESS != (rc = opal_dss.pack(wireup, &kv, 1, OPAL_VALUE))) {
-                            ORTE_ERROR_LOG(rc);
-                            OBJ_RELEASE(buffer);
-                            OBJ_RELEASE(wireup);
-                            return rc;
-                        }
-                    }
-                    OPAL_LIST_RELEASE(modex);
-                    OBJ_RELEASE(val);
-                }
-            }
-        }
-        /* put it in a byte object for xmission */
-        opal_dss.unload(wireup, (void**)&bo.bytes, &numbytes);
-        OBJ_RELEASE(wireup);
-        /* pack the byte object - zero-byte objects are fine */
-        bo.size = numbytes;
-        boptr = &bo;
-        if (ORTE_SUCCESS != (rc = opal_dss.pack(buffer, &boptr, 1, OPAL_BYTE_OBJECT))) {
-            ORTE_ERROR_LOG(rc);
-            return rc;
-        }
-        /* release the data since it has now been copied into our buffer */
-        if (NULL != bo.bytes) {
-            free(bo.bytes);
-        }
-
-        /* we need to ensure that any new daemons get a complete
-         * copy of all active jobs so the grpcomm collectives can
-         * properly work should a proc from one of the other jobs
-         * interact with this one */
-        if (orte_get_attribute(&jdata->attributes, ORTE_JOB_LAUNCHED_DAEMONS, NULL, OPAL_BOOL)) {
-            flag = 1;
-            opal_dss.pack(buffer, &flag, 1, OPAL_INT8);
-            OBJ_CONSTRUCT(&jobdata, opal_buffer_t);
-            rc = opal_hash_table_get_first_key_uint32(orte_job_data, &key, (void **)&jptr, &nptr);
-            while (OPAL_SUCCESS == rc) {
-                /* skip the one we are launching now */
-                if (NULL != jptr && jptr != jdata &&
-                    ORTE_PROC_MY_NAME->jobid != jptr->jobid) {
-                    OBJ_CONSTRUCT(&priorjob, opal_buffer_t);
-                    /* pack the job struct */
-                    if (ORTE_SUCCESS != (rc = opal_dss.pack(&priorjob, &jptr, 1, ORTE_JOB))) {
-                        ORTE_ERROR_LOG(rc);
-                        OBJ_DESTRUCT(&jobdata);
-                        OBJ_DESTRUCT(&priorjob);
-                        return rc;
-                    }
-                    /* pack the location of each proc */
-                    for (n=0; n < jptr->procs->size; n++) {
-                        if (NULL == (proc = (orte_proc_t*)opal_pointer_array_get_item(jptr->procs, n))) {
-                            continue;
-                        }
-                        if (ORTE_SUCCESS != (rc = opal_dss.pack(&priorjob, &proc->parent, 1, ORTE_VPID))) {
-                            ORTE_ERROR_LOG(rc);
-                            OBJ_DESTRUCT(&jobdata);
-                            OBJ_DESTRUCT(&priorjob);
-                            return rc;
-                        }
-                    }
-                    /* pack the jobdata buffer */
-                    wireup = &priorjob;
-                    if (ORTE_SUCCESS != (rc = opal_dss.pack(&jobdata, &wireup, 1, OPAL_BUFFER))) {
-                        ORTE_ERROR_LOG(rc);
-                        OBJ_DESTRUCT(&jobdata);
-                        OBJ_DESTRUCT(&priorjob);
-                        return rc;
-                    }
+                    OBJ_DESTRUCT(&jobdata);
                     OBJ_DESTRUCT(&priorjob);
+                    return rc;
                 }
-                rc = opal_hash_table_get_next_key_uint32(orte_job_data, &key, (void **)&jptr, nptr, &nptr);
+                /* pack the location of each proc */
+                for (n=0; n < jptr->procs->size; n++) {
+                    if (NULL == (proc = (orte_proc_t*)opal_pointer_array_get_item(jptr->procs, n))) {
+                        continue;
+                    }
+                    if (ORTE_SUCCESS != (rc = opal_dss.pack(&priorjob, &proc->parent, 1, ORTE_VPID))) {
+                        ORTE_ERROR_LOG(rc);
+                        OBJ_DESTRUCT(&jobdata);
+                        OBJ_DESTRUCT(&priorjob);
+                        return rc;
+                    }
+                }
+                /* pack the jobdata buffer */
+                wireup = &priorjob;
+                if (ORTE_SUCCESS != (rc = opal_dss.pack(&jobdata, &wireup, 1, OPAL_BUFFER))) {
+                    ORTE_ERROR_LOG(rc);
+                    OBJ_DESTRUCT(&jobdata);
+                    OBJ_DESTRUCT(&priorjob);
+                    return rc;
+                }
+                OBJ_DESTRUCT(&priorjob);
             }
-            /* pack the jobdata buffer */
-            wireup = &jobdata;
-            if (ORTE_SUCCESS != (rc = opal_dss.pack(buffer, &wireup, 1, OPAL_BUFFER))) {
-                ORTE_ERROR_LOG(rc);
-                OBJ_DESTRUCT(&jobdata);
-                return rc;
-            }
-            OBJ_DESTRUCT(&jobdata);
-        } else {
-            flag = 0;
-            opal_dss.pack(buffer, &flag, 1, OPAL_INT8);
+            rc = opal_hash_table_get_next_key_uint32(orte_job_data, &key, (void **)&jptr, nptr, &nptr);
         }
-        orte_node_info_communicated = true;
+        /* pack the jobdata buffer */
+        wireup = &jobdata;
+        if (ORTE_SUCCESS != (rc = opal_dss.pack(buffer, &wireup, 1, OPAL_BUFFER))) {
+            ORTE_ERROR_LOG(rc);
+            OBJ_DESTRUCT(&jobdata);
+            return rc;
+        }
+        OBJ_DESTRUCT(&jobdata);
     } else {
-        /* mark that we didn't */
-        flag = 0;
-        opal_dss.pack(buffer, &flag, 1, OPAL_INT8);
-        /* and that we didn't launch daemons */
         flag = 0;
         opal_dss.pack(buffer, &flag, 1, OPAL_INT8);
     }
@@ -407,43 +281,119 @@ int orte_odls_base_default_get_add_procs_data(opal_buffer_t *buffer,
         }
     }
 
-    /* get any application prep info */
-    if (NULL != opal_pmix.server_setup_application) {
-        OBJ_CONSTRUCT(&ilist, opal_list_t);
-        /* request to allocate network resources */
-        kv = OBJ_NEW(opal_value_t);
-        kv->key = strdup(OPAL_PMIX_ALLOC_NETWORK_ID);
-        kv->type = OPAL_STRING;
-        opal_asprintf(&kv->data.string, "%s.net", ORTE_JOBID_PRINT(jdata->jobid));
-        opal_list_append(&ilist, &kv->super);
-        /* ask for security keys */
-        kv = OBJ_NEW(opal_value_t);
-        kv->key = strdup(OPAL_PMIX_ALLOC_NETWORK_SEC_KEY);
-        kv->type = OPAL_BOOL;
-        kv->data.flag = true;
-        opal_list_append(&ilist, &kv->super);
-        /* ask for envars to be forwarded */
-        kv = OBJ_NEW(opal_value_t);
-        kv->key = strdup(OPAL_PMIX_SETUP_APP_ENVARS);
-        kv->type = OPAL_BOOL;
-        kv->data.flag = true;
-        opal_list_append(&ilist, &kv->super);
-        /* we don't want to block here because it could
-         * take some indeterminate time to get the info */
-        if (OPAL_SUCCESS != (rc = opal_pmix.server_setup_application(jdata->jobid, &ilist, setup_cbfunc, jdata))) {
-            ORTE_ERROR_LOG(rc);
-        }
-        OPAL_LIST_DESTRUCT(&ilist);
+    /* compute the ranks and add the proc objects
+     * to the jdata->procs array */
+    if (ORTE_SUCCESS != (rc = orte_rmaps_base_compute_vpids(jdata))) {
+        ORTE_ERROR_LOG(rc);
         return rc;
     }
 
-    /* move to next stage */
-    ORTE_ACTIVATE_JOB_STATE(jdata, ORTE_JOB_STATE_SEND_LAUNCH_MSG);
+    /* assemble the node and proc map info */
+    list = NULL;
+    procs = NULL;
+    cd.ninfo = 3;
+    PMIX_INFO_CREATE(cd.info, cd.ninfo);
+    for (i=0; i < map->nodes->size; i++) {
+        micro = NULL;
+        if (NULL != (node = (orte_node_t*)opal_pointer_array_get_item(map->nodes, i))) {
+            opal_argv_append_nosize(&list, node->name);
+            /* assemble all the ranks for this job that are on this node */
+            for (k=0; k < node->procs->size; k++) {
+                if (NULL != (pptr = (orte_proc_t*)opal_pointer_array_get_item(node->procs, k))) {
+                    if (jdata->jobid == pptr->name.jobid) {
+                        opal_argv_append_nosize(&micro, ORTE_VPID_PRINT(pptr->name.vpid));
+                    }
+                }
+            }
+            /* assemble the rank/node map */
+            if (NULL != micro) {
+                tmp = opal_argv_join(micro, ',');
+                opal_argv_free(micro);
+                opal_argv_append_nosize(&procs, tmp);
+                free(tmp);
+            }
+        }
+    }
 
-    return ORTE_SUCCESS;
+    /* let the PMIx server generate the nodemap regex */
+    if (NULL != list) {
+        tmp = opal_argv_join(list, ',');
+        opal_argv_free(list);
+        list = NULL;
+        if (PMIX_SUCCESS != (ret = PMIx_generate_regex(tmp, &regex))) {
+            PMIX_ERROR_LOG(ret);
+            free(tmp);
+            PMIX_INFO_FREE(cd.info, cd.ninfo);
+            return opal_pmix_convert_status(ret);
+        }
+        free(tmp);
+#ifdef PMIX_REGEX
+        PMIX_INFO_LOAD(&cd.info[0], PMIX_NODE_MAP, regex, PMIX_REGEX);
+#else
+        PMIX_INFO_LOAD(&cd.info[0], PMIX_NODE_MAP, regex, PMIX_STRING);
+#endif
+        free(regex);
+    }
+
+    /* let the PMIx server generate the procmap regex */
+    if (NULL != procs) {
+        tmp = opal_argv_join(procs, ';');
+        opal_argv_free(procs);
+        procs = NULL;
+        if (PMIX_SUCCESS != (ret = PMIx_generate_ppn(tmp, &regex))) {
+            PMIX_ERROR_LOG(ret);
+            free(tmp);
+            PMIX_INFO_FREE(cd.info, cd.ninfo);
+            return opal_pmix_convert_status(ret);
+        }
+        free(tmp);
+#ifdef PMIX_REGEX
+        PMIX_INFO_LOAD(&cd.info[1], PMIX_PROC_MAP, regex, PMIX_REGEX);
+#else
+        PMIX_INFO_LOAD(&cd.info[0], PMIX_PROC_MAP, regex, PMIX_STRING);
+#endif
+        free(regex);
+    }
+
+    /* construct the actual request - we just let them pick the
+     * default transport for now. Someday, we will add to prun
+     * the ability for transport specifications */
+    OPAL_PMIX_CONVERT_JOBID(pproc.nspace, jdata->jobid);
+    (void)strncpy(cd.info[2].key, PMIX_ALLOC_NETWORK, PMIX_MAX_KEYLEN);
+    cd.info[2].value.type = PMIX_DATA_ARRAY;
+#if PMIX_NUMERIC_VERSION < 0x00020203
+    PMIX_INFO_CREATE(info, 3);
+    cd.info[2].value.data.darray = (pmix_data_array_t*)malloc(sizeof(pmix_data_array_t));
+    cd.info[2].value.data.darray->array = info;
+    cd.info[2].value.data.darray->size = 3;
+#else
+    PMIX_DATA_ARRAY_CREATE(cd.info[2].value.data.darray, 3, PMIX_INFO);
+    info = (pmix_info_t*)cd.info[2].value.data.darray->array;
+#endif
+    asprintf(&tmp, "%s.net", pproc.nspace);
+    PMIX_INFO_LOAD(&info[0], PMIX_ALLOC_NETWORK_ID, tmp, PMIX_STRING);
+    free(tmp);
+    PMIX_INFO_LOAD(&info[1], PMIX_ALLOC_NETWORK_SEC_KEY, NULL, PMIX_BOOL);
+    PMIX_INFO_LOAD(&info[2], PMIX_SETUP_APP_ENVARS, NULL, PMIX_BOOL);
+
+    /* we don't want to block here because it could
+     * take some indeterminate time to get the info */
+    rc = ORTE_SUCCESS;
+    cd.jdata = jdata;
+    OPAL_PMIX_CONSTRUCT_LOCK(&cd.lock);
+    if (PMIX_SUCCESS != (ret = PMIx_server_setup_application(pproc.nspace, cd.info, cd.ninfo,
+                                                             setup_cbfunc, &cd))) {
+        opal_output(0, "[%s:%d] PMIx_server_setup_application failed: %s", __FILE__, __LINE__, PMIx_Error_string(ret));
+        rc = ORTE_ERROR;
+    } else {
+        OPAL_PMIX_WAIT_THREAD(&cd.lock);
+    }
+    OPAL_PMIX_DESTRUCT_LOCK(&cd.lock);
+    PMIX_INFO_FREE(cd.info, cd.ninfo);
+    return rc;
 }
 
-static void ls_cbunc(int status, void *cbdata)
+static void ls_cbunc(pmix_status_t status, void *cbdata)
 {
     opal_pmix_lock_t *lock = (opal_pmix_lock_t*)cbdata;
     OPAL_PMIX_WAKEUP_THREAD(lock);
@@ -462,9 +412,15 @@ int orte_odls_base_default_construct_child_list(opal_buffer_t *buffer,
     orte_proc_t *pptr, *dmn;
     orte_app_context_t *app;
     int8_t flag;
-    opal_value_t *kv;
-    opal_list_t local_support, cache;
     opal_pmix_lock_t lock;
+    pmix_info_t *info = NULL;
+    size_t ninfo=0;
+    pmix_status_t ret;
+    pmix_proc_t pproc;
+    pmix_data_buffer_t pbuf;
+    opal_byte_object_t *bo;
+    size_t m;
+    opal_envar_t envt;
 
     OPAL_OUTPUT_VERBOSE((5, orte_odls_base_framework.framework_output,
                          "%s odls:constructing child list",
@@ -475,7 +431,6 @@ int orte_odls_base_default_construct_child_list(opal_buffer_t *buffer,
     /* get the daemon job object */
     daemons = orte_get_job_data_object(ORTE_PROC_MY_NAME->jobid);
     OPAL_PMIX_CONSTRUCT_LOCK(&lock);
-    OBJ_CONSTRUCT(&local_support, opal_list_t);
 
     /* unpack the flag to see if new daemons were launched */
     cnt=1;
@@ -607,20 +562,21 @@ int orte_odls_base_default_construct_child_list(opal_buffer_t *buffer,
             goto REPORT_ERROR;
         }
 
-        if (!ORTE_PROC_IS_HNP) {
+        if (!ORTE_PROC_IS_MASTER) {
             /* assign locations to the procs */
             if (ORTE_SUCCESS != (rc = orte_rmaps_base_assign_locations(jdata))) {
                 ORTE_ERROR_LOG(rc);
                 goto REPORT_ERROR;
             }
+
+            /* compute the ranks and add the proc objects
+             * to the jdata->procs array */
+            if (ORTE_SUCCESS != (rc = orte_rmaps_base_compute_vpids(jdata))) {
+                ORTE_ERROR_LOG(rc);
+                goto REPORT_ERROR;
+            }
         }
 
-        /* compute the ranks and add the proc objects
-         * to the jdata->procs array */
-        if (ORTE_SUCCESS != (rc = orte_rmaps_base_compute_vpids(jdata))) {
-            ORTE_ERROR_LOG(rc);
-            goto REPORT_ERROR;
-        }
         /* and finally, compute the local and node ranks */
         if (ORTE_SUCCESS != (rc = orte_rmaps_base_compute_local_ranks(jdata))) {
             ORTE_ERROR_LOG(rc);
@@ -632,48 +588,73 @@ int orte_odls_base_default_construct_child_list(opal_buffer_t *buffer,
      * might not be any, so it isn't an error if we don't find things */
     cnt=1;
     rc = opal_dss.unpack(buffer, &bptr, &cnt, OPAL_BUFFER);
+    if (OPAL_SUCCESS != rc) {
+        ORTE_ERROR_LOG(rc);
+        goto REPORT_ERROR;
+    }
+
+    cnt=1;
+    rc = opal_dss.unpack(bptr, &bo, &cnt, OPAL_BYTE_OBJECT);
+    OBJ_RELEASE(bptr);
     if (OPAL_SUCCESS == rc) {
         /* there was setup data - process it */
-        cnt=1;
-        OBJ_CONSTRUCT(&cache, opal_list_t);
-        while (ORTE_SUCCESS == (rc = opal_dss.unpack(bptr, &kv, &cnt, OPAL_VALUE))) {
-            /* if this is an envar operation, cache it in reverse order
-             * so that the order the user provided is preserved */
-            if (0 == strcmp(kv->key, OPAL_PMIX_SET_ENVAR) ||
-                0 == strcmp(kv->key, OPAL_PMIX_ADD_ENVAR) ||
-                0 == strcmp(kv->key, OPAL_PMIX_UNSET_ENVAR) ||
-                0 == strcmp(kv->key, OPAL_PMIX_PREPEND_ENVAR) ||
-                0 == strcmp(kv->key, OPAL_PMIX_APPEND_ENVAR)) {
-                opal_output_verbose(5, orte_odls_base_framework.framework_output,
-                                    "ORTE:ODLS ADDING ENVAR %s", kv->data.envar.envar);
-                opal_list_prepend(&cache, &kv->super);
-            } else {
-                /* need to pass it to pmix.setup_local_support */
-                opal_list_append(&local_support, &kv->super);
-            }
+        PMIX_DATA_BUFFER_LOAD(&pbuf, bo->bytes, bo->size);
+        bo->bytes = NULL;
+        bo->size = 0;
+        free(bo);
+        /* setup the daemon job */
+        OPAL_PMIX_CONVERT_NAME(&pproc, ORTE_PROC_MY_NAME);
+        /* unpack the number of info structs */
+        cnt = 1;
+        ret = PMIx_Data_unpack(&pproc, &pbuf, &ninfo, &cnt, PMIX_SIZE);
+        if (PMIX_SUCCESS != ret) {
+            PMIX_ERROR_LOG(ret);
+            PMIX_DATA_BUFFER_DESTRUCT(&pbuf);
+            rc = ORTE_ERROR;
+            goto REPORT_ERROR;
         }
-        OBJ_RELEASE(bptr);
-        /* add any cache'd values  to the front of the job attributes  */
-        while (NULL != (kv = (opal_value_t*)opal_list_remove_first(&cache))) {
-            if (0 == strcmp(kv->key, OPAL_PMIX_SET_ENVAR)) {
+        PMIX_INFO_CREATE(info, ninfo);
+        cnt = ninfo;
+        ret = PMIx_Data_unpack(&pproc, &pbuf, info, &cnt, PMIX_INFO);
+        if (PMIX_SUCCESS != ret) {
+            PMIX_ERROR_LOG(ret);
+            PMIX_INFO_FREE(info, ninfo);
+            PMIX_DATA_BUFFER_DESTRUCT(&pbuf);
+            rc = ORTE_ERROR;
+            goto REPORT_ERROR;
+        }
+        PMIX_DATA_BUFFER_DESTRUCT(&pbuf);
+        /* add any cache'd values to the front of the job attributes  */
+        for (m=0; m < ninfo; m++) {
+            if (0 == strcmp(info[m].key, PMIX_SET_ENVAR)) {
+                envt.envar = info[m].value.data.envar.envar;
+                envt.value = info[m].value.data.envar.value;
+                envt.separator = info[m].value.data.envar.separator;
                 orte_prepend_attribute(&jdata->attributes, ORTE_JOB_SET_ENVAR,
-                                       ORTE_ATTR_GLOBAL, &kv->data.envar, OPAL_ENVAR);
-            } else if (0 == strcmp(kv->key, OPAL_PMIX_ADD_ENVAR)) {
+                                       ORTE_ATTR_GLOBAL, &envt, OPAL_ENVAR);
+            } else if (0 == strcmp(info[m].key, PMIX_ADD_ENVAR)) {
+                envt.envar = info[m].value.data.envar.envar;
+                envt.value = info[m].value.data.envar.value;
+                envt.separator = info[m].value.data.envar.separator;
                 orte_prepend_attribute(&jdata->attributes, ORTE_JOB_ADD_ENVAR,
-                                       ORTE_ATTR_GLOBAL, &kv->data.envar, OPAL_ENVAR);
-            } else if (0 == strcmp(kv->key, OPAL_PMIX_UNSET_ENVAR)) {
+                                       ORTE_ATTR_GLOBAL, &envt, OPAL_ENVAR);
+            } else if (0 == strcmp(info[m].key, PMIX_UNSET_ENVAR)) {
                 orte_prepend_attribute(&jdata->attributes, ORTE_JOB_UNSET_ENVAR,
-                                       ORTE_ATTR_GLOBAL, kv->data.string, OPAL_STRING);
-            } else if (0 == strcmp(kv->key, OPAL_PMIX_PREPEND_ENVAR)) {
+                                       ORTE_ATTR_GLOBAL, info[m].value.data.string, OPAL_STRING);
+            } else if (0 == strcmp(info[m].key, PMIX_PREPEND_ENVAR)) {
+                envt.envar = info[m].value.data.envar.envar;
+                envt.value = info[m].value.data.envar.value;
+                envt.separator = info[m].value.data.envar.separator;
                 orte_prepend_attribute(&jdata->attributes, ORTE_JOB_PREPEND_ENVAR,
-                                       ORTE_ATTR_GLOBAL, &kv->data.envar, OPAL_ENVAR);
-            } else if (0 == strcmp(kv->key, OPAL_PMIX_APPEND_ENVAR)) {
+                                       ORTE_ATTR_GLOBAL, &envt, OPAL_ENVAR);
+            } else if (0 == strcmp(info[m].key, PMIX_APPEND_ENVAR)) {
+                envt.envar = info[m].value.data.envar.envar;
+                envt.value = info[m].value.data.envar.value;
+                envt.separator = info[m].value.data.envar.separator;
                 orte_prepend_attribute(&jdata->attributes, ORTE_JOB_APPEND_ENVAR,
-                                       ORTE_ATTR_GLOBAL, &kv->data.envar, OPAL_ENVAR);
+                                       ORTE_ATTR_GLOBAL, &envt, OPAL_ENVAR);
             }
-            OBJ_RELEASE(kv);
         }
-        OPAL_LIST_DESTRUCT(&cache);
     }
 
     /* now that the node array in the job map and jdata are completely filled out,.
@@ -772,7 +753,7 @@ int orte_odls_base_default_construct_child_list(opal_buffer_t *buffer,
 
     /* register this job with the PMIx server - need to wait until after we
      * have computed the #local_procs before calling the function */
-    if (ORTE_SUCCESS != (rc = orte_pmix_server_register_nspace(jdata, false))) {
+    if (ORTE_SUCCESS != (rc = orte_pmix_server_register_nspace(jdata))) {
         ORTE_ERROR_LOG(rc);
         goto REPORT_ERROR;
     }
@@ -780,11 +761,12 @@ int orte_odls_base_default_construct_child_list(opal_buffer_t *buffer,
     /* if we have local support setup info, then execute it here - we
      * have to do so AFTER we register the nspace so the PMIx server
      * has the nspace info it needs */
-    if (0 < opal_list_get_size(&local_support) &&
-        NULL != opal_pmix.server_setup_local_support) {
-        if (OPAL_SUCCESS != (rc = opal_pmix.server_setup_local_support(jdata->jobid, &local_support,
-                                                                       ls_cbunc, &lock))) {
-            ORTE_ERROR_LOG(rc);
+    if (0 < ninfo) {
+        (void)opal_snprintf_jobid(pproc.nspace, PMIX_MAX_NSLEN, jdata->jobid);
+        if (PMIX_SUCCESS != (ret = PMIx_server_setup_local_support(pproc.nspace, info, ninfo,
+                                                                   ls_cbunc, &lock))) {
+            PMIX_ERROR_LOG(ret);
+            rc = ORTE_ERROR;
             goto REPORT_ERROR;
         }
     } else {
@@ -805,12 +787,16 @@ int orte_odls_base_default_construct_child_list(opal_buffer_t *buffer,
     /* wait here until the local support has been setup */
     OPAL_PMIX_WAIT_THREAD(&lock);
     OPAL_PMIX_DESTRUCT_LOCK(&lock);
-    OPAL_LIST_DESTRUCT(&local_support);
+    if (NULL != info) {
+        PMIX_INFO_FREE(info, ninfo);
+    }
     return ORTE_SUCCESS;
 
   REPORT_ERROR:
     OPAL_PMIX_DESTRUCT_LOCK(&lock);
-    OPAL_LIST_DESTRUCT(&local_support);
+    if (NULL != info) {
+        PMIX_INFO_FREE(info, ninfo);
+    }
     /* we have to report an error back to the HNP so we don't just
      * hang. Although there shouldn't be any errors once this is
      * all debugged, it is still good practice to have a way
@@ -855,7 +841,7 @@ static int setup_path(orte_app_context_t *app, char **wdir)
         *wdir = strdup(dir);
         opal_setenv("PWD", dir, true, &app->env);
         /* update the initial wdir value too */
-        opal_setenv(OPAL_MCA_PREFIX"initial_wdir", dir, true, &app->env);
+        opal_setenv("OMPI_MCA_initial_wdir", dir, true, &app->env);
     } else {
         *wdir = NULL;
     }
@@ -918,6 +904,8 @@ void orte_odls_base_spawn_proc(int fd, short sd, void *cbdata)
     int rc, i;
     bool found;
     orte_proc_state_t state;
+    pmix_proc_t pproc;
+    pmix_status_t ret;
 
     ORTE_ACQUIRE_OBJECT(cd);
 
@@ -931,8 +919,11 @@ void orte_odls_base_spawn_proc(int fd, short sd, void *cbdata)
     ORTE_FLAG_UNSET(child, ORTE_PROC_FLAG_WAITPID);
 
     /* setup the pmix environment */
-    if (OPAL_SUCCESS != (rc = opal_pmix.server_setup_fork(&child->name, &cd->env))) {
-        ORTE_ERROR_LOG(rc);
+    (void)opal_snprintf_jobid(pproc.nspace, PMIX_MAX_NSLEN, child->name.jobid);
+    pproc.rank = child->name.vpid;
+    if (PMIX_SUCCESS != (ret = PMIx_server_setup_fork(&pproc, &cd->env))) {
+        PMIX_ERROR_LOG(ret);
+        rc = ORTE_ERROR;
         state = ORTE_PROC_STATE_FAILED_TO_LAUNCH;
         goto errorout;
     }
@@ -1309,7 +1300,7 @@ void orte_odls_base_default_launch_local(int fd, short sd, void *cbdata)
 
 
         /* tell all children that they are being launched via ORTE */
-        opal_setenv(OPAL_MCA_PREFIX"orte_launch", "1", true, &app->env);
+        opal_setenv("OMPI_MCA_orte_launch", "1", true, &app->env);
 
         /* if the user requested it, set the system resource limits */
         if (OPAL_SUCCESS != (rc = opal_util_init_sys_limits(&msg))) {
@@ -1767,7 +1758,7 @@ int orte_odls_base_default_kill_local_procs(opal_pointer_array_t *procs,
     orte_proc_t *child;
     opal_list_t procs_killed;
     orte_proc_t *proc, proctmp;
-    int i, j, ret;
+    int i, j;
     opal_pointer_array_t procarray, *procptr;
     bool do_cleanup;
     orte_odls_quick_caddy_t *cd;
@@ -1913,17 +1904,7 @@ int orte_odls_base_default_kill_local_procs(opal_pointer_array_t *procs,
     /* if we are issuing signals, then we need to wait a little
      * and send the next in sequence */
     if (0 < opal_list_get_size(&procs_killed)) {
-        /* Wait a little. Do so in a loop since sleep() can be interrupted by a
-         * signal. Most likely SIGCHLD in this case */
-        ret = orte_odls_globals.timeout_before_sigkill;
-        while( ret > 0 ) {
-            OPAL_OUTPUT_VERBOSE((5, orte_odls_base_framework.framework_output,
-                                 "%s Sleep %d sec (total = %d)",
-                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
-                                 ret, orte_odls_globals.timeout_before_sigkill));
-            ret = sleep(ret);
-        }
-
+        sleep(orte_odls_globals.timeout_before_sigkill);
         /* issue a SIGTERM to all */
         OPAL_LIST_FOREACH(cd, &procs_killed, orte_odls_quick_caddy_t) {
             OPAL_OUTPUT_VERBOSE((5, orte_odls_base_framework.framework_output,
@@ -1932,18 +1913,8 @@ int orte_odls_base_default_kill_local_procs(opal_pointer_array_t *procs,
                                  ORTE_NAME_PRINT(&cd->child->name)));
             kill_local(cd->child->pid, SIGTERM);
         }
-
-        /* Wait a little. Do so in a loop since sleep() can be interrupted by a
-         * signal. Most likely SIGCHLD in this case */
-        ret = orte_odls_globals.timeout_before_sigkill;
-        while( ret > 0 ) {
-            OPAL_OUTPUT_VERBOSE((5, orte_odls_base_framework.framework_output,
-                                 "%s Sleep %d sec (total = %d)",
-                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
-                                 ret, orte_odls_globals.timeout_before_sigkill));
-            ret = sleep(ret);
-        }
-
+        /* wait a little again */
+        sleep(orte_odls_globals.timeout_before_sigkill);
         /* issue a SIGKILL to all */
         OPAL_LIST_FOREACH(cd, &procs_killed, orte_odls_quick_caddy_t) {
             OPAL_OUTPUT_VERBOSE((5, orte_odls_base_framework.framework_output,

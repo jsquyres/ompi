@@ -12,7 +12,7 @@
  * Copyright (c) 2011      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2011-2013 Los Alamos National Security, LLC.
  *                         All rights reserved.
- * Copyright (c) 2017-2018 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2017-2019 Intel, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -39,7 +39,7 @@
 #include <errno.h>
 
 static int alps_set_name(void);
-static int rte_init(void);
+static int rte_init(int argc, char **argv);
 static int rte_finalize(void);
 
 orte_ess_base_module_t orte_ess_alps_module = {
@@ -53,7 +53,7 @@ orte_ess_base_module_t orte_ess_alps_module = {
 static orte_vpid_t starting_vpid = 0;
 
 
-static int rte_init(void)
+static int rte_init(int argc, char **argv)
 {
     int ret;
     char *error = NULL;
@@ -108,14 +108,7 @@ static int rte_init(void)
     }
 
     if (ORTE_PROC_IS_TOOL) {
-        /* otherwise, if I am a tool proc, use that procedure */
-        if (ORTE_SUCCESS != (ret = orte_ess_base_tool_setup(NULL))) {
-            ORTE_ERROR_LOG(ret);
-            error = "orte_ess_base_tool_setup";
-            goto fn_fail;
-        }
-        /* as a tool, I don't need a nidmap - so just return now */
-        ret = ORTE_SUCCESS;
+        ret = ORTE_ERR_NOT_SUPPORTED;
         goto fn_exit;
     }
 
@@ -147,11 +140,6 @@ static int rte_finalize(void)
             ORTE_ERROR_LOG(ret);
         }
 
-    } else if (ORTE_PROC_IS_TOOL) {
-        /* otherwise, if I am a tool proc, use that procedure */
-        if (ORTE_SUCCESS != (ret = orte_ess_base_tool_finalize())) {
-            ORTE_ERROR_LOG(ret);
-        }
     }
 
    fn_exit:

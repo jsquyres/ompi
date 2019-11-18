@@ -40,7 +40,7 @@
 #include "opal/hash_string.h"
 #include "opal/class/opal_hash_table.h"
 #include "opal/class/opal_list.h"
-#include "opal/mca/event/event.h"
+#include "opal/event/event-internal.h"
 #include "opal/runtime/opal.h"
 
 #include "opal/util/arch.h"
@@ -52,9 +52,9 @@
 #include "opal/util/malloc.h"
 #include "opal/util/basename.h"
 #include "opal/util/fd.h"
-#include "opal/mca/pmix/base/base.h"
+#include "opal/pmix/pmix-internal.h"
 #include "opal/mca/pstat/base/base.h"
-#include "opal/mca/hwloc/base/base.h"
+#include "opal/hwloc/hwloc-internal.h"
 
 #include "orte/mca/oob/base/base.h"
 #include "orte/mca/rml/base/base.h"
@@ -80,10 +80,7 @@
 #include "orte/util/show_help.h"
 #include "orte/util/proc_info.h"
 #include "orte/util/session_dir.h"
-#include "orte/util/hnp_contact.h"
 #include "orte/util/name_fns.h"
-#include "orte/util/show_help.h"
-#include "orte/util/comm/comm.h"
 
 #include "orte/runtime/runtime.h"
 #include "orte/runtime/orte_wait.h"
@@ -95,7 +92,7 @@
 #include "orte/mca/ess/base/base.h"
 #include "orte/mca/ess/hnp/ess_hnp.h"
 
-static int rte_init(void);
+static int rte_init(int argc, char **argv);
 static int rte_finalize(void);
 static void rte_abort(int status, bool report) __opal_attribute_noreturn__;
 
@@ -127,7 +124,7 @@ static void setup_sighandler(int signal, opal_event_t *ev,
     opal_event_signal_add(ev, NULL);
 }
 
-static int rte_init(void)
+static int rte_init(int argc, char **argv)
 {
     int ret;
     char *error = NULL;
@@ -142,7 +139,9 @@ static int rte_init(void)
     int idx;
     orte_topology_t *t;
     orte_ess_base_signal_t *sig;
-    opal_value_t val;
+    pmix_proc_t pname;
+    pmix_value_t pval;
+    pmix_status_t pret;
 
     /* run the prolog */
     if (ORTE_SUCCESS != (ret = orte_ess_base_std_prolog())) {
@@ -306,21 +305,6 @@ static int rte_init(void)
         }
     }
 
-    /* setup the PMIx framework - ensure it skips all non-PMIx components, but
-     * do not override anything we were given */
-    opal_setenv("OMPI_MCA_pmix", "^s1,s2,cray,isolated", false, &environ);
-    if (OPAL_SUCCESS != (ret = mca_base_framework_open(&opal_pmix_base_framework, 0))) {
-        ORTE_ERROR_LOG(ret);
-        error = "orte_pmix_base_open";
-        goto error;
-    }
-    if (ORTE_SUCCESS != (ret = opal_pmix_base_select())) {
-        ORTE_ERROR_LOG(ret);
-        error = "opal_pmix_base_select";
-        goto error;
-    }
-    /* set the event base */
-    opal_pmix_base_set_evbase(orte_event_base);
     /* setup the PMIx server - we need this here in case the
      * communications infrastructure wants to register
      * information */
@@ -430,6 +414,8 @@ static int rte_init(void)
 
     /* every job requires at least one app */
     app = OBJ_NEW(orte_app_context_t);
+    app->app = strdup(argv[0]);
+    app->argv = opal_argv_copy(argv);
     opal_pointer_array_set_item(jdata->apps, 0, app);
     jdata->num_apps++;
     /* create and store a node object where we are */
@@ -446,21 +432,16 @@ static int rte_init(void)
     orte_oob_base_get_addr(&proc->rml_uri);
     orte_process_info.my_hnp_uri = strdup(proc->rml_uri);
     /* store it in the local PMIx repo for later retrieval */
-    OBJ_CONSTRUCT(&val, opal_value_t);
-    val.key = OPAL_PMIX_PROC_URI;
-    val.type = OPAL_STRING;
-    val.data.string = proc->rml_uri;
-    if (OPAL_SUCCESS != (ret = opal_pmix.store_local(ORTE_PROC_MY_NAME, &val))) {
-        ORTE_ERROR_LOG(ret);
-        val.key = NULL;
-        val.data.string = NULL;
-        OBJ_DESTRUCT(&val);
+    PMIX_VALUE_LOAD(&pval, proc->rml_uri, PMIX_STRING);
+    OPAL_PMIX_CONVERT_NAME(&pname, ORTE_PROC_MY_NAME);
+    if (PMIX_SUCCESS != (pret = PMIx_Store_internal(&pname, PMIX_PROC_URI, &pval))) {
+        PMIX_ERROR_LOG(pret);
+        ret = ORTE_ERROR;
+        PMIX_VALUE_DESTRUCT(&pval);
         error = "store uri";
         goto error;
     }
-    val.key = NULL;
-    val.data.string = NULL;
-    OBJ_DESTRUCT(&val);
+    PMIX_VALUE_DESTRUCT(&pval);
     /* we are also officially a daemon, so better update that field too */
     orte_process_info.my_daemon_uri = strdup(proc->rml_uri);
     proc->state = ORTE_PROC_STATE_RUNNING;
@@ -623,23 +604,6 @@ static int rte_init(void)
             ORTE_ERROR_LOG(ORTE_ERR_BAD_PARAM);
             goto error;
         }
-        contact_path = opal_os_path(false, orte_process_info.jobfam_session_dir, "contact.txt", NULL);
-        OPAL_OUTPUT_VERBOSE((2, orte_debug_output,
-                             "%s writing contact file %s",
-                             ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
-                             contact_path));
-
-        if (ORTE_SUCCESS != (ret = orte_write_hnp_contact_file(contact_path))) {
-            OPAL_OUTPUT_VERBOSE((2, orte_debug_output,
-                                 "%s writing contact file failed with error %s",
-                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
-                                 ORTE_ERROR_NAME(ret)));
-        } else {
-            OPAL_OUTPUT_VERBOSE((2, orte_debug_output,
-                                 "%s wrote contact file",
-                                 ORTE_NAME_PRINT(ORTE_PROC_MY_NAME)));
-        }
-        free(contact_path);
     }
 
     /* setup I/O forwarding system - must come after we init routes */
@@ -665,23 +629,6 @@ static int rte_init(void)
         goto error;
     }
 
-    /* setup to support debugging */
-    orte_state.add_job_state(ORTE_JOB_STATE_READY_FOR_DEBUGGERS,
-                             orte_debugger_init_after_spawn,
-                             ORTE_SYS_PRI);
-    orte_state.add_job_state(ORTE_JOB_STATE_DEBUGGER_DETACH,
-                             orte_debugger_detached,
-                             ORTE_SYS_PRI);
-
-    /* if a tool has launched us and is requesting event reports,
-     * then set its contact info into the comm system
-     */
-    if (orte_report_events) {
-        if (ORTE_SUCCESS != (ret = orte_util_comm_connect_tool(orte_report_events_uri))) {
-            error = "could not connect to tool";
-            goto error;
-        }
-    }
     /* We actually do *not* want an HNP to voluntarily yield() the
        processor more than necessary.  Orterun already blocks when
        it is doing nothing, so it doesn't use any more CPU cycles than
@@ -748,7 +695,6 @@ static int rte_finalize(void)
 
     /* shutdown the pmix server */
     pmix_server_finalize();
-    (void) mca_base_framework_close(&opal_pmix_base_framework);
     (void) mca_base_framework_close(&orte_filem_base_framework);
     /* output any lingering stdout/err data */
     fflush(stdout);
@@ -893,7 +839,7 @@ static void clean_abort(int fd, short flags, void *arg)
             /* whack any lingering session directory files from our jobs */
             orte_session_dir_cleanup(ORTE_JOBID_WILDCARD);
             /* cleanup our pmix server */
-            opal_pmix.finalize();
+            PMIx_server_finalize();
             /* exit with a non-zero status */
             exit(ORTE_ERROR_DEFAULT_EXIT_CODE);
         }

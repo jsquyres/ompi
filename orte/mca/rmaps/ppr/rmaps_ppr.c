@@ -2,9 +2,9 @@
  * Copyright (c) 2011      Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2011      Los Alamos National Security, LLC.
  *                         All rights reserved.
- * Copyright (c) 2014-2018 Intel, Inc. All rights reserved.
- * Copyright (c) 2015-2017 Research Organization for Information Science
- *                         and Technology (RIST). All rights reserved.
+ * Copyright (c) 2014-2019 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2015-2018 Research Organization for Information Science
+ *                         and Technology (RIST).  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -22,7 +22,7 @@
 #endif  /* HAVE_UNISTD_H */
 #include <string.h>
 
-#include "opal/mca/hwloc/base/base.h"
+#include "opal/hwloc/hwloc-internal.h"
 #include "opal/util/argv.h"
 
 #include "orte/util/show_help.h"
@@ -71,9 +71,9 @@ static int ppr[OPAL_HWLOC_HWTHREAD_LEVEL+1];
 static int ppr_mapper(orte_job_t *jdata)
 {
     int rc = ORTE_SUCCESS, j, n;
+    orte_proc_t *proc;
     mca_base_component_t *c=&mca_rmaps_ppr_component.base_version;
     orte_node_t *node;
-    orte_proc_t *proc;
     orte_app_context_t *app;
     orte_vpid_t total_procs, nprocs_mapped;
     opal_hwloc_level_t start=OPAL_HWLOC_NODE_LEVEL;

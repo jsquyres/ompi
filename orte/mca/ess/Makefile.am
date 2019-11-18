@@ -10,6 +10,7 @@
 # Copyright (c) 2004-2005 The Regents of the University of California.
 #                         All rights reserved.
 # Copyright (c) 2010 Cisco Systems, Inc.  All rights reserved.
+# Copyright (c) 2019      Intel, Inc.  All rights reserved.
 # $COPYRIGHT$
 #
 # Additional copyrights may follow
@@ -18,10 +19,6 @@
 #
 
 AM_CPPFLAGS = $(LTDLINCL)
-
-# Add unwind flags because files in this tree are
-# involved in startup.
-AM_CFLAGS = $(MPIR_UNWIND_CFLAGS)
 
 # main library setup
 noinst_LTLIBRARIES = libmca_ess.la

@@ -10,7 +10,7 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2007-2011 Cisco Systems, Inc.  All rights reserved.
- * Copyright (c) 2013-2018 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2013-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2016      Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
@@ -47,7 +47,7 @@
 
 static int lsf_set_name(void);
 
-static int rte_init(void);
+static int rte_init(int argc, char **argv);
 static int rte_finalize(void);
 
 orte_ess_base_module_t orte_ess_lsf_module = {
@@ -63,7 +63,7 @@ orte_ess_base_module_t orte_ess_lsf_module = {
 static orte_node_rank_t my_node_rank=ORTE_NODE_RANK_INVALID;
 
 
-static int rte_init(void)
+static int rte_init(int argc, char **argv)
 {
     int ret;
     char *error = NULL;
@@ -90,13 +90,7 @@ static int rte_init(void)
     }
 
     if (ORTE_PROC_IS_TOOL) {
-        /* otherwise, if I am a tool proc, use that procedure */
-        if (ORTE_SUCCESS != (ret = orte_ess_base_tool_setup(NULL))) {
-            ORTE_ERROR_LOG(ret);
-            error = "orte_ess_base_tool_setup";
-            goto error;
-        }
-        return ORTE_SUCCESS;
+        return ORTE_ERR_NOT_SUPPORTED;
 
     }
 
@@ -122,12 +116,6 @@ static int rte_finalize(void)
             ORTE_ERROR_LOG(ret);
             return ret;
         }
-    } else if (ORTE_PROC_IS_TOOL) {
-        /* otherwise, if I am a tool proc, use that procedure */
-        if (ORTE_SUCCESS != (ret = orte_ess_base_tool_finalize())) {
-            ORTE_ERROR_LOG(ret);
-        }
-        return ret;
     }
 
     return ORTE_SUCCESS;;

@@ -15,7 +15,7 @@
 #include "orte/constants.h"
 
 #include "opal/util/output.h"
-#include "opal/mca/pmix/pmix-internal.h"
+#include "opal/pmix/pmix-internal.h"
 #include "opal/util/argv.h"
 #include "opal/util/printf.h"
 
@@ -24,9 +24,6 @@
 #include "orte/mca/rml/rml.h"
 #include "orte/util/threads.h"
 #include "orte/mca/oob/base/base.h"
-#if OPAL_ENABLE_FT_CR == 1
-#include "orte/mca/state/base/base.h"
-#endif
 
 static void process_uri(char *uri);
 
@@ -77,7 +74,7 @@ void orte_oob_base_send_nb(int fd, short args, void *cbdata)
          * to our hash table. However, we don't want to chase up to the
          * server after it, so indicate it is optional
          */
-        OPAL_MODEX_RECV_VALUE_OPTIONAL(rc, OPAL_PMIX_PROC_URI, &msg->dst,
+        OPAL_MODEX_RECV_VALUE_OPTIONAL(rc, PMIX_PROC_URI, &msg->dst,
                                       (char**)&uri, OPAL_STRING);
         if (OPAL_SUCCESS == rc ) {
             if (NULL != uri) {
@@ -224,11 +221,12 @@ void orte_oob_base_get_addr(char **uri)
 {
     char *turi, *final=NULL, *tmp;
     size_t len = 0;
-    int rc=ORTE_SUCCESS;
     bool one_added = false;
     mca_base_component_list_item_t *cli;
     mca_oob_base_component_t *component;
-    opal_value_t val;
+    pmix_value_t val;
+    pmix_proc_t proc;
+    pmix_status_t rc;
 
     /* start with our process name */
     if (ORTE_SUCCESS != (rc = orte_util_convert_process_name_to_string(&final, ORTE_PROC_MY_NAME))) {
@@ -284,16 +282,13 @@ void orte_oob_base_get_addr(char **uri)
 
     *uri = final;
     /* push this into our modex storage */
-    OBJ_CONSTRUCT(&val, opal_value_t);
-    val.key = OPAL_PMIX_PROC_URI;
-    val.type = OPAL_STRING;
-    val.data.string = final;
-    if (OPAL_SUCCESS != (rc = opal_pmix.store_local(ORTE_PROC_MY_NAME, &val))) {
-        ORTE_ERROR_LOG(rc);
+    (void)opal_snprintf_jobid(proc.nspace, PMIX_MAX_NSLEN, ORTE_PROC_MY_NAME->jobid);
+    proc.rank = ORTE_PROC_MY_NAME->vpid;
+    PMIX_VALUE_LOAD(&val, final, PMIX_STRING);
+    if (PMIX_SUCCESS != (rc = PMIx_Store_internal(&proc, PMIX_PROC_URI, &val))) {
+        PMIX_ERROR_LOG(rc);
     }
-    val.key = NULL;
-    val.data.string = NULL;
-    OBJ_DESTRUCT(&val);
+    PMIX_VALUE_DESTRUCT(&val);
 }
 
 static void process_uri(char *uri)
@@ -383,36 +378,3 @@ static void process_uri(char *uri)
     }
     opal_argv_free(uris);
 }
-
-#if OPAL_ENABLE_FT_CR == 1
-void orte_oob_base_ft_event(int sd, short argc, void *cbdata)
-{
-    int rc;
-    mca_base_component_list_item_t *cli;
-    mca_oob_base_component_t *component;
-    orte_state_caddy_t *state = (orte_state_caddy_t*)cbdata;
-
-    opal_output_verbose(5, orte_oob_base_framework.framework_output,
-                        "%s oob:base:ft_event %s(%d)",
-                        ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
-                        orte_job_state_to_str(state->job_state),
-                        state->job_state);
-
-    /* loop across all available modules in priority order
-     * and call each one's ft_event handler
-     */
-    OPAL_LIST_FOREACH(cli, &orte_oob_base.actives, mca_base_component_list_item_t) {
-        component = (mca_oob_base_component_t*)cli->cli_component;
-        if (NULL == component->ft_event) {
-            /* doesn't support this ability */
-            continue;
-        }
-
-        if (ORTE_SUCCESS != (rc = component->ft_event(state->job_state))) {
-            ORTE_ERROR_LOG(rc);
-        }
-    }
-    OBJ_RELEASE(state);
-}
-
-#endif

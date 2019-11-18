@@ -45,9 +45,8 @@
 #include "opal/class/opal_value_array.h"
 #include "opal/class/opal_ring_buffer.h"
 #include "opal/threads/threads.h"
-#include "opal/mca/event/event.h"
-#include "opal/mca/hwloc/hwloc-internal.h"
-#include "opal/mca/hwloc/base/base.h"
+#include "opal/event/event-internal.h"
+#include "opal/hwloc/hwloc-internal.h"
 
 #include "orte/mca/plm/plm_types.h"
 #include "orte/mca/rml/rml_types.h"
@@ -311,6 +310,8 @@ ORTE_DECLSPEC OBJ_CLASS_DECLARATION(orte_node_t);
 typedef struct {
     /** Base object so this can be put on a list */
     opal_list_item_t super;
+    /* record the exit status for this job */
+    int exit_code;
     /* personality for this job */
     char **personality;
     /* jobid for this job */
@@ -363,6 +364,10 @@ typedef struct {
     opal_list_t attributes;
     /* launch msg buffer */
     opal_buffer_t launch_msg;
+    /* track children of this job */
+    opal_list_t children;
+    /* track the launcher of these jobs */
+    orte_jobid_t launcher;
 } orte_job_t;
 ORTE_DECLSPEC OBJ_CLASS_DECLARATION(orte_job_t);
 
@@ -456,12 +461,11 @@ ORTE_DECLSPEC extern char *orte_basename;
 ORTE_DECLSPEC extern bool orte_coprocessors_detected;
 ORTE_DECLSPEC extern opal_hash_table_t *orte_coprocessors;
 ORTE_DECLSPEC extern char *orte_topo_signature;
-ORTE_DECLSPEC extern bool orte_no_vm;
 ORTE_DECLSPEC extern char *orte_data_server_uri;
 
 /* ORTE OOB port flags */
 ORTE_DECLSPEC extern bool orte_static_ports;
-ORTE_DECLSPEC extern bool orte_standalone_operation;
+ORTE_DECLSPEC extern char *orte_oob_static_ports;
 
 /* nodename flags */
 ORTE_DECLSPEC extern bool orte_keep_fqdn_hostnames;
@@ -497,12 +501,6 @@ ORTE_DECLSPEC extern bool orte_node_info_communicated;
 ORTE_DECLSPEC extern char *orte_launch_agent;
 ORTE_DECLSPEC extern char **orted_cmd_line;
 ORTE_DECLSPEC extern char **orte_fork_agent;
-
-/* debugger job */
-ORTE_DECLSPEC extern bool orte_debugger_dump_proctable;
-ORTE_DECLSPEC extern char *orte_debugger_test_daemon;
-ORTE_DECLSPEC extern bool orte_debugger_test_attach;
-ORTE_DECLSPEC extern int orte_debugger_check_rate;
 
 /* exit flags */
 ORTE_DECLSPEC extern bool orte_abnormal_term_ordered;
@@ -570,9 +568,6 @@ ORTE_DECLSPEC extern bool orte_map_stddiag_to_stdout;
 /* maximum size of virtual machine - used to subdivide allocation */
 ORTE_DECLSPEC extern int orte_max_vm_size;
 
-/* user debugger */
-ORTE_DECLSPEC extern char *orte_base_user_debugger;
-
 /* binding directives for daemons to restrict them
  * to certain cores
  */
@@ -580,6 +575,9 @@ ORTE_DECLSPEC extern char *orte_daemon_cores;
 
 /* Max time to wait for stack straces to return */
 ORTE_DECLSPEC extern int orte_stack_trace_wait_timeout;
+
+/* whether or not hwloc shmem support is available */
+ORTE_DECLSPEC extern bool orte_hwloc_shmem_available;
 
 END_C_DECLS
 

@@ -36,7 +36,7 @@ headers += \
         runtime/orte_data_server.h \
         runtime/orte_info_support.h
 
-lib@ORTE_LIB_PREFIX@open_rte_la_SOURCES += \
+libprteopen_rte_la_SOURCES += \
         runtime/orte_finalize.c \
         runtime/orte_init.c \
         runtime/orte_locks.c \

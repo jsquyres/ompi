@@ -13,7 +13,7 @@
 # Copyright (c) 2006-2008 Cisco Systems, Inc.  All rights reserved.
 # Copyright (c) 2011-2013 Los Alamos National Security, LLC.  All rights
 #                         reserved.
-# Copyright (c) 2014-2018 Intel, Inc. All rights reserved.
+# Copyright (c) 2014-2019 Intel, Inc.  All rights reserved.
 # $COPYRIGHT$
 #
 # Additional copyrights may follow
@@ -25,17 +25,15 @@
 # orte/Makefile.am
 
 SUBDIRS += \
-	tools/orte-clean \
-	tools/orted \
-	tools/orterun \
+	tools/prted \
+	tools/prun \
 	tools/wrappers \
-        tools/orte-info \
-        tools/orte-server
+        tools/prte_info \
+        tools/prte
 
 DIST_SUBDIRS += \
-	tools/orte-clean \
-	tools/orted \
-	tools/orterun \
+	tools/prted \
+	tools/prun \
 	tools/wrappers \
-        tools/orte-info \
-        tools/orte-server
+        tools/prte_info \
+        tools/prte

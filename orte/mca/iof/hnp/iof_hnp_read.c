@@ -14,7 +14,7 @@
  *                         reserved.
  * Copyright (c) 2014-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2017      Mellanox Technologies. All rights reserved.
- * Copyright (c) 2018      Research Organization for Information Science
+ * Copyright (c) 2018-2019 Research Organization for Information Science
  *                         and Technology (RIST).  All rights reserved.
  * $COPYRIGHT$
  *
@@ -33,7 +33,7 @@
 #include <string.h>
 
 #include "opal/dss/dss.h"
-#include "opal/mca/pmix/pmix-internal.h"
+#include "opal/pmix/pmix-internal.h"
 
 #include "orte/mca/rml/rml.h"
 #include "orte/mca/errmgr/errmgr.h"
@@ -93,6 +93,15 @@ void orte_iof_hnp_stdin_cb(int fd, short event, void *cbdata)
         opal_event_del(mca_iof_hnp_component.stdinev->ev);
         mca_iof_hnp_component.stdinev->active = false;
     }
+}
+
+static void lkcbfunc(pmix_status_t status, void *cbdata)
+{
+    opal_pmix_lock_t *lk = (opal_pmix_lock_t*)cbdata;
+
+    OPAL_POST_OBJECT(lk);
+    lk->status = opal_pmix_convert_status(status);
+    OPAL_PMIX_WAKEUP_THREAD(lk);
 }
 
 /* this is the read handler for my own child procs. In this case,
@@ -248,24 +257,45 @@ void orte_iof_hnp_read_local_handler(int fd, short event, void *cbdata)
                  * In this case, we pass rev->name to indicate who the
                  * data came from.
                  */
-                if (NULL != opal_pmix.server_iof_push) {
-                    OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,
-                                         "%s sending data of size %d via PMIx to tool %s",
-                                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME), (int)numbytes,
-                                         ORTE_NAME_PRINT(&sink->daemon)));
-                    /* don't pass down zero byte blobs */
-                    if (0 < numbytes) {
-                        rc = opal_pmix.server_iof_push(&proct->name, rev->tag, data, numbytes);
-                        if (ORTE_SUCCESS != rc) {
-                            ORTE_ERROR_LOG(rc);
-                        }
+                OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,
+                                     "%s sending data from proc %s of size %d via PMIx to tool %s",
+                                     ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
+                                     ORTE_NAME_PRINT(&proct->name), (int)numbytes,
+                                     ORTE_NAME_PRINT(&sink->daemon)));
+                /* don't pass down zero byte blobs */
+                if (0 < numbytes) {
+                    pmix_proc_t source;
+                    pmix_byte_object_t bo;
+                    pmix_iof_channel_t pchan;
+                    opal_pmix_lock_t lock;
+                    pmix_status_t prc;
+                    OPAL_PMIX_CONVERT_NAME(&source, &proct->name);
+                    pchan = 0;
+                    if (ORTE_IOF_STDIN & rev->tag) {
+                        pchan |= PMIX_FWD_STDIN_CHANNEL;
                     }
-                } else {
-                    OPAL_OUTPUT_VERBOSE((1, orte_iof_base_framework.framework_output,
-                                         "%s sending data to tool %s",
-                                         ORTE_NAME_PRINT(ORTE_PROC_MY_NAME),
-                                         ORTE_NAME_PRINT(&sink->daemon));
-                    orte_iof_hnp_send_data_to_endpoint(&sink->daemon, &proct->name, rev->tag, data, numbytes));
+                    if (ORTE_IOF_STDOUT & rev->tag) {
+                        pchan |= PMIX_FWD_STDOUT_CHANNEL;
+                    }
+                    if (ORTE_IOF_STDERR & rev->tag) {
+                        pchan |= PMIX_FWD_STDERR_CHANNEL;
+                    }
+                    if (ORTE_IOF_STDDIAG & rev->tag) {
+                        pchan |= PMIX_FWD_STDDIAG_CHANNEL;
+                    }
+                    /* setup the byte object */
+                    PMIX_BYTE_OBJECT_CONSTRUCT(&bo);
+                    bo.bytes = (char*)data;
+                    bo.size = numbytes;
+                    OPAL_PMIX_CONSTRUCT_LOCK(&lock);
+                    prc = PMIx_server_IOF_deliver(&source, pchan, &bo, NULL, 0, lkcbfunc, (void*)&lock);
+                    if (PMIX_SUCCESS != prc) {
+                        PMIX_ERROR_LOG(prc);
+                    } else {
+                        /* wait for completion */
+                        OPAL_PMIX_WAIT_THREAD(&lock);
+                    }
+                    OPAL_PMIX_DESTRUCT_LOCK(&lock);
                 }
                 if (sink->exclusive) {
                     exclusive = true;
@@ -289,20 +319,14 @@ void orte_iof_hnp_read_local_handler(int fd, short event, void *cbdata)
         if (rev->tag & ORTE_IOF_STDOUT) {
             orte_iof_base_static_dump_output(proct->revstdout);
             OBJ_RELEASE(proct->revstdout);
+            proct->revstdout = NULL;
         } else if (rev->tag & ORTE_IOF_STDERR) {
             orte_iof_base_static_dump_output(proct->revstderr);
             OBJ_RELEASE(proct->revstderr);
-#if OPAL_PMIX_V1
-        } else if (rev->tag & ORTE_IOF_STDDIAG) {
-            orte_iof_base_static_dump_output(proct->revstddiag);
-            OBJ_RELEASE(proct->revstddiag);
-#endif
+            proct->revstderr = NULL;
         }
         /* check to see if they are all done */
         if (NULL == proct->revstdout &&
-#if OPAL_PMIX_V1
-            NULL == proct->revstddiag &&
-#endif
             NULL == proct->revstderr) {
             /* this proc's iof is complete */
             ORTE_ACTIVATE_PROC_STATE(&proct->name, ORTE_PROC_STATE_IOF_COMPLETE);

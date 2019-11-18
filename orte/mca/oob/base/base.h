@@ -43,7 +43,7 @@
 #include "opal/class/opal_list.h"
 #include "opal/util/printf.h"
 #include "opal/util/timings.h"
-#include "opal/mca/event/event.h"
+#include "opal/event/event-internal.h"
 
 #include "orte/mca/mca.h"
 #include "orte/util/threads.h"
@@ -56,12 +56,14 @@ BEGIN_C_DECLS
  * Convenience Typedef
  */
 typedef struct {
+    opal_event_base_t *ev_base;
     char *include;
     char *exclude;
     opal_list_t components;
     opal_list_t actives;
     int max_uri_length;
     opal_hash_table_t peers;
+    int num_threads;
 #if OPAL_ENABLE_TIMING
     bool timing;
 #endif
@@ -120,7 +122,7 @@ ORTE_DECLSPEC void orte_oob_base_send_nb(int fd, short args, void *cbdata);
                             __FILE__, __LINE__);                        \
         cd = OBJ_NEW(orte_oob_send_t);                                  \
         cd->msg = (m);                                                  \
-        ORTE_THREADSHIFT(cd, orte_event_base,                           \
+        ORTE_THREADSHIFT(cd, orte_oob_base.ev_base,                     \
                          orte_oob_base_send_nb, ORTE_MSG_PRI);          \
     }while(0)
 
