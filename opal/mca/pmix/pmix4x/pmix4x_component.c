@@ -37,7 +37,7 @@ const char *opal_pmix_pmix4x_component_version_string =
  * and pointers to our public functions in it
  */
 
-const opal_pmix_component_t mca_pmix_pmix4_component = {
+const opal_pmix_component_t mca_pmix_pmix4x_component = {
 
     /* First, the mca_component_t struct containing meta information
        about the component itself */
