@@ -21,31 +21,8 @@ dnl which will allow all components of the same priority who succeed to
 dnl win)
 m4_define(MCA_opal_pmix_CONFIGURE_MODE, STOP_AT_FIRST)
 
-# Other components may depend on at least 1 pmix component being
-# available.  As such, we may need to artificially force this
-# framework to be configured first.  Hence, we move the entirety of
-# the pmix framework's m4 to a separate macro and AC REQUIRE it.
-# Other components can do this as well.
-
 AC_DEFUN([MCA_opal_pmix_CONFIG],[
-    # Use a crude shell variable to know whether this component is
-    # being required "early".  See below.
-    opal_pmix_its_time_to_configure=1
-    AC_REQUIRE([MCA_opal_pmix_CONFIG_REQUIRE])
-])
-
-# See comments above for why this is a separate macro.
-
-AC_DEFUN([MCA_opal_pmix_CONFIG_REQUIRE],[
     opal_pmix_base_include=
-
-   # If this shell variable is not 1, then this m4 is being invoked
-   # "early" via AC REQUIRE.  Therefore, since we like having fairly
-   # readable configure output, print out a nice banner explaining why
-   # this is coming early.
-   AS_IF([test "$opal_pmix_its_time_to_configure" != "1"],
-         [echo " "
-          echo "==> Pre-emptively configuring the pmix framework to satisfy dependencies."])
 
     # See if we want internal vs external pmix
     AC_ARG_WITH(pmix,
