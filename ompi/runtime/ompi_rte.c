@@ -52,14 +52,11 @@
 #include "opal/dss/dss.h"
 
 #include "ompi/mca/rte/base/base.h"
-#include "ompi/mca/rte/rte.h"
+#include "ompi/runtime/ompi_rte.h"
 #include "ompi/debuggers/debuggers.h"
 #include "ompi/proc/proc.h"
 #include "ompi/runtime/params.h"
 #include "ompi/communicator/communicator.h"
-
-/* instantiate a debugger-required value */
-volatile int MPIR_being_debugged = 0;
 
 extern ompi_rte_component_t mca_rte_pmix_component;
 
@@ -70,7 +67,6 @@ hwloc_cpuset_t ompi_proc_applied_binding = NULL;
 pmix_process_info_t pmix_process_info = {0};
 bool pmix_proc_is_bound = false;
 
-static bool pmix_in_parallel_debugger = false;
 static bool added_transport_keys = false;
 static bool added_num_procs = false;
 static bool added_app_ctx = false;
@@ -861,31 +857,20 @@ void ompi_rte_abort_peers(opal_process_name_t *procs,
 }
 
 static size_t handler = SIZE_MAX;
-static bool debugger_register_active = true;
 static bool debugger_event_active = true;
 
-static void _release_fn(int status,
-                        const opal_process_name_t *source,
-                        opal_list_t *info, opal_list_t *results,
-                        opal_pmix_notification_complete_fn_t cbfunc,
+static void _release_fn(size_t refid, pmix_status_t status,
+                        const pmix_proc_t *source,
+                        pmix_info_t info[], size_t ninfo,
+                        pmix_info_t *results, size_t nresults,
+                        pmix_event_notification_cbfunc_fn_t cbfunc,
                         void *cbdata)
 {
     /* must let the notifier know we are done */
     if (NULL != cbfunc) {
-        cbfunc(OPAL_SUCCESS, NULL, NULL, NULL, cbdata);
+        cbfunc(PMIX_EVENT_ACTION_COMPLETE, NULL, NULL, NULL, cbdata);
     }
     debugger_event_active = false;
-}
-
-static void _register_fn(int status,
-                         size_t evhandler_ref,
-                         void *cbdata)
-{
-    opal_list_t *codes = (opal_list_t*)cbdata;
-
-    handler = evhandler_ref;
-    OPAL_LIST_RELEASE(codes);
-    debugger_register_active = false;
 }
 
 /*
@@ -895,20 +880,13 @@ static void _register_fn(int status,
  */
 void ompi_rte_wait_for_debugger(void)
 {
-    int debugger;
-    opal_list_t *codes, directives;
-    opal_value_t *kv;
+    pmix_info_t directive;
     char *evar;
-    int time;
+    int time, code = PMIX_ERR_DEBUGGER_RELEASE;
 
     /* check PMIx to see if we are under a debugger */
-    debugger = pmix_in_parallel_debugger;
-
-    if (1 == MPIR_being_debugged) {
-        debugger = 1;
-    }
-
-    if (!debugger && NULL == getenv("PMIX_TEST_DEBUGGER_ATTACH")) {
+    if (NULL == getenv("PMIX_DEBUG_WAIT_FOR_NOTIFY") &&
+        NULL == getenv("PMIX_TEST_DEBUGGER_ATTACH")) {
         /* if not, just return */
         return;
     }
@@ -925,30 +903,15 @@ void ompi_rte_wait_for_debugger(void)
     }
 
     /* register an event handler for the PMIX_ERR_DEBUGGER_RELEASE event */
-    codes = OBJ_NEW(opal_list_t);
-    kv = OBJ_NEW(opal_value_t);
-    kv->key = strdup("errorcode");
-    kv->type = OPAL_INT;
-    kv->data.integer = OPAL_ERR_DEBUGGER_RELEASE;
-    opal_list_append(codes, &kv->super);
-
-    OBJ_CONSTRUCT(&directives, opal_list_t);
-    kv = OBJ_NEW(opal_value_t);
-    kv->key = strdup(OPAL_PMIX_EVENT_HDLR_NAME);
-    kv->type = OPAL_STRING;
-    kv->data.string = strdup("MPI-DEBUGGER-ATTACH");
-    opal_list_append(&directives, &kv->super);
-
-    opal_pmix.register_evhandler(codes, &directives, _release_fn, _register_fn, codes);
-    /* let the MPI progress engine run while we wait for registration to complete */
-    OMPI_WAIT_FOR_COMPLETION(debugger_register_active);
-    OPAL_LIST_DESTRUCT(&directives);
+    PMIX_INFO_LOAD(&directive, PMIX_EVENT_HDLR_NAME, "MPI-DEBUGGER-ATTACH", PMIX_STRING);
+    PMIx_Register_event_handler(&code, 1, &directive, 1, _release_fn, NULL, NULL);
+    PMIX_INFO_DESTRUCT(&directive);
 
     /* let the MPI progress engine run while we wait for debugger release */
     OMPI_WAIT_FOR_COMPLETION(debugger_event_active);
 
     /* deregister the event handler */
-    opal_pmix.deregister_evhandler(handler, NULL, NULL);
+    PMIx_Deregister_event_handler(handler, NULL, NULL);
 }
 
 bool ompi_rte_connect_accept_support(const char *port)

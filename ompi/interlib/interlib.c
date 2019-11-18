@@ -28,7 +28,7 @@
 #include <string.h>
 
 #include "opal/mca/pmix/pmix-internal.h"
-#include "ompi/mca/rte/rte.h"
+#include "ompi/runtime/ompi_rte.h"
 #include "ompi/interlib/interlib.h"
 
 #include "mpi.h"

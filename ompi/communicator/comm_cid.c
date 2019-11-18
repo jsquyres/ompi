@@ -43,7 +43,7 @@
 #include "opal/class/opal_pointer_array.h"
 #include "opal/class/opal_list.h"
 #include "ompi/mca/pml/pml.h"
-#include "ompi/mca/rte/rte.h"
+#include "ompi/runtime/ompi_rte.h"
 #include "ompi/mca/coll/base/base.h"
 #include "ompi/request/request.h"
 #include "ompi/runtime/mpiruntime.h"
