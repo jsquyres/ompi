@@ -34,8 +34,8 @@
 #include "opal/util/output.h"
 #include "opal/util/printf.h"
 #include "opal/dss/dss.h"
-#include "opal/event/event-internal.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/event/event.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/mca/errmgr/errmgr.h"
 #include "orte/mca/iof/iof.h"

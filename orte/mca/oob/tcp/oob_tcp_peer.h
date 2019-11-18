@@ -25,7 +25,7 @@
 
 #include "orte_config.h"
 
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/util/threads.h"
 #include "oob_tcp.h"

@@ -33,7 +33,7 @@ mcacomponentdir = $(ortelibdir)
 mcacomponent_LTLIBRARIES = $(component_install)
 mca_rmaps_resilient_la_SOURCES = $(sources)
 mca_rmaps_resilient_la_LDFLAGS = -module -avoid-version
-mca_rmaps_resilient_la_LIBADD = $(top_builddir)/orte/libprteopen-rte.la
+mca_rmaps_resilient_la_LIBADD = $(top_builddir)/orte/lib@ORTE_LIB_PREFIX@open-rte.la
 
 noinst_LTLIBRARIES = $(component_noinst)
 libmca_rmaps_resilient_la_SOURCES =$(sources)

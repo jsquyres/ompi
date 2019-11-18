@@ -40,7 +40,7 @@
 #include "opal/util/if.h"
 #include "opal/util/net.h"
 #include "opal/class/opal_pointer_array.h"
-#include "opal/hwloc/hwloc-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
 
 #include "orte/mca/errmgr/errmgr.h"
 #include "orte/mca/ess/ess.h"

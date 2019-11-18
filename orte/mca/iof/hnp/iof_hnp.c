@@ -41,8 +41,8 @@
 #endif
 #endif
 
-#include "opal/event/event-internal.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/event/event.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/runtime/orte_globals.h"
 #include "orte/mca/errmgr/errmgr.h"

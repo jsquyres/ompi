@@ -23,7 +23,7 @@
 
 #include "opal/dss/dss.h"
 #include "opal/class/opal_list.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/mca/compress/compress.h"
 
 #include "orte/mca/errmgr/errmgr.h"

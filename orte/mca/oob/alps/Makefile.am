@@ -36,7 +36,7 @@ mcacomponentdir = $(ortelibdir)
 mcacomponent_LTLIBRARIES = $(component_install)
 mca_oob_alps_la_SOURCES = $(sources)
 mca_oob_alps_la_LDFLAGS = -module -avoid-version
-mca_oob_alps_la_LIBADD = $(top_builddir)/orte/libprteopen-rte.la \
+mca_oob_alps_la_LIBADD = $(top_builddir)/orte/lib@ORTE_LIB_PREFIX@open-rte.la \
 	$(ooob_alps_LIBS) \
     $(ORTE_TOP_BUILDDIR)/orte/mca/common/alps/libprtemca_common_alps.la
 

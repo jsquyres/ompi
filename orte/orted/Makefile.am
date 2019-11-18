@@ -28,7 +28,7 @@ headers += \
 	orted/orted.h \
 	orted/orted_submit.h
 
-libprteopen_rte_la_SOURCES += \
+lib@ORTE_LIB_PREFIX@open_rte_la_SOURCES += \
         orted/orted_main.c \
         orted/orted_comm.c
 

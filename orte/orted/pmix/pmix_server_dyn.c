@@ -38,8 +38,8 @@
 #include "opal/util/output.h"
 #include "opal/util/path.h"
 #include "opal/dss/dss.h"
-#include "opal/hwloc/hwloc-internal.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/mca/errmgr/errmgr.h"
 #include "orte/mca/rmaps/base/base.h"

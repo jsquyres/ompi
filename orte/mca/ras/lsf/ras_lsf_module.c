@@ -32,7 +32,7 @@
 
 #include "opal/util/argv.h"
 #include "opal/util/net.h"
-#include "opal/hwloc/hwloc-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
 
 #include "orte/mca/rmaps/rmaps_types.h"
 #include "orte/mca/errmgr/errmgr.h"

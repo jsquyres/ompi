@@ -64,7 +64,7 @@
 #include "opal/util/argv.h"
 #include "opal/class/opal_hash_table.h"
 #include "opal/class/opal_list.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 #include "opal/runtime/opal_progress_threads.h"
 
 #include "orte/mca/errmgr/errmgr.h"
@@ -1226,7 +1226,7 @@ static char **split_and_resolve(char **orig_str, char *name)
 {
     int i, ret, save, if_index;
     char **argv, *str, *tmp;
-    char if_name[IF_NAMESIZE];
+    char if_name[OPAL_IF_NAMESIZE];
     struct sockaddr_storage argv_inaddr, if_inaddr;
     uint32_t argv_prefix;
 

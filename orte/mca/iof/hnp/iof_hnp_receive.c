@@ -40,7 +40,7 @@
 #endif
 
 #include "opal/dss/dss.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/mca/rml/rml.h"
 #include "orte/mca/errmgr/errmgr.h"

@@ -33,7 +33,7 @@
 #include "opal/util/output.h"
 #include "opal/util/string_copy.h"
 #include "opal/mca/base/base.h"
-#include "opal/hwloc/hwloc-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
 #include "opal/dss/dss.h"
 
 #include "orte/mca/errmgr/errmgr.h"

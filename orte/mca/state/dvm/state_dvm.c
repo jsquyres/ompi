@@ -18,7 +18,7 @@
 #include <string.h>
 
 #include "opal/util/output.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/mca/errmgr/errmgr.h"
 #include "orte/mca/filem/filem.h"

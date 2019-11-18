@@ -30,7 +30,7 @@
 
 
 #include "opal/dss/dss.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/mca/odls/odls_types.h"
 #include "orte/mca/grpcomm/base/base.h"

@@ -28,7 +28,7 @@
 #include "orte_config.h"
 
 #include "opal/dss/dss_types.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/mca/oob/oob.h"
 

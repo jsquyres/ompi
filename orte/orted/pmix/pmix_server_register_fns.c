@@ -40,8 +40,8 @@
 #include "opal/util/argv.h"
 #include "opal/util/output.h"
 #include "opal/util/error.h"
-#include "opal/hwloc/hwloc-internal.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/util/name_fns.h"
 #include "orte/runtime/orte_globals.h"

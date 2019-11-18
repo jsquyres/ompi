@@ -45,7 +45,7 @@
 #include <time.h>
 
 
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 #include "opal/mca/base/base.h"
 #include "opal/mca/pstat/pstat.h"
 #include "opal/util/output.h"
@@ -54,7 +54,7 @@
 #include "opal/runtime/opal.h"
 #include "opal/runtime/opal_progress.h"
 #include "opal/dss/dss.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/mca/compress/compress.h"
 
 #include "orte/util/proc_info.h"

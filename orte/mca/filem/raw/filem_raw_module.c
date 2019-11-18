@@ -34,7 +34,7 @@
 #endif
 
 #include "opal/class/opal_list.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 #include "opal/dss/dss.h"
 
 #include "orte/util/show_help.h"

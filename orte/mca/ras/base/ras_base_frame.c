@@ -27,7 +27,7 @@
 
 #include "orte/mca/mca.h"
 #include "opal/mca/base/base.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/mca/ras/base/ras_private.h"
 #include "orte/mca/ras/base/base.h"

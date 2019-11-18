@@ -37,7 +37,7 @@
 #include "opal/util/output.h"
 #include "opal/util/argv.h"
 #include "opal/mca/backtrace/backtrace.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/mca/rml/base/base.h"
 #include "orte/mca/rml/rml_types.h"

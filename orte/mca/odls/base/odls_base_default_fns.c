@@ -55,9 +55,9 @@
 #include "opal/util/printf.h"
 #include "opal/util/sys_limits.h"
 #include "opal/dss/dss.h"
-#include "opal/hwloc/hwloc-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
 #include "opal/mca/pstat/pstat.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/mca/errmgr/errmgr.h"
 #include "orte/mca/rml/rml.h"

@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 #include "orte/runtime/orte_globals.h"
 #include "orte/util/name_fns.h"
 #include "orte/runtime/runtime.h"

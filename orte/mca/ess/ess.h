@@ -33,7 +33,7 @@
 #include "orte/types.h"
 
 #include "orte/mca/mca.h"
-#include "opal/hwloc/hwloc-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
 
 #include "orte/util/proc_info.h"
 #include "orte/runtime/runtime.h"

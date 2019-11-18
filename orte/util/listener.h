@@ -33,7 +33,7 @@
 #endif
 
 #include "opal/class/opal_list.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 /* callback prototype */
 typedef void (*orte_listener_callback_fn_t)(int sd, short args, void *cbdata);

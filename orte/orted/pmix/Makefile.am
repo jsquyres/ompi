@@ -12,7 +12,7 @@ headers += \
           orted/pmix/pmix_server.h \
           orted/pmix/pmix_server_internal.h
 
-libprteopen_rte_la_SOURCES += \
+lib@ORTE_LIB_PREFIX@open_rte_la_SOURCES += \
           orted/pmix/pmix_server.c \
           orted/pmix/pmix_server_fence.c \
           orted/pmix/pmix_server_register_fns.c \

@@ -36,7 +36,7 @@
 #include "opal/dss/dss.h"
 #include "opal/util/argv.h"
 #include "opal/mca/if/if.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/util/show_help.h"
 #include "orte/mca/errmgr/errmgr.h"

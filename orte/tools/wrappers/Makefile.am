@@ -23,17 +23,17 @@
 if !OPAL_WANT_SCRIPT_WRAPPER_COMPILERS
 if OPAL_INSTALL_BINARIES
 
-nodist_ortedata_DATA = pcc-wrapper-data.txt
+nodist_ortedata_DATA = ortecc-wrapper-data.txt
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = pcc.pc
+pkgconfig_DATA = orte.pc
 
 install-exec-hook:
 	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
-	(cd $(DESTDIR)$(bindir); rm -f pcc$(EXEEXT); $(LN_S) opal_wrapper$(EXEEXT) pcc$(EXEEXT))
+	(cd $(DESTDIR)$(bindir); rm -f ortecc$(EXEEXT); $(LN_S) opal_wrapper$(EXEEXT) ortecc$(EXEEXT))
 
 uninstall-local:
-	rm -f $(DESTDIR)$(bindir)/pcc$(EXEEXT)
+	rm -f $(DESTDIR)$(bindir)/ortecc$(EXEEXT)
 
 endif # OPAL_INSTALL_BINARIES
 

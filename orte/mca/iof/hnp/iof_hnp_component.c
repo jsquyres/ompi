@@ -25,7 +25,7 @@
 
 #include "opal/mca/base/base.h"
 #include "opal/util/output.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/util/proc_info.h"
 

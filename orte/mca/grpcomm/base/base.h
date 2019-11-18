@@ -36,7 +36,7 @@
 #include "opal/class/opal_hash_table.h"
 #include "opal/dss/dss_types.h"
 #include "opal/mca/base/mca_base_framework.h"
-#include "opal/hwloc/hwloc-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
 
 #include "orte/mca/mca.h"
 #include "orte/mca/odls/odls_types.h"

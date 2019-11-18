@@ -52,7 +52,7 @@
 #include "opal/class/opal_object.h"
 #include "opal/util/output.h"
 #include "opal/class/opal_list.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 #include "opal/threads/mutex.h"
 #include "opal/threads/condition.h"
 #include "opal/sys/atomic.h"

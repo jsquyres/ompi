@@ -31,7 +31,7 @@
 #include "opal/mca/base/mca_base_framework.h"
 #include "orte/mca/mca.h"
 #include "opal/dss/dss_types.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/pmix/pmix-internal.h"
 
 #include "orte/mca/ess/ess.h"
 

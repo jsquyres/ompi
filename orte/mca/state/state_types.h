@@ -45,7 +45,7 @@
 #include "orte_config.h"
 
 #include "opal/class/opal_list.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/mca/plm/plm_types.h"
 #include "orte/runtime/orte_globals.h"

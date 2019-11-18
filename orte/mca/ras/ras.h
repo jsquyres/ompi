@@ -58,7 +58,7 @@
 #include "orte/types.h"
 
 #include "orte/mca/mca.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 #include "opal/class/opal_list.h"
 
 #include "orte/runtime/orte_globals.h"

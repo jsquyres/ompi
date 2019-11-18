@@ -43,7 +43,7 @@
 #include "opal/dss/dss.h"
 #include "opal/util/output.h"
 #include "opal/sys/atomic.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/types.h"
 #include "orte/mca/rml/rml_types.h"

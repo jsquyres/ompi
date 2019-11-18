@@ -26,7 +26,7 @@
 #include <string.h>
 
 #include "opal/util/output.h"
-#include "opal/hwloc/hwloc-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
 
 #include "orte/util/show_help.h"
 #include "orte/util/name_fns.h"

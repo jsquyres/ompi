@@ -6,7 +6,6 @@
 #
 # Copyright (c) 2009-2015 Cisco Systems, Inc.  All rights reserved.
 # Copyright (c) 2010      Oracle and/or its affiliates.  All rights reserved.
-# Copyright (c) 2017      Intel, Inc. All rights reserved.
 # $COPYRIGHT$
 #
 # Additional copyrights may follow
@@ -37,7 +36,7 @@ my $extra_cflags = "@ORTE_WRAPPER_EXTRA_CFLAGS@";
 my $extra_cflags_prefix = "@ORTE_WRAPPER_EXTRA_CFLAGS_PREFIX@";
 my $extra_cxxflags = "@ORTE_WRAPPER_EXTRA_CXXFLAGS@";
 my $extra_cxxflags_prefix = "@ORTE_WRAPPER_EXTRA_CXXFLAGS_PREFIX@";
-my $extra_ldflags = "@ORTE_WRAPPER_EXTRA_LDFLAGS@ -lpmix";
+my $extra_ldflags = "@ORTE_WRAPPER_EXTRA_LDFLAGS@";
 my $extra_libs = "@ORTE_WRAPPER_EXTRA_LIBS@";
 #my $cxx_lib = "@ORTE_WRAPPER_CXX_LIB@";
 

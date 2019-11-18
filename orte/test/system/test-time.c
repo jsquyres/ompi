@@ -15,7 +15,7 @@
 #include <errno.h>
 
 #include "opal/runtime/opal.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/runtime/orte_globals.h"
 

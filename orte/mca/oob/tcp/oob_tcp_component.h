@@ -33,7 +33,7 @@
 #include "opal/class/opal_list.h"
 #include "opal/class/opal_pointer_array.h"
 #include "opal/class/opal_hash_table.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/mca/oob/oob.h"
 #include "oob_tcp.h"

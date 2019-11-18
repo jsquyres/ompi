@@ -59,9 +59,9 @@
 #include <poll.h>
 #endif
 
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 #include "opal/mca/installdirs/installdirs.h"
-#include "opal/pmix/pmix-internal.h"
+#include "opal/mca/pmix/pmix-internal.h"
 #include "opal/mca/base/base.h"
 #include "opal/util/argv.h"
 #include "opal/util/output.h"

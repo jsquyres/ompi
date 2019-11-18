@@ -68,8 +68,8 @@ prte_info_SOURCES = \
         version.c
 
 prte_info_LDADD = \
-	$(top_builddir)/orte/libprteopen-rte.la \
-	$(top_builddir)/opal/libprteopen-pal.la
+	$(top_builddir)/orte/lib@ORTE_LIB_PREFIX@open-rte.la \
+	$(top_builddir)/opal/lib@ORTE_LIB_PREFIX@open-pal.la
 
 clean-local:
 	test -z "$(OMPI_CXX_TEMPLATE_REPOSITORY)" || rm -rf $(OMPI_CXX_TEMPLATE_REPOSITORY)

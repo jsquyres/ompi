@@ -33,7 +33,7 @@
 #include "opal/class/opal_ring_buffer.h"
 #include "orte/mca/mca.h"
 #include "opal/mca/base/base.h"
-#include "opal/hwloc/hwloc-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
 #include "opal/runtime/opal_progress_threads.h"
 #include "opal/util/output.h"
 #include "opal/util/path.h"

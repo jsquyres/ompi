@@ -62,7 +62,7 @@
 #include "opal/util/error.h"
 #include "opal/util/show_help.h"
 #include "opal/class/opal_hash_table.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/util/name_fns.h"
 #include "orte/util/show_help.h"

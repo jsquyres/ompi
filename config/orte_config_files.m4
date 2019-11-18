@@ -6,7 +6,7 @@
 #                         Corporation.  All rights reserved.
 # Copyright (c) 2011-2012 Los Alamos National Security, LLC.  All rights
 #                         reserved.
-# Copyright (c) 2015-2018 Intel, Inc. All rights reserved.
+# Copyright (c) 2015-2019 Intel, Inc.  All rights reserved.
 # $COPYRIGHT$
 #
 # Additional copyrights may follow
@@ -20,13 +20,11 @@ AC_DEFUN([ORTE_CONFIG_FILES],[
         orte/include/Makefile
         orte/etc/Makefile
 
-        orte/tools/orted/Makefile
-        orte/tools/orterun/Makefile
+        orte/tools/prted/Makefile
+        orte/tools/prun/Makefile
         orte/tools/wrappers/Makefile
         orte/tools/wrappers/ortecc-wrapper-data.txt
         orte/tools/wrappers/orte.pc
-        orte/tools/orte-clean/Makefile
-        orte/tools/orte-info/Makefile
-        orte/tools/orte-server/Makefile
+        orte/tools/prte_info/Makefile
     ])
 ])

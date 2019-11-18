@@ -28,7 +28,7 @@
 #include <string.h>
 
 #include "opal/mca/base/base.h"
-#include "opal/hwloc/hwloc-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
 
 #include "orte/util/show_help.h"
 

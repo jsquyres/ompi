@@ -58,7 +58,7 @@ headers += \
         util/nidmap.h \
         util/threads.h
 
-libprteopen_rte_la_SOURCES += \
+lib@ORTE_LIB_PREFIX@open_rte_la_SOURCES += \
         util/error_strings.c \
         util/name_fns.c \
         util/proc_info.c \

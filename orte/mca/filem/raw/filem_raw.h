@@ -16,7 +16,7 @@
 
 #include "orte/mca/mca.h"
 #include "opal/class/opal_object.h"
-#include "opal/event/event-internal.h"
+#include "opal/mca/event/event.h"
 
 #include "orte/mca/filem/filem.h"
 

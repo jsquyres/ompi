@@ -28,7 +28,7 @@
 
 #include "orte_config.h"
 
-#include "opal/hwloc/hwloc-internal.h"
+#include "opal/mca/hwloc/hwloc-internal.h"
 #include "opal/class/opal_list.h"
 
 #include "orte/mca/rmaps/rmaps.h"
