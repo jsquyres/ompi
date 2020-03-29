@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+
+from pprint import pprint
+
+try:
+    from configparser import ConfigParser
+except ImportError:
+    from ConfigParser import ConfigParser  # ver. < 3.0
+
+#------------------------------------------------------------------------
+
+def _resolve(string, configure_values):
+    # Loop until we resolve everything
+    while True:
+        old = string
+        for key, value in configure_values.items():
+            token = '${' + key + '}'
+            if token in string:
+                string = string.replace(token, value)
+
+        # If we had no changes this iteration, then we're done
+        # resolving everything.
+        if old == string:
+            return string
+
+# These values come in from configure.
+# Must define these in the correct order so that they can be resolved.
+# These are prerequisites.
+configure_values = {
+    'prefix'      : '@prefix@',
+    'exec_prefix' : '@exec_prefix@',
+    'datarootdir' : '@datarootdir@',
+    'datadir'     : '@datadir@',
+}
+
+# These are really the only 2 that we care about.
+bindir      = _resolve('@bindir@', configure_values)
+pkgdatadir  = _resolve('@ompidatadir@', configure_values)
+
+#------------------------------------------------------------------------
+
+def find_mpirun():
+    mpirun = os.path.join(bindir, 'mpirun')
+    if not os.path.exists(mpirun) or not os.path.isfile(mpirun) or not os.access(mpirun, os.X_OK):
+        print(f"Cannot find {mpirun}; aborting")
+        exit(1)
+
+    return mpirun
+
+#------------------------------------------------------------------------
+
+# Philosophy this this function:
+#
+# It's ok for this function to be a little complex.  Put the complexity here in
+# this routine to generate a "perfect" config data structure, so that code using
+# this config can be as simple as possible.
+def load_ompirun_config():
+    config = dict()
+    ini    = ConfigParser()
+
+    # Read the file
+    ompirun_ini = os.path.join(pkgdatadir, 'ompirun.ini')
+    if os.path.exists(ompirun_ini):
+        ini.read(ompirun_ini)
+
+    # Go through every section from the config file and add it to the config
+    # data structure
+    for section in ini.sections():
+        # Allow [foo] sections to be synonmous [foo:values]
+        section = section.strip()
+
+        if section == "":
+            continue
+
+        # It does not make sense to have section names with spaces
+        if ' ' in section:
+            print(f'Warning: spaces are not supported in aliases (skipping "{section}")')
+            continue
+
+        # Past all the error checks.  Save this data in the config data
+        # structure.
+        option = f'--{section}'
+        if option not in config:
+            config[option] = dict()
+
+        for key, value in ini.items(section):
+            # For now, do not allow keys to have spaces
+            if ' ' in key:
+                print(f'Warning: spaces are not supported in alias keys (skipping "{section}:{item}")')
+                continue
+
+            config[option][key] = value.split(' ')
+
+    return config
+
+#------------------------------------------------------------------------
+
+def get_cmd_line():
+    options = {
+        'showme' : False,
+        'exit'   : False,
+    }
+
+    # Skip argv[0]
+    argv = sys.argv[1:]
+
+    # Look for ompirun-specific CLI parameters
+    while len(argv) > 0:
+        arg = argv[0]
+        if arg == '--showme':
+            options['showme'] = True
+        elif arg == '--exit':
+            options['exit'] = True
+        elif arg == '--':
+            argv = argv[1:]
+            break
+        else:
+            break
+
+        argv = argv[1:]
+
+    return argv, options
+
+#------------------------------------------------------------------------
+
+def substitute_values(argv, config):
+    options  = config.keys()
+    new_argv = list()
+
+    new_argv.append(os.path.join(bindir, 'mpirun'))
+    i = 0
+    while i < len(argv):
+        token = argv[i]
+        if token in options:
+            # If we find the token in our list of options, then look at the
+            # token following this one, and see if it is one of the defined
+            # values.
+            if i + 1 >= len(argv):
+                print(f'Error: argument expected for the "{token}" parameter')
+                print('Error: cannot continue')
+                exit(1)
+
+            i   = i + 1
+            arg = argv[i]
+            if arg not in config[token]:
+                print(f'Error: undefined option for the "{token}" parameter')
+                values = ', '.join(config[token])
+                print(f'Error: allowable options are: {values}')
+                exit(1)
+
+            # We found a match -- huzzah!
+            # Add it to the new arg
+            new_argv.extend(config[token][arg])
+
+        else:
+            # If this is not a defined option, then just append it to the end of
+            # the new argv
+            new_argv.append(token)
+
+        i = i + 1
+
+    return new_argv
+
+#------------------------------------------------------------------------
+
+def launch(argv, options):
+    if options['showme']:
+        print(' '.join(argv))
+    if options['exit']:
+        exit(0)
+
+    # Launch and do not return
+    os.execvp(argv[0], argv)
+
+#------------------------------------------------------------------------
+
+def main():
+    mpirun        = find_mpirun()
+    config        = load_ompirun_config()
+    argv, options = get_cmd_line()
+    new_argv      = substitute_values(argv, config)
+
+    launch(new_argv, options)
+    # Does not return
+
+if __name__ == '__main__':
+    main()

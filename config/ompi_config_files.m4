@@ -58,4 +58,6 @@ AC_DEFUN([OMPI_CONFIG_FILES],[
         ompi/tools/mpisync/Makefile
         ompi/tools/mpirun/Makefile
     ])
+    AC_CONFIG_FILES([ompi/tools/mpirun/ompirun],
+                    [chmod +x ompi/tools/mpirun/ompirun])
 ])

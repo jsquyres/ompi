@@ -19,3 +19,11 @@ uninstall-local:
 		$(DESTDIR)$(bindir)/mpiexec$(EXEEXT)  \
 		$(DESTDIR)$(bindir)/oshrun$(EXEEXT)
 endif
+
+EXTRA_DIST = ompirun.in
+
+DISTCLEANFILES = ompirun
+
+dist_bin_SCRIPTS = ompirun
+
+dist_pkgdata_DATA = ompirun.ini
