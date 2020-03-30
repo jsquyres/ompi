@@ -100,8 +100,8 @@ def load_ompirun_config():
 
 def get_cmd_line():
     options = {
-        'showme' : False,
-        'exit'   : False,
+        'show'     : False,
+        'showonly' : False,
     }
 
     # Skip argv[0]
@@ -110,10 +110,8 @@ def get_cmd_line():
     # Look for ompirun-specific CLI parameters
     while len(argv) > 0:
         arg = argv[0]
-        if arg == '--showme':
-            options['showme'] = True
-        elif arg == '--exit':
-            options['exit'] = True
+        if arg.startswith('--') and arg[2:] in options:
+            options[arg[2:]] = True
         elif arg == '--':
             argv = argv[1:]
             break
@@ -167,10 +165,10 @@ def substitute_values(argv, config):
 #------------------------------------------------------------------------
 
 def launch(argv, options):
-    if options['showme']:
+    if options['show'] or options['showonly']:
         print(' '.join(argv))
-    if options['exit']:
-        exit(0)
+        if options['showonly']:
+            exit(0)
 
     # Launch and do not return
     os.execvp(argv[0], argv)
