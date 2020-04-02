@@ -74,6 +74,23 @@ AC_CHECK_PROG([PERL],[perl],[perl],[no])
 AS_IF([test "X$PERL" = "Xno"],
       [AC_MSG_ERROR(["Open MPI requires perl. Aborting"])])
 
+# Find Python >= v3 if we can (not an error if we can't)
+AC_CACHE_CHECK([for Python >=v3], [ac_cv_path_PYTHON],
+   [file=conftest.$$.py
+    rm -f $file
+    cat > $file <<EOF
+import sys
+if sys.version_info.major>= 3:
+    exit(0)
+else:
+    exit(1)
+EOF
+    AC_PATH_PROGS_FEATURE_CHECK([PYTHON], [python3 python],
+        [[$ac_path_PYTHON $file && ac_cv_path_PYTHON=$ac_path_PYTHON ac_path_PYTHON_found=:]])
+    ])
+AC_SUBST([PYTHON], [$ac_cv_path_PYTHON])
+AM_CONDITIONAL(HAVE_PYTHONV3, [test -n "$ac_cv_path_PYTHON"])
+
 OPAL_CONFIGURE_SETUP
 opal_show_title "Configuring project_name_long"
 
