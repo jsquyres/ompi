@@ -147,18 +147,21 @@ def expand_tune_file(filename):
 
             elif value[0] == '"':
                 # If it's a quoted value, then:
-                # 1. Remove the original --mca
+                # 0. Start with the original line (to preserve whitespace)
+                # 1. Remove the --mca
                 # 2. Remove whitespace
                 # 3. Remove the variable name
                 # 4. Remove whitespace
                 # 5. Remove the leading quote
+                # 6. Take the rest of the string
+                # 7. Remove the trailing quote
                 value = line.replace("--mca", "").strip()
                 value = value.replace(var, "").strip()
                 value = value[1:]
-                if value[-1] != '"':
-                    multi_tokens = True
-                else:
+                if value[-1] == '"':
                     value = value[:-1]
+                else:
+                    multi_tokens = True
 
             if multi_tokens:
                 print(f"Error: --tune file {filename}:{line_num}: MCA value for {var} cannot be multiple tokens without quoting")
