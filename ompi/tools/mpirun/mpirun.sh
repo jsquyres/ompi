@@ -2,8 +2,8 @@
 
 # Search to see if the unsupported options were used
 found=
-for token in $*; do
-    if test "$token" == "--net" -o "$token" == "--tuned"; then
+for token in "$@"; do
+    if test "$token" == "--net" -o "$token" == "--tune"; then
         found=$token
     fi
 done
