@@ -42,16 +42,6 @@ pkgdatadir  = _resolve('@ompidatadir@', configure_values)
 
 #------------------------------------------------------------------------
 
-def find_mpirun():
-    mpirun = os.path.join(bindir, 'mpirun')
-    if not os.path.exists(mpirun) or not os.path.isfile(mpirun) or not os.access(mpirun, os.X_OK):
-        print(f"Cannot find {mpirun}; aborting")
-        exit(1)
-
-    return mpirun
-
-#------------------------------------------------------------------------
-
 # Philosophy this this function:
 #
 # It's ok for this function to be a little complex.  Put the complexity here in
@@ -124,15 +114,118 @@ def get_cmd_line():
 
 #------------------------------------------------------------------------
 
-def substitute_values(argv, config):
-    options  = config.keys()
+def expand_tune_file(filename):
+    if not os.path.exists(filename):
+        print(f"Error: --tune file {filename} does not exist")
+        exit(1)
+
+    with open(filename) as f:
+        lines = f.readlines()
+
+    # Per the man page, --tune files only accept a specific set of lines.
+    # Error on any other kind of input line.
+    tokens = list()
+    for line_num, line in enumerate(lines):
+        line_num += 1
+        line = line.strip()
+        args = line.split(' ')
+        if args[0] != '--mca' and args[0] != '-x':
+            print(f"Error: unrecognized option in --tune file {filename}:{line_num}: {args[0]} ")
+            print("Only --mca and -x options are allowed in --tune files.")
+            exit(1)
+
+        tokens.append(args[0])
+
+        # --mca args can be (var val) or (var "val")
+        if args[0] == '--mca':
+            var   = args[1]
+            value = args[2]
+
+            multi_tokens = False
+            if value[0] != '"' and len(args) > 3:
+                multi_tokens = True
+
+            elif value[0] == '"':
+                # If it's a quoted value, then:
+                # 1. Remove the original --mca
+                # 2. Remove whitespace
+                # 3. Remove the variable name
+                # 4. Remove whitespace
+                # 5. Remove the leading quote
+                value = line.replace("--mca", "").strip()
+                value = value.replace(var, "").strip()
+                value = value[1:]
+                if value[-1] != '"':
+                    multi_tokens = True
+                else:
+                    value = value[:-1]
+
+            if multi_tokens:
+                print(f"Error: --tune file {filename}:{line_num}: MCA value for {var} cannot be multiple tokens without quoting")
+                exit(1)
+
+            tokens.append(var)
+            tokens.append(value)
+
+        # -x arg can be (var) or (var=val)
+        elif args[0] == '-x':
+            var = args[1]
+
+            if len(args) > 2:
+                print(f"Error: --tune file {filename}:{line_num}: -x option cannot be multiple tokens")
+                exit(1)
+
+            tokens.append(var)
+
+    return tokens
+
+#------------------------------------------------------------------------
+
+def expand_tune_args(argv):
     new_argv = list()
 
-    new_argv.append(os.path.join(bindir, 'mpirun'))
     i = 0
     while i < len(argv):
         token = argv[i]
-        if token in options:
+
+        if token == '--':
+            new_argv.extend(argv[i:])
+            break
+
+        elif argv[i] == '--tune':
+            if (i + 1) >= len(argv):
+                print("Error: --tune requires a filename argument")
+                exit(1)
+
+            # The --tune option can take a comma-delmited list of files
+            i += 1
+            filenames = argv[i].split(',')
+            for filename in filenames:
+                expanded_argv = expand_tune_file(filename)
+                new_argv.extend(expanded_argv)
+
+        else:
+            new_argv.append(token)
+
+        i += 1
+
+    return new_argv
+
+#------------------------------------------------------------------------
+
+def expand_alias_args(argv, config):
+    options  = config.keys()
+    new_argv = list()
+
+    i = 0
+    while i < len(argv):
+        token = argv[i]
+
+        if token == '--':
+            new_argv.extend(argv[i:])
+            break
+
+        elif token in options:
             # If we find the token in our list of options, then look at the
             # token following this one, and see if it is one of the defined
             # values.
@@ -158,9 +251,19 @@ def substitute_values(argv, config):
             # the new argv
             new_argv.append(token)
 
-        i = i + 1
+        i += 1
 
     return new_argv
+
+#------------------------------------------------------------------------
+
+def find_prte():
+    prte = os.path.join(bindir, 'prte')
+    if not os.path.exists(prte) or not os.path.isfile(prte) or not os.access(prte, os.X_OK):
+        print(f"Cannot find {prte}; aborting")
+        exit(1)
+
+    return prte
 
 #------------------------------------------------------------------------
 
@@ -176,10 +279,15 @@ def launch(argv, options):
 #------------------------------------------------------------------------
 
 def main():
-    mpirun        = find_mpirun()
     config        = load_ompirun_config()
     argv, options = get_cmd_line()
-    new_argv      = substitute_values(argv, config)
+
+    new_argv      = expand_tune_args(argv)
+    new_argv      = expand_alias_args(new_argv, config)
+
+    # Add the PRTE executable as argv[0]
+    prte          = find_prte()
+    new_argv.insert(0, prte)
 
     launch(new_argv, options)
     # Does not return
