@@ -19,7 +19,7 @@ done
 if test -n "$found"; then
     cat <<EOF
 -----------------------------------------------------------------------
-You used an $0 option that is not supported: $found
+Found an unsupported $0 option: $found
 
 This option is only supported on systems that have Python v3 or higher.
 To fix this issue, please re-install Open MPI with Python v3 (or higher)

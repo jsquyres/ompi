@@ -1,5 +1,6 @@
-#!/usr/bin/env @PYTHON@
+#!/usr/bin/env @PYTHONV3@
 
+import re
 import os
 import sys
 
@@ -39,7 +40,7 @@ configure_values = {
 
 # These are really the only 2 that we care about.
 bindir      = _resolve('@bindir@', configure_values)
-sysconfdir  = _resolve('@sysconfdif@', configure_values)
+sysconfdir  = _resolve('@sysconfdir@', configure_values)
 
 #------------------------------------------------------------------------
 
@@ -70,14 +71,14 @@ def load_ompirun_config():
 
         # We currently only support a single section name: "alias:net".
         # It is anticipated that we may support other sections in the future.
-        match = re.search('^alias\s*:\s*net$', section)
+        match = re.search('^alias\s*:\s*(net)$', section)
         if match is None:
             print(f"Unsupported section in {ompirun_ini}: {section}")
             exit(1)
 
         # Past all the error checks.  Save this data in the config data
         # structure.
-        option = f'--{section}'
+        option = f'--{match.group(1)}'
         if option not in config:
             config[option] = dict()
 
@@ -98,6 +99,12 @@ def get_cmd_line():
         'show'     : False,
         'showonly' : False,
     }
+
+    base_cmd = os.path.basename(sys.argv[0])
+    if base_cmd == 'ompirun-show':
+        options['show'] = True
+    if base_cmd == 'ompirun-showonly':
+        options['showonly'] = True
 
     # Skip argv[0]
     argv = sys.argv[1:]
@@ -196,6 +203,7 @@ def expand_tune_args(argv):
     while i < len(argv):
         token = argv[i]
 
+        # If we find --, stop expanding / we're done.
         if token == '--':
             new_argv.extend(argv[i:])
             break
@@ -229,6 +237,7 @@ def expand_alias_args(argv, config):
     while i < len(argv):
         token = argv[i]
 
+        # If we find --, stop expanding / we're done.
         if token == '--':
             new_argv.extend(argv[i:])
             break
@@ -276,10 +285,9 @@ def find_prte():
 #------------------------------------------------------------------------
 
 def launch(argv, options):
-    base_cmd = os.path.filename(sys.argv[0])
-    if base_cmd == 'ompirun-show' or base_cmd == 'ompirun-showonly':
+    if options['show'] or options['showonly']:
         print(' '.join(argv))
-        if base_cmd == 'ompirun-showonly':
+        if options['showonly']:
             exit(0)
 
     # Launch and do not return

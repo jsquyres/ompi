@@ -32,10 +32,10 @@ install-exec-hook:
 	(cd $(DESTDIR)$(bindir); rm -f mpirun$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) mpirun$(EXEEXT))
 	(cd $(DESTDIR)$(bindir); rm -f mpiexec$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) mpiexec$(EXEEXT))
 	(cd $(DESTDIR)$(bindir); rm -f oshrun$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) oshrun$(EXEEXT))
-	# If we have Python/ompirun, then also make
 	if test "$(SYM_LINK_TARGET)" = "ompirun"; then \
-		(cd $(DESTDIR)$(bindir); rm -f mpirun$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) ompirun-show$(EXEEXT)); \
-		(cd $(DESTDIR)$(bindir); rm -f mpirun$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) ompirun-showonly$(EXEEXT)); \
+	    cd $(DESTDIR)$(bindir); \
+	    rm -f ompirun-show$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) ompirun-show$(EXEEXT); \
+	    rm -f ompirun-showonly$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) ompirun-showonly$(EXEEXT); \
 	fi
 
 uninstall-local:
