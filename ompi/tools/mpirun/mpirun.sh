@@ -3,7 +3,15 @@
 # Search to see if the unsupported options were used
 found=
 for token in "$@"; do
-    if test "$token" == "--net" -o "$token" == "--tune"; then
+    # Heuristic: look for "--" to know when to stop scanning the
+    # command line.  This is far from perfect, but hopefully good enough.
+    if test "$token" = "--"; then
+        break
+
+    # In the future, we need to read ompirun.in or ask ompirun what options
+    # it supports exclusively (i.e., option that we don't support here)
+    # rather than hard-coding them here.
+    elif test "$token" = "--net" -o "$token" = "--tune"; then
         found=$token
     fi
 done

@@ -20,7 +20,8 @@ DISTCLEANFILES = ompirun
 
 if HAVE_PYTHONV3
 dist_bin_SCRIPTS  = ompirun
-dist_pkgdata_DATA = ompirun.ini
+# Make this go to the etc dir
+dist_sysconf_DATA = ompirun.ini
 SYM_LINK_TARGET   = ompirun
 else
 dist_bin_SCRIPTS  = mpirun.sh
@@ -31,14 +32,15 @@ install-exec-hook:
 	(cd $(DESTDIR)$(bindir); rm -f mpirun$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) mpirun$(EXEEXT))
 	(cd $(DESTDIR)$(bindir); rm -f mpiexec$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) mpiexec$(EXEEXT))
 	(cd $(DESTDIR)$(bindir); rm -f oshrun$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) oshrun$(EXEEXT))
-
-# JMS to be removed
-install-exec-hook-OLD:
-	(cd $(DESTDIR)$(bindir); rm -f mpirun$(EXEEXT); $(LN_S) prte$(EXEEXT) mpirun$(EXEEXT))
-	(cd $(DESTDIR)$(bindir); rm -f mpiexec$(EXEEXT); $(LN_S) prte$(EXEEXT) mpiexec$(EXEEXT))
-	(cd $(DESTDIR)$(bindir); rm -f oshrun$(EXEEXT); $(LN_S) prte$(EXEEXT) oshrun$(EXEEXT))
+	# If we have Python/ompirun, then also make
+	if test "$(SYM_LINK_TARGET)" = "ompirun"; then \
+		(cd $(DESTDIR)$(bindir); rm -f mpirun$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) ompirun-show$(EXEEXT)); \
+		(cd $(DESTDIR)$(bindir); rm -f mpirun$(EXEEXT); $(LN_S) $(SYM_LINK_TARGET) ompirun-showonly$(EXEEXT)); \
+	fi
 
 uninstall-local:
 	rm -f $(DESTDIR)$(bindir)/mpirun$(EXEEXT) \
 		$(DESTDIR)$(bindir)/mpiexec$(EXEEXT)  \
-		$(DESTDIR)$(bindir)/oshrun$(EXEEXT)
+		$(DESTDIR)$(bindir)/oshrun$(EXEEXT) \
+		$(DESTDIR)$(bindir)/ompirun-show$(EXEEXT) \
+		$(DESTDIR)$(bindir)/ompirun-showonly$(EXEEXT)

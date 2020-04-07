@@ -34,11 +34,12 @@ configure_values = {
     'exec_prefix' : '@exec_prefix@',
     'datarootdir' : '@datarootdir@',
     'datadir'     : '@datadir@',
+    'sysconfdir'  : '@sysconfdir@',
 }
 
 # These are really the only 2 that we care about.
 bindir      = _resolve('@bindir@', configure_values)
-pkgdatadir  = _resolve('@ompidatadir@', configure_values)
+sysconfdir  = _resolve('@sysconfdif@', configure_values)
 
 #------------------------------------------------------------------------
 
@@ -50,9 +51,11 @@ pkgdatadir  = _resolve('@ompidatadir@', configure_values)
 def load_ompirun_config():
     config = dict()
     ini    = ConfigParser()
+    # Allow the config parser to maintain case of section names
+    ini.optionxform = str
 
     # Read the file
-    ompirun_ini = os.path.join(pkgdatadir, 'ompirun.ini')
+    ompirun_ini = os.path.join(sysconfdir, 'ompirun.ini')
     if os.path.exists(ompirun_ini):
         ini.read(ompirun_ini)
 
@@ -65,10 +68,12 @@ def load_ompirun_config():
         if section == "":
             continue
 
-        # It does not make sense to have section names with spaces
-        if ' ' in section:
-            print(f'Warning: spaces are not supported in aliases (skipping "{section}")')
-            continue
+        # We currently only support a single section name: "alias:net".
+        # It is anticipated that we may support other sections in the future.
+        match = re.search('^alias\s*:\s*net$', section)
+        if match is None:
+            print(f"Unsupported section in {ompirun_ini}: {section}")
+            exit(1)
 
         # Past all the error checks.  Save this data in the config data
         # structure.
@@ -271,9 +276,10 @@ def find_prte():
 #------------------------------------------------------------------------
 
 def launch(argv, options):
-    if options['show'] or options['showonly']:
+    base_cmd = os.path.filename(sys.argv[0])
+    if base_cmd == 'ompirun-show' or base_cmd == 'ompirun-showonly':
         print(' '.join(argv))
-        if options['showonly']:
+        if base_cmd == 'ompirun-showonly':
             exit(0)
 
     # Launch and do not return
@@ -285,6 +291,7 @@ def main():
     config        = load_ompirun_config()
     argv, options = get_cmd_line()
 
+    # Make these recursive / expand until no more expansion
     new_argv      = expand_tune_args(argv)
     new_argv      = expand_alias_args(new_argv, config)
 
