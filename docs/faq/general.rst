@@ -85,10 +85,10 @@ Do you allow external involvement?
 **Absolutely!**
 
 Bringing together smart researchers and developers to work on a common
-product is not only a good idea, it's the open source model.  Merging
-the multiple MPI implementation teams has worked extremely well for us
-over the past year &mdash; extending this concept to the HPC open
-source community is the next logical step.
+product is not only a good idea, it's the open source model.  The Open
+MPI project started by multiple MPI implementation teams, and that
+proved to work _extremely_ well; extending this concept to the HPC
+open source community is the next logical step.
 
 The component architecture that Open MPI is founded upon (see the
 "Publications" link for papers about this) is designed to foster 3rd
