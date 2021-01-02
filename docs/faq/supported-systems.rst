@@ -182,8 +182,7 @@ As such, supporting data heterogeneity is a feature that has fallen
 into disrepair: it is currently known to be broken in this release of
 Open MPI.
 
-:doc:`Contributions to fix it would be welcome! <contributing>`
-
+:doc:`Contributions to fix it would be welcome! </faq/contributing>`
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -197,9 +196,9 @@ the TotalView API for viewing message queues in running MPI processes.
 
 .. JMS Need to update these refs when they are converted
 
-See <a href=\"./?category=running#run-with-tv\">this FAQ entry</a> for
+`See this FAQ entry </faq/running?run-with-tv>`_ for
 details on how to run Open MPI jobs under TotalView, and <a
-href=\"./?category=running#run-with-ddt\">this FAQ entry</a> for
+`this FAQ entry </faq/running?run-with-ddt>`_ for
 details on how to run Open MPI jobs under DDT.
 
 .. note:: The integration of Open MPI message queue support is

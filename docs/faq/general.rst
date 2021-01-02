@@ -120,7 +120,7 @@ The Open MPI code base is licensed under :doc:`the new BSD license
 That being said, although we are an open source project, we recognize
 that everyone does not provide free, open source software.  Our
 collaboration models allow (and encourage!)  3rd parties to write and
-distribute their own components &mdash; perhaps with a different license,
+distribute their own components -- perhaps with a different license,
 and perhaps even as closed source.  This is all perfectly acceptable
 (and desirable!).
 
@@ -181,13 +181,13 @@ MPI implementation focused on different areas of excellence, we all
 shared the same common core values:
 
 * A full MPI implementation
-* Production quality code &mdash; it has to "just work"
+* Production quality code -- it has to "just work"
 * A desire to explore lots of things that an MPI implementation can do
   that we've never had the time/resources to investigate because we
   are bound to bug fixing, etc.
 
 Hence, we decided to collaborate and pool our resources.  At SC2003,
-we decided to start an entire new code base &mdash; leaving all the cruft
+we decided to start an entire new code base -- leaving all the cruft
 and legacy code of our prior implementations behind.  Take the best,
 leave the rest.  The source tree's first commit was on November 22,
 2003; development work started in earnest on January 5, 2004.  Since

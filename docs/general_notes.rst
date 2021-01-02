@@ -482,8 +482,7 @@ MPI Functionality and Features
      first deprecated over 20 years ago, and finally removed from the
      MPI specification in MPI-3.0 (in 2012).
 
-  .. important:: `The Open MPI FAQ
-     <https://www.open-mpi.org/faq/?category=mpi-removed>`_ contains
+  .. important:: :doc:`The Open MPI FAQ <faq/mpi-removed>` contains
      examples of how to update legacy MPI applications using these
      deleted symbols to use the "new" symbols.
 

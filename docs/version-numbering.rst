@@ -1,5 +1,3 @@
-.. _version-numbering-section-label:
-
 Version numbers and binary compatibility
 ==========================================
 

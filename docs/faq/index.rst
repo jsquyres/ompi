@@ -19,3 +19,4 @@ that they are worth categorizing in an official way.
    sysadmin
    fault-tolerance
    tuning
+   mpi-removed

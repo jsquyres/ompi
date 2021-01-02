@@ -1,3 +1,5 @@
+.. |mdash|  unicode:: U+02014 .. EM DASH
+
 System administrator-level technical information
 ================================================
 
@@ -99,7 +101,7 @@ The bottom line is that Open MPI can support all manner of run-time
 systems and interconnects in a single installation, but supporting
 multiple compilers "sort of" works (i.e., is subject to trial and
 error) in some cases, and definitely does not work in other cases.
-There's unfortunately little that we can do about this &mdash; it's a
+There's unfortunately little that we can do about this |mdash| it's a
 compiler compatibility issue, and one that compiler authors have
 little incentive to resolve.
 
@@ -124,14 +126,14 @@ operating environment.  These values can then be set in a global text
 file that all users will, by default, inherit when they run Open MPI
 jobs.
 
-For example, say that you have a cluster with 2 ethernet networks &mdash;
+For example, say that you have a cluster with 2 ethernet networks |mdash|
 one for NFS and other system-level operations, and one for MPI jobs.
 The system administrator can tell Open MPI to not use the NFS TCP
 network at a system level, such that when users invoke ``mpirun`` or
 ``mpiexec`` to launch their jobs, they will automatically only be using
 the network meant for MPI jobs.
 
-:doc:`See the run-time tuning FAQ category <tuning>` for information on how to set global MCA parameters.
+:doc:`See the run-time tuning FAQ category </faq/tuning>` for information on how to set global MCA parameters.
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -161,7 +163,7 @@ I have power users who will want to override my global MCA parameters; is this p
 
 Absolutely.
 
-:doc:`See the run-time tuning FAQ category <tuning>` for information how to set MCA parameters, both at the
+:doc:`See the run-time tuning FAQ category </faq/tuning>` for information how to set MCA parameters, both at the
 system level and on a per-user (or per-MPI-job) basis.
 
 /////////////////////////////////////////////////////////////////////////
@@ -183,7 +185,7 @@ to tweak are:
   low-speed ethernet network (e.g., 1Gpbps).  The high-speed network is intended for MPI jobs;
   the control network is intended for NFS and other
   administrative-level tasks.  In this case, you can simply turn off Open
-  MPI's TCP support.  The "btl" framework contains Open MPI's network
+  MPI's TCP support.  The ``btl`` framework contains Open MPI's network
   support; in this case, you want to disable the ``tcp`` plug-in.  You can
   do this by adding the following line in the file
   ``$prefix/etc/openmpi-mca-params.conf``:
@@ -222,8 +224,8 @@ to tweak are:
   .. note:: Starting with Open MPI v1.8, ``ompi_info`` categorizes
      its parameters in so-called levels, as defined by
      the MPI_T interface.  You will need to specify ``--level 9``
-     (or ``--all``) to show *all* MCA parameters.  See
-     <a href=\"http://blogs.cisco.com/performance/open-mpi-and-the-mpi-3-mpi_t-interface\">this blog entry</a>
+     (or ``--all``) to show *all* MCA parameters.  `See
+     this blog entry <http://blogs.cisco.com/performance/open-mpi-and-the-mpi-3-mpi_t-interface>`_
      for further information.
 
   .. code-block:: sh
@@ -259,7 +261,7 @@ I just added a new plugin to my Open MPI installation; do I need to recompile al
 If your installation of Open MPI uses shared libraries and
 components are standalone plug-in files, then no.  If you add a new
 component (such as support for a new network), Open MPI will simply
-open the new plugin at run-time &mdash; your applications do not need to be
+open the new plugin at run-time |mdash| your applications do not need to be
 recompiled or re-linked.
 
 /////////////////////////////////////////////////////////////////////////
@@ -285,7 +287,7 @@ We just upgraded our version of Open MPI; do I need to recompile all my MPI apps
 
 It depends on which version of Open MPI your applications were initially compiled against and the target version of Open MPI to which you upgraded.
 
-:ref:`See the section on Open MPI's version numbering scheme <version-numbering-section-label>` for more information.
+:doc:`See the section on Open MPI's version numbering scheme </version-numbering>` for more information.
 
 /////////////////////////////////////////////////////////////////////////
 

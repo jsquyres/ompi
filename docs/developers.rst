@@ -1,3 +1,5 @@
+.. |mdash|  unicode:: U+02014 .. EM DASH
+
 Developer's guide
 =================
 
@@ -252,10 +254,10 @@ the Open MPI code base:
   upon which the entire Open MPI project is built.  It provides all the
   component architecture services that the rest of the system uses.
   Although it is the fundamental heart of the system, its
-  implementation is actually quite small and lightweight &mdash; it is
+  implementation is actually quite small and lightweight |mdash| it is
   nothing like CORBA, COM, JINI, or many other well-known component
-  architectures.  It was designed for HPC &mdash; meaning that it is small,
-  fast, and reasonably efficient &mdash; and therefore offers few services
+  architectures.  It was designed for HPC |mdash| meaning that it is small,
+  fast, and reasonably efficient |mdash| and therefore offers few services
   other than finding, loading, and unloading components.
 
 * *Framework:* An MCA _framework_ is a construct that is created
@@ -264,7 +266,7 @@ the Open MPI code base:
   :ref:`See the list of Open MPI frameworks in this version of Open MPI
   <internal-frameworks-section-label>`.  An MCA
   framework uses the MCA's services to find and load _components_ at run-time
-  &mdash; implementations of the framework's interface.  An easy example
+  |mdash| implementations of the framework's interface.  An easy example
   framework to discuss is the MPI framework named ``btl``, or the Byte
   Transfer Layer.  It is used to send and receive data on different
   kinds of networks.  Hence, Open MPI has ``btl`` components for shared
