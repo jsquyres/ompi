@@ -132,10 +132,10 @@ Compiler Notes
   gfortran linker will not.  In this case, it may be necessary to
   provide the following on the configure command line:
 
-  .. code-block::
+  .. code-block:: sh
      :linenos:
 
-     $ ./configure FCFLAGS=-L/usr/local/lib ...
+     shell$ ./configure FCFLAGS=-L/usr/local/lib ...
 
   This ``-L`` flag will then be passed to the Fortran linker when
   creating Open MPI's Fortran libraries, and it will therefore be able
@@ -268,7 +268,7 @@ Compiler Notes
   compiler suite, the following flags should be passed to Open MPI's
   ``configure`` script:
 
-  .. code-block::
+  .. code-block:: sh
      :linenos:
 
      shell$ ./configure CFLAGS=-Msignextend CXXFLAGS=-Msignextend \
@@ -398,7 +398,7 @@ Compiler Notes
   the Fortran features that are/are not enabled in your Open MPI
   installation:
 
-  .. code-block::
+  .. code-block:: sh
      :linenos:
 
      shell$ ompi_info | grep -i fort
@@ -662,7 +662,7 @@ Network Support
   parameter (and potentially the ``btl`` and/or ``mtl`` MCA parameters) at
   run-time:
 
-  .. code-block::
+  .. code-block:: sh
      :linenos:
 
      shell$ mpirun --mca pml ob1 --mca btl [comma-delimted-BTLs] ...

@@ -1,9 +1,121 @@
 Developer's guide
 =================
 
-This section is here for those who are building/exploring OMPI in its
+This section is here for those who are building/exploring Open MPI in its
 source code form, most likely through a developer's tree (i.e., a Git
 clone).
+
+Obtaining a Git clone
+---------------------
+
+Open MPI's Git repositories are hosted at GitHub.
+
+#. First, you will need a Git client. We recommend getting the latest version available. If you do not have the command "git" in your path, you will likely need to download and install Git.
+#. `ompi <https://github.com/open-mpi/ompi/>`_ is the main Open MPI repository where most active development is done.  Git clone this repository.  For example:
+
+.. code-block::
+   :linenos:
+
+   shell$ git clone --recursive https://github.com/open-mpi/ompi.git
+   Cloning into 'ompi'...
+   remote: Counting objects: 256644, done.
+   remote: Total 256644 (delta 0), reused 0 (delta 0)
+   Receiving objects: 100% (256644/256644), 61.98 MiB | 2.15 MiB/s, done.
+   Resolving deltas: 100% (213377/213377), done.
+   Checking connectivity... done.
+   shell$
+
+Note that Git is natively capable of using many forms of web proxies. If your network setup requires the user of a web proxy, `consult the Git documentation for more details <https://git-scm.com/>`_.
+
+.. note:: Prior to October 2014, Open MPI was maintained in a Subversion repository. This Subversion repository had two read-only mirrors: a Mercurial mirror at bitbucket.org and a Git mirror at github.com. These two mirrors are now defunct and will no longer be updated.
+
+   If you are using either of these mirrors, you should stop using them and switch to the main Open MPI Git repository at GitHub.
+
+
+Developer Build Prerequisites
+-----------------------------
+
+Compilers
+^^^^^^^^^
+
+Although it should probably be assumed, you'll need a C/C++ compiler.
+
+You'll also need a Fortran compiler if you want to build the Fortran MPI bindings, and a Java compiler if you want to build the (unofficial) Java MPI bindings.
+
+GNU Autotools
+^^^^^^^^^^^^^
+
+When building Open MPI from its repository sources, the GNU Autotools must be installed.
+
+.. note:: The GNU Autotools are *not* required when building Open MPI from distribution tarballs.  Open MPI distribution tarballs are bootstrapped such that end-users do not need to have the GNU Autotools installed.
+
+You can generally install GNU Autoconf, Automake, and Libtool via your Linux distro native package system, or via Homebrew or MacPorts on MacOS.  This usually "just works."
+
+If you run into problems with the GNU Autotools, or need to download / build them manually, :doc:`see the GNU Autotool section of the Open MPI developer's docs <gnu-autotools>` for much more detail on how to do this.
+
+Flex
+^^^^
+
+Flex is used during the compilation of a developer's checkout (it is
+not used to build official distribution tarballs).  Other flavors of
+lex are *not* supported: given the choice of making parsing code
+portable between all flavors of lex and doing more interesting work on
+Open MPI, we greatly prefer the latter.
+
+Note that no testing has been performed to see what the minimum
+version of Flex is required by Open MPI.  We suggest that you use
+v2.5.35 at the earliest.
+
+.. important:: Windows developer builds of Open MPI *require* Flex
+   version 2.5.35.  Specifically, we know that v2.5.35 works and
+   2.5.4a does not.  We have not tested to figure out exactly what the
+   minimum required flex version is on Windows; we suggest that you
+   use 2.5.35 at the earliest.  It is for this reason that the
+   ``contrib/dist/make_dist_tarball`` script checks for a
+   Windows-friendly version of Flex before continuing.
+
+For now, Open MPI will allow developer builds with Flex 2.5.4.  This
+is primarily motivated by the fact that RedHat/Centos 5 ships with
+Flex 2.5.4.  It is likely that someday Open MPI developer builds will
+require Flex version >=2.5.35.
+
+Note that the ``flex``-generated code generates some compiler warnings
+on some platforms, but the warnings do not seem to be consistent or
+uniform on all platforms, compilers, and flex versions.  As such, we
+have done little to try to remove those warnings.
+
+If you do not have Flex installed and cannot easily install it via your operating system's packaging system (to include Homebrew or MacPorts on MacOS), see `the Flex Github repository
+<https://github.com/westes/flex>`_.
+
+
+Pandoc
+^^^^^^
+
+.. JMS THIS MAY/WILL NEED TO CHANGE IF WE SWITCH TO SPHINX
+
+The Pandoc tool is used to generate Open MPI's man pages.
+Specifically: Open MPI's man pages are written in Markdown; Pandoc is
+the tool that converts that Markdown to nroff (i.e., the format of man
+pages).
+
+.. warning:: You must have Pandoc >=v1.12 when building Open MPI from a developer's
+   tree.  If configure cannot find Pandoc >=v1.12, it will abort.
+
+If you need to install Pandoc, check your operating system-provided
+packages (to include MacOS Homebrew and MacPorts).  `The Pandoc
+project web site <https://pandoc.org/>`_ itself also offers binaries
+for their releases.
+
+
+Sphinx
+^^^^^^
+
+.. JMS Need to write more here
+
+Sphinx...
+
+* Installable via Python ``pip``
+* https://www.sphinx-doc.org/
 
 
 Developer Builds: Compiler Pickyness by Default
@@ -37,163 +149,8 @@ base with these configure options:
    debugging general MPI applications.
 
 
-Use of GNU Autoconf, Automake, and Libtool (and m4)
----------------------------------------------------
-
-You need to read/care about this section *ONLY* if you are building
-from a developer's tree (i.e., a Git clone of the Open MPI source
-tree).  If you have an Open MPI distribution tarball, the contents of
-this section are optional -- you can (and probably should) skip
-reading this section.
-
-If you are building Open MPI from a developer's tree, you must first
-install fairly recent versions of the GNU tools Autoconf, Automake,
-and Libtool (and possibly GNU m4, because recent versions of Autoconf
-have specific GNU m4 version requirements).  The specific versions
-required depend on if you are using the Git master branch or a release
-branch (and which release branch you are using).  `The specific
-versions can be found here
-<https://www.open-mpi.org/source/building.php>`_.
-
-You can check what versions of the autotools you have installed with
-the following:
-
-.. code-block::
-   :linenos:
-
-   shell$ m4 --version
-   shell$ autoconf --version
-   shell$ automake --version
-   shell$ libtoolize --version
-
-`Required version levels for all the OMPI releases can be found here
-<https://www.open-mpi.org/source/building.php>`_.
-
-To strengthen the above point: the core Open MPI developers typically
-use very, very recent versions of the GNU tools.  There are known bugs
-in older versions of the GNU tools that Open MPI no longer compensates
-for (it seemed senseless to indefinitely support patches for ancient
-versions of Autoconf, for example).  You *WILL* have problems if you
-do not use recent versions of the GNU tools.
-
-.. warning:: On MacOS/X, the default ``libtool`` program is different
-   than the GNU libtool.  You must download and install the GNU
-   version (e.g., via MacPorts, Homebrew, or some other mechanism).
-
-If you need newer versions, you are *strongly* encouraged to heed the
-advice described below.
-
-Unless your OS distribution has easy-to-use binary installations, the
-sources can be can be downloaded from:
-
-* https://ftp.gnu.org/gnu/autoconf/
-* https://ftp.gnu.org/gnu/automake/
-* https://ftp.gnu.org/gnu/libtool/
-* And if you need it: https://ftp.gnu.org/gnu/m4/
-
-.. note:: It is certainly easiest to download/build/install all four
-   of these tools together.  But note that Open MPI has no specific m4
-   requirements; it is only listed here because Autoconf requires
-   minimum versions of GNU m4.  Hence, you may or may not *need* to
-   actually install a new version of GNU m4.  That being said, if you
-   are confused or don't know, just install the latest GNU m4 with the
-   rest of the GNU Autotools and everything will work out fine.
-
-Ordering
-^^^^^^^^
-
-Build and install the tools in the following order:
-
-#. m4
-#. Autoconf
-#. Automake
-#. Libtool
-
-You *must* install the last three tools (Autoconf, Automake, Libtool)
-into the same prefix directory.  These three tools are somewhat
-inter-related, and if they're going to be used together, they MUST
-share a common installation prefix.
-
-You can install m4 anywhere as long as it can be found in the path;
-it may be convenient to install it in the same prefix as the other
-three.  Or you can use any recent-enough m4 that is in your path.
-
-.. warning:: It is *strongly* encouraged that you do not install your new
-   versions over the OS-installed versions.  This could cause
-   other things on your system to break.  Instead, install into
-   ``$HOME/local``, or ``/usr/local``, or wherever else you tend to
-   install "local" kinds of software.
-
-   In doing so, be sure to prefix your $path with the directory where
-   they are installed.  For example, if you install into
-   ``$HOME/local``, you may want to edit your shell startup file
-   (``.bashrc``, ``.cshrc``, ``.tcshrc``, etc.) to have something
-   like:
-
-   .. code-block:: sh
-      :linenos:
-
-      # For bash/sh:
-      export PATH=$HOME/local/bin:$PATH
-      # For csh/tcsh:
-      set path = ($HOME/local/bin $path)
-
-   Ensure to set your ``$PATH`` *BEFORE* you configure/build/install
-   the four packages.
-
-All four packages require two simple commands to build and
-install (where ``PREFIX`` is the prefix discussed in 3, above).
-
-.. code-block::
-   :linenos:
-
-   shell$ cd <m4 directory>
-   shell$ ./configure --prefix=PREFIX
-   shell$ make; make install
-
-.. important:: If you are using the ``csh`` or ``tcsh`` shells, be
-   sure to run the ``rehash`` command after you install each
-   package.
-
-.. code-block::
-   :linenos:
-
-   shell$ cd <autoconf directory>
-   shell$ ./configure --prefix=PREFIX
-   shell$ make; make install
-
-.. important:: If you are using the ``csh`` or ``tcsh`` shells, be
-   sure to run the ``rehash`` command after you install each
-   package.
-
-.. code-block::
-   :linenos:
-
-   shell$ cd <automake directory>
-   shell$ ./configure --prefix=PREFIX
-   shell$ make; make install
-
-.. important:: If you are using the ``csh`` or ``tcsh`` shells, be
-   sure to run the ``rehash`` command after you install each
-   package.
-
-.. code-block::
-   :linenos:
-
-   shell$ cd <libtool directory>
-   shell$ ./configure --prefix=PREFIX
-   shell$ make; make install
-
-.. important:: If you are using the ``csh`` or ``tcsh`` shells, be
-   sure to run the ``rehash`` command after you install each
-   package.
-
-m4, Autoconf and Automake build and install very quickly; Libtool
-will take a minute or two.
-
-
-After installing the GNU Autotools
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Running ``autogen.pl``
+----------------------
 
 You can now run OMPI's top-level ``autogen.pl`` script.  This script
 will invoke the GNU Autoconf, Automake, and Libtool commands in the
@@ -225,59 +182,199 @@ a lot of "include" files for Open MPI's ``configure`` script live).
 You do *NOT* need to re-run ``autogen.pl`` if you modify a
 ``Makefile.am``.
 
-Use of Flex
------------
 
-Flex is used during the compilation of a developer's checkout (it is
-not used to build official distribution tarballs).  Other flavors of
-lex are *not* supported: given the choice of making parsing code
-portable between all flavors of lex and doing more interesting work on
-Open MPI, we greatly prefer the latter.
+Building Open MPI
+-----------------
 
-Note that no testing has been performed to see what the minimum
-version of Flex is required by Open MPI.  We suggest that you use
-v2.5.35 at the earliest.
+Once you have run ``autogen.pl`` successfully, you can configure and build Open MPI just like end users do with official distribution Open MPI tarballs.
 
-.. important:: Windows developer builds of Open MPI *require* Flex
-   version 2.5.35.  Specifically, we know that v2.5.35 works and
-   2.5.4a does not.  We have not tested to figure out exactly what the
-   minimum required flex version is on Windows; we suggest that you
-   use 2.5.35 at the earliest.  It is for this reason that the
-   ``contrib/dist/make_dist_tarball`` script checks for a
-   Windows-friendly version of Flex before continuing.
+:ref:`See the general "Install Open MPI" documentation for more details. <building-and-installing-section-label>`
 
-For now, Open MPI will allow developer builds with Flex 2.5.4.  This
-is primarily motivated by the fact that RedHat/Centos 5 ships with
-Flex 2.5.4.  It is likely that someday Open MPI developer builds will
-require Flex version >=2.5.35.
 
-Note that the ``flex``-generated code generates some compiler warnings
-on some platforms, but the warnings do not seem to be consistent or
-uniform on all platforms, compilers, and flex versions.  As such, we
-have done little to try to remove those warnings.
 
-If you do not have Flex installed, see `the Flex Github repository
-<https://github.com/westes/flex>`_.
+Open MPI terminology
+--------------------
 
-Use of Pandoc
--------------
+Open MPI is a large project containing many different
+sub-systems and a relatively large code base.  Let's first cover some
+fundamental terminology in order to make the rest of the discussion
+easier.
 
-.. note:: Similar to prior sections, you need to read/care about
-   this section *ONLY* if you are building from a developer's tree
-   (i.e., a Git clone of the Open MPI source tree).  If you have an
-   Open MPI distribution tarball, the contents of this section are
-   optional -- you can (and probably should) skip reading this
-   section.
+Open MPI has multiple main sections of code:
 
-The Pandoc tool is used to generate Open MPI's man pages.
-Specifically: Open MPI's man pages are written in Markdown; Pandoc is
-the tool that converts that Markdown to nroff (i.e., the format of man
-pages).
+* *OSHMEM:* The OpenSHMEM API and supporting logic
+* *OMPI:* The MPI API and supporting logic
+* *OPAL:* The Open Portable Access Layer (utility and "glue" code)
 
-You must have Pandoc >=v1.12 when building Open MPI from a developer's
-tree.  If configure cannot find Pandoc >=v1.12, it will abort.
+There are strict abstraction barriers in the code between these
+sections.  That is, they are compiled into separate libraries:
+``liboshmem``, ``libmpi``, ``libopal`` with a strict dependency order:
+OSHMEM depends on OMPI, OMPI depends on OPAL.  For example, MPI executables are linked with:
 
-If you need to install Pandoc, check your operating system-provided
-packages (to include MacOS Homebrew and MacPorts).  `The Pandoc
-project web site <https://pandoc.org/>`_ itself also offers binaries
-for their releases.
+.. code-block:: sh
+   :linenos:
+
+   shell$ mpicc myapp.c -o myapp
+   # This actually turns into:
+   shell$ cc myapp.c -o myapp -lmpi -lopen-rte -lopen-pal ...
+
+More system-level libraries may listed after ``-lopal``, but you get the
+idea.
+
+Strictly speaking, these are not "layers" in the classic software
+engineering sense (even though it is convenient to refer to them as
+such).  They are listed above in dependency order, but that does not
+mean that, for example, the OMPI code must go through the
+OPAL code in order to reach the operating system or a network
+interface.
+
+As such, this code organization more reflects abstractions and
+software engineering, not a strict hierarchy of functions that must be
+traversed in order to reach a lower layer.  For example, OMPI can
+directly call the operating system as necessary (and not go through OPAL).  Indeed,
+many top-level MPI API functions are quite performance sensitive; it
+would not make sense to force them to traverse an arbitrarily deep
+call stack just to move some bytes across a network.
+
+Note that Open MPI also uses some third-party libraries for core functionality:
+
+* PMIX
+* PRRTE
+* Libevent
+* Hwloc
+
+These will be discussed elsewhere.
+
+Here's a list of terms that are frequently used in discussions about
+the Open MPI code base:
+
+* *MCA:* The Modular Component Architecture (MCA) is the foundation
+  upon which the entire Open MPI project is built.  It provides all the
+  component architecture services that the rest of the system uses.
+  Although it is the fundamental heart of the system, its
+  implementation is actually quite small and lightweight &mdash; it is
+  nothing like CORBA, COM, JINI, or many other well-known component
+  architectures.  It was designed for HPC &mdash; meaning that it is small,
+  fast, and reasonably efficient &mdash; and therefore offers few services
+  other than finding, loading, and unloading components.
+
+* *Framework:* An MCA _framework_ is a construct that is created
+  for a single, targeted purpose.  It provides a public interface that
+  is used by external code, but it also has its own internal services.
+  :ref:`See the list of Open MPI frameworks in this version of Open MPI
+  <internal-frameworks-section-label>`.  An MCA
+  framework uses the MCA's services to find and load _components_ at run-time
+  &mdash; implementations of the framework's interface.  An easy example
+  framework to discuss is the MPI framework named ``btl``, or the Byte
+  Transfer Layer.  It is used to send and receive data on different
+  kinds of networks.  Hence, Open MPI has ``btl`` components for shared
+  memory, InfiniBand, various protocols over Ethernet, etc.
+
+* *Component:* An MCA _component_ is an implementation of a
+  framework's interface.  Another common word for component is
+  "plugin". It is a standalone collection of code that can be bundled
+  into a plugin that can be inserted into the Open MPI code base, either
+  at run-time and/or compile-time.
+
+* *Module:* An MCA _module_ is an instance of a component (in the
+  C++ sense of the word "instance"; an MCA component is analogous to a
+  C++ class). For example, if a node running an Open MPI application has
+  multiple ethernet NICs, the Open MPI application will contain one TCP
+  ``btl`` component, but two TCP ``btl`` modules.  This difference between
+  components and modules is important because modules have private state;
+  components do not.
+
+Frameworks, components, and modules can be dynamic or static. That is,
+they can be available as plugins or they may be compiled statically
+into libraries (e.g., ``libmpi``).
+
+
+
+Source code tree layout
+-----------------------
+
+There are a few notable top-level directories in the source
+tree:
+
+* The main sub-projects:
+    * ``oshmem``: Top-level OpenSHMEM code base
+    * ``ompi``: The Open MPI code base
+    * ``opal``: The OPAL code base
+* ``config``: M4 scripts supporting the top-level ``configure`` script ``mpi.h``
+* ``etc``: Some miscellaneous text files
+* ``docs``: Source code for Open MPI documentation
+* ``examples``: Trivial MPI / OpenSHMEM example programs
+* ``3rd-party``: Included copies (via Git submodules in Git clones) of required core libraries
+
+Each of the three main source directories (``oshmem``, ``ompi``, and
+``opal``) generate a top-level library named ``liboshmem``, ``libmpi``, and
+``libopen-pal``, respectively.  They can be built as either static or shared
+libraries.  Executables are also produced in subdirectories of some of
+the trees.
+
+Each of the sub-project source directories have similar (but not
+identical) directory structures under them:
+
+* ``class``: C++-like "classes" (using the OPAL class system)
+  specific to this project
+* ``include``: Top-level include files specific to this project
+* ``mca``: MCA frameworks and components specific to this project
+* ``runtime``: Startup and shutdown of this project at runtime
+* ``tools``: Executables specific to this project (currently none in
+  OPAL)
+* ``util``: Random utility code
+
+There are other top-level directories in each of the
+sub-projects, each having to do with specific logic and code for that
+project.  For example, the MPI API implementations can be found under
+``ompi/mpi/LANGUAGE``, where
+``LANGUAGE`` is ``c``, ``fortran``.
+
+The layout of the ``mca`` trees are strictly defined.  They are of the
+form:
+
+.. code-block::
+    :linenos:
+
+    PROJECT/mca/FRAMEWORK/COMPONENT
+
+To be explicit: it is forbidden to have a directory under the ``mca``
+trees that does not meet this template (with the exception of ``base``
+directories, explained below).  Hence, only framework and component
+code can be in the ``mca`` trees.
+
+That is, framework and component names must be valid directory names
+(and C variables; more on that later).  For example, the TCP BTL
+component is located in the following directory:
+
+.. code-block:: sh
+    :linenos:
+
+    # In v1.6.x and earlier:
+    ompi/mca/btl/tcp/
+
+    # In v1.7.x and later:
+    opal/mca/btl/tcp/
+
+The name ``base`` is reserved; there cannot be a framework or component
+named ``base``. Directories named ``base`` are reserved for the
+implementation of the MCA and frameworks.  Here are a few examples (as
+of the v5.0 source tree):
+
+.. code-block:: sh
+    :linenos:
+
+    # Main implementation of the MCA
+    opal/mca/base
+
+    # Implementation of the btl framework
+    opal/mca/btl/base
+
+    # Implementation of the sysv framework
+    oshmem/mcs/sshmem/sysv
+
+    # Implementation of the pml framework
+    ompi/mca/pml/base
+
+Under these mandated directories, frameworks and/or components may have
+arbitrary directory structures, however.

@@ -16,3 +16,6 @@ that they are worth categorizing in an official way.
    general
    contributing
    supported-systems
+   sysadmin
+   fault-tolerance
+   tuning

@@ -8,7 +8,7 @@ Supported systems
 What operating systems does Open MPI support?
 ---------------------------------------------
 
-We primarily develop Open MPI on Linux and Mark's.
+We primarily develop Open MPI on Linux and MacOS.
 
 Other operating systems are supported, however.  The exact list of
 operating systems supported has changed over time (e.g., native

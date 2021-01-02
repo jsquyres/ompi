@@ -97,7 +97,7 @@ Each component typically has some tunable parameters that can be
 changed at run-time.  Use the ``ompi_info`` command to check a component
 to see what its tunable parameters are.  For example:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ ompi_info --param btl tcp
@@ -143,7 +143,7 @@ Each sub-group is broken down into three classifications:
 To see *all* available parameters for a given component, specify that
 ompi_info should use level 9:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ ompi_info --param btl tcp --level 9
@@ -170,7 +170,7 @@ values of parameters:
    variable named ``OMPI_MCA_btl_tcp_frag_size`` to the value 65536
    (Bourne-style shells):
 
-   .. code-block::
+   .. code-block:: sh
       :linenos:
 
       shell$ OMPI_MCA_btl_tcp_frag_size=65536
@@ -180,7 +180,7 @@ values of parameters:
 
    Where ``<name>`` is the name of the parameter.  For example:
 
-   .. code-block::
+   .. code-block:: sh
       :linenos:
 
       shell$ mpirun --mca btl_tcp_frag_size 65536 -np 2 hello_world_mpi
@@ -206,7 +206,7 @@ For example, to *only* activate the ``tcp`` and ``self`` (process loopback)
 components are used for MPI communications, specify them in a
 comma-delimited list to the ``btl`` MCA parameter:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ mpirun --mca btl tcp,self hello_world_mpi
@@ -214,7 +214,7 @@ comma-delimited list to the ``btl`` MCA parameter:
 To add shared memory support, add ``sm`` into the command-delimited list
 (list order does not matter):
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ mpirun --mca btl tcp,sm,self hello_world_mpi
@@ -226,7 +226,7 @@ as well)
 To specifically deactivate a specific component, the comma-delimited
 list can be prepended with a ``^`` to negate it:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ mpirun --mca btl ^tcp hello_mpi_world

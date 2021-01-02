@@ -20,7 +20,7 @@ compiling MPI and OpenSHMEM applications:
 
 For example:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ mpicc hello_world_mpi.c -o hello_world_mpi -g
@@ -28,7 +28,7 @@ For example:
 
 For OpenSHMEM applications:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ oshcc hello_shmem.c -o hello_shmem -g
@@ -50,7 +50,7 @@ files under ``$libdir/pkgconfig``.  If ``pkg-config`` is configured to find
 these files, then compiling / linking Open MPI programs can be
 performed like this:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ gcc hello_world_mpi.c -o hello_world_mpi -g \
@@ -81,7 +81,7 @@ Running Open MPI Applications
 Open MPI supports both ``mpirun`` and ``mpiexec`` (they are exactly
 equivalent) to launch MPI applications.  For example:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ mpirun -np 2 hello_world_mpi
@@ -99,7 +99,7 @@ The ``rsh`` launcher (which defaults to using ``ssh``) accepts a
 can specify a ``--hostfile`` parameter indicating a standard
 ``mpirun``-style hostfile (one hostname per line):
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ mpirun --hostfile my_hostfile -np 2 hello_world_mpi
@@ -108,7 +108,7 @@ If you intend to run more than one process on a node, the hostfile can
 use the "slots" attribute.  If "slots" is not specified, a count of 1
 is assumed.  For example, using the following hostfile:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ cat my_hostfile
@@ -127,7 +127,7 @@ if it is supplied).  They will also launch as many processes as slots
 have been allocated by the scheduler if no "-np" argument has been
 provided.  For example, running a SLURM job with 8 processors:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ salloc -n 8 mpirun a.out
@@ -143,7 +143,7 @@ below, "The Modular Component Architecture (MCA)".
 Open MPI supports ``oshrun`` to launch OpenSHMEM applications. For
 example:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ oshrun -np 2 hello_world_oshmem
@@ -153,7 +153,7 @@ managers such as SLURM. For example, when OMPI is configured
 ``--with-pmix`` and ``--with-slurm``, one may launch OpenSHMEM
 applications via ``srun``:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ srun -N 2 hello_world_oshmem

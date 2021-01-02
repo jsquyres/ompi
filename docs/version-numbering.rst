@@ -1,5 +1,6 @@
-==========================================
- Version numbers and binary compatibility
+.. _version-numbering-section-label:
+
+Version numbers and binary compatibility
 ==========================================
 
 Open MPI has two sets of version numbers that are likely of interest

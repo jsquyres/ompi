@@ -4,22 +4,22 @@ Quick start
 In many cases, Open MPI can be built and installed by simply
 indicating the installation directory on the command line:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
-   $ tar xf openmpi-<version>.tar.bz2
-   $ cd openmpi-<version>
-   $ ./configure --prefix=<path> |& tee config.out
+   shell$ tar xf openmpi-<version>.tar.bz2
+   shell$ cd openmpi-<version>
+   shell$ ./configure --prefix=<path> |& tee config.out
 
-   ...lots of output...
+   # ...lots of output...
 
-   $ make -j 8 |& tee make.out
+   shell$ make -j 8 |& tee make.out
 
-   ...lots of output...
+   # ...lots of output...
 
-   $ make install |& tee install.out
+   shell$ make install |& tee install.out
 
-   ...lots of output...
+   # ...lots of output...
 
 Note that there are many, many configuration options to the
 ``./configure`` step.  Some of them may be needed for your particular
@@ -30,22 +30,22 @@ If your installation prefix path is not writable by a regular user,
 you may need to use sudo or su to run the ``make install`` step.  For
 example:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
-   $ sudo make install |& tee install.out
+   shell$ sudo make install |& tee install.out
    [sudo] password for jsquyres: <enter your password here>
 
-   ...lots of output...
+   # ...lots of output...
 
 Finally, note that VPATH builds are fully supported.  For example:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
-   $ tar xf openmpi-<version>.tar.bz2
-   $ cd openmpi-<version>
-   $ mkdir build
-   $ cd build
-   $ ../configure --prefix=<path> |& tee config.out
-   ...etc.
+   shell$ tar xf openmpi-<version>.tar.bz2
+   shell$ cd openmpi-<version>
+   shell$ mkdir build
+   shell$ cd build
+   shell$ ../configure --prefix=<path> |& tee config.out
+   # ...etc.

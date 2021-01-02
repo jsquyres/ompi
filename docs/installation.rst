@@ -1,3 +1,5 @@
+.. _building-and-installing-section-label:
+
 Building and installing
 =======================
 
@@ -10,12 +12,12 @@ If you have downloaded a tarball, then things are much simpler.
 Open MPI uses a traditional ``configure`` script paired with ``make`` to
 build.  Typical installs can be of the pattern:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ ./configure [...options...]
    shell$ make [-j N] all install
-          (use an integer value of N for parallel builds)
+   # Use an integer value of N for parallel builds
 
 There are many available ``configure`` options (see ``./configure --help``
 for a full list); a summary of the more commonly used ones is included
@@ -632,7 +634,7 @@ The following environment variables are recognized by configure:
 
 For example:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ ./configure CC=mycc CXX=myc++ FC=myfortran ...
@@ -648,7 +650,7 @@ the default one in your ``PATH``, then you must either set the ``$MAKE``
 environment variable before invoking Open MPI's ``configure`` script, or
 pass ``MAKE=your_make_prog`` to configure.  For example:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ ./configure MAKE=/path/to/my/make ...
