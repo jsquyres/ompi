@@ -163,7 +163,7 @@ Open MPI code base and then someone later claims that we owe them
 money for it.  Open MPI is a free, open source code base.  And we
 intend it to remain that way.
 
-The :doc:`Contributing to Open MPI <contributing>` FAQ
+The :doc:`Contributing to Open MPI </faq/contributing>` FAQ
 section contains more information on this issue.
 
 

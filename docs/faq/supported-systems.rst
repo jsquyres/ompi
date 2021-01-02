@@ -70,7 +70,7 @@ the reality of limited development, testing, and maintenance
 resources.
 
 That being said, :doc:`contributions are always welcome!
-<contributing>`.
+</faq/contributing>`.
 
 
 /////////////////////////////////////////////////////////////////////////

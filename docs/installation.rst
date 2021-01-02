@@ -5,7 +5,7 @@ Building and installing
 
 .. note:: If you have checked out a *developer's copy* of Open MPI
    (i.e., you cloned from Git), you really need to read :doc:`the
-   Developer's Guide <developers>` before attempting to build Open
+   Developer's Guide </developers>` before attempting to build Open
    MPI. Really.
 
 If you have downloaded a tarball, then things are much simpler.
@@ -492,7 +492,7 @@ MPI Functionality
      TO CHANGE**.  The Open MPI developers would very much like to
      hear your feedback about this interface.
 
-  See :doc:`the Java section <java>` for many more details.
+  :doc:`See the Java section </java>` for many more details.
 
 * ``--enable-mpi-fortran(=VALUE)``:
   By default, Open MPI will attempt to build all 3 Fortran bindings:

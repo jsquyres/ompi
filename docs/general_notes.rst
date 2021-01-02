@@ -482,7 +482,7 @@ MPI Functionality and Features
      first deprecated over 20 years ago, and finally removed from the
      MPI specification in MPI-3.0 (in 2012).
 
-  .. important:: :doc:`The Open MPI FAQ <faq/mpi-removed>` contains
+  .. important:: :doc:`The Open MPI FAQ </faq/mpi-removed>` contains
      examples of how to update legacy MPI applications using these
      deleted symbols to use the "new" symbols.
 
@@ -737,5 +737,5 @@ Open MPI Extensions
 An MPI "extensions" framework is included in Open MPI, but is not
 enabled by default.
 
-See the :doc:`Open MPI API Extensions <extensions>` section for more
+:doc:`See the Open MPI API Extensions </extensions>` section for more
 information on compiling and using MPI extensions.

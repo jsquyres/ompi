@@ -53,7 +53,7 @@ When building Open MPI from its repository sources, the GNU Autotools must be in
 
 You can generally install GNU Autoconf, Automake, and Libtool via your Linux distro native package system, or via Homebrew or MacPorts on MacOS.  This usually "just works."
 
-If you run into problems with the GNU Autotools, or need to download / build them manually, :doc:`see the GNU Autotool section of the Open MPI developer's docs <gnu-autotools>` for much more detail on how to do this.
+If you run into problems with the GNU Autotools, or need to download / build them manually, :doc:`see the GNU Autotool section of the Open MPI developer's docs </gnu-autotools>` for much more detail on how to do this.
 
 Flex
 ^^^^

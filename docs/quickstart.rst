@@ -23,7 +23,7 @@ indicating the installation directory on the command line:
 
 Note that there are many, many configuration options to the
 ``./configure`` step.  Some of them may be needed for your particular
-environmnet; see :doc:`the installation section <installation>` for
+environmnet; see :doc:`the installation section </installation>` for
 desciptions of the options available.
 
 If your installation prefix path is not writable by a regular user,
