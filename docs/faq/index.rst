@@ -18,6 +18,7 @@ that they are worth categorizing in an official way.
    supported-systems
    sysadmin
    building
+   mpi-apps
    fault-tolerance
    tuning
    mpi-removed
