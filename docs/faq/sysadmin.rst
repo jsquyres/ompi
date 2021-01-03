@@ -1,5 +1,3 @@
-.. |mdash|  unicode:: U+02014 .. EM DASH
-
 System administrator-level technical information
 ================================================
 

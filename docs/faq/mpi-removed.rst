@@ -1,6 +1,3 @@
-.. |mdash|  unicode:: U+02014 .. EM DASH
-.. |rarrow| unicode:: U+02192 .. Right arrow
-
 Removed MPI Constructs
 ======================
 

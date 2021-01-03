@@ -1,5 +1,3 @@
-.. |mdash|  unicode:: U+02014 .. EM DASH
-
 Developer's guide
 =================
 
@@ -240,10 +238,10 @@ call stack just to move some bytes across a network.
 
 Note that Open MPI also uses some third-party libraries for core functionality:
 
-* PMIX
+* PMIx
 * PRRTE
 * Libevent
-* Hwloc
+* Hardware Locality ("hwloc")
 
 These will be discussed elsewhere.
 
