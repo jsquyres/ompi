@@ -13,6 +13,8 @@ indicating the installation directory on the command line:
 
    # ...lots of output...
 
+   # Note that parallel builds are supported;
+   # you can specify "-j N" on the "make" command line.
    shell$ make -j 8 |& tee make.out
 
    # ...lots of output...
@@ -23,12 +25,13 @@ indicating the installation directory on the command line:
 
 Note that there are many, many configuration options to the
 ``./configure`` step.  Some of them may be needed for your particular
-environmnet; see :doc:`the installation section </installation>` for
-desciptions of the options available.
+HPC network interconnect type and/or computing environmnet; see
+:doc:`the installation section </installation>` for desciptions of the
+options available.
 
 If your installation prefix path is not writable by a regular user,
-you may need to use sudo or su to run the ``make install`` step.  For
-example:
+you may need to use `sudo` or `su` to run the ``make install`` step.
+For example:
 
 .. code-block:: sh
    :linenos:

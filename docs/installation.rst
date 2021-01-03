@@ -8,9 +8,8 @@ Building and installing
    Developer's Guide </developers>` before attempting to build Open
    MPI. Really.
 
-If you have downloaded a tarball, then things are much simpler.
-Open MPI uses a traditional ``configure`` script paired with ``make`` to
-build.  Typical installs can be of the pattern:
+Open MPI uses a traditional ``configure`` script paired with ``make``
+to build.  Typical installs can be of the pattern:
 
 .. code-block:: sh
    :linenos:
@@ -23,28 +22,44 @@ There are many available ``configure`` options (see ``./configure --help``
 for a full list); a summary of the more commonly used ones is included
 below.
 
+.. _install-filesystem-timestamp-warning-label:
+
 .. warning:: If you are building Open MPI on a network filesystem, the
    machine you on which you are building *must* be time-synchronized
-   with the file server.  Specifically: Open MPI's build system
-   *requires* accurate filesystem timestamps.  If your ``make`` output
-   includes warning about timestamps in the future or runs GNU
-   Automake, Autoconf, and/or Libtool, this is *not normal*, and you
-   may have an invalid build.  Ensure that the time on your build
-   machine is synchronized with the time on your file server, or build
-   on a local filesystem.  Then remove the Open MPI source directory
-   and start over (e.g., by re-extracting the Open MPI tarball).
+   with the file server.
 
-Note that for many of Open MPI's ``--with-FOO`` options, Open MPI will,
-by default, search for header files and/or libraries for ``FOO``.  If
-the relevant files are found, Open MPI will built support for ``FOO``;
-if they are not found, Open MPI will skip building support for ``FOO``.
-However, if you specify ``--with-FOO`` on the configure command line and
-Open MPI is unable to find relevant support for ``FOO``, configure will
-assume that it was unable to provide a feature that was specifically
-requested and will abort so that a human can resolve out the issue.
+   Specifically: Open MPI's build system *requires* accurate
+   filesystem timestamps.  If your ``make`` output includes warning
+   about timestamps in the future or runs GNU Automake, Autoconf,
+   and/or Libtool, *this is not normal*, and you likely have an invalid
+   build.
 
-Additionally, if a search directory is specified in the form
-``--with-FOO=DIR``, Open MPI will:
+   You should remove the Open MPI source directory and start over
+   (e.g., by re-extracting the Open MPI tarball): either switch to
+   build on a local filesystem, or ensure that the time on your build
+   machine is synchronized with the time on your file server before
+   building again.
+
+Note that ``configure`` will, by default, search for header files
+and/or libraries for various optional features (e.g., various HPC
+network API/support libraries).  If the relevant files are found, Open
+MPI will built support for that feature.  If they are not found, Open
+MPI will skip building support for that feature.
+
+However, if you specify ``--with-FOO`` (where ``FOO`` is the
+corresponding CLI option name for the feature) on the ``configure``
+command line and Open MPI is unable to find relevant support for
+``FOO``, ``configure`` will assume that it was unable to provide a
+feature that was specifically requested and will abort so that a human
+can resolve out the issue.
+
+.. note:: Using ``--with-FOO`` to force Open MPI's ``configure``
+          script to abort it if can't find support for a given feature
+          may be preferable to unexpectedly discovering at run-time
+          that Open MPI is missing support for a critical feature.
+
+Additionally, if a search directory is specified for ``FOO`` in the
+form ``--with-FOO=DIR``, Open MPI will:
 
 #. Search for ``FOO``'s header files in ``DIR/include``.
 #. Search for ``FOO``'s library files:
@@ -59,16 +74,29 @@ Additionally, if a search directory is specified in the form
    #. Open MPI will build support for ``FOO``.
    #. If the root path where the FOO libraries are found is neither
       ``/usr`` nor ``/usr/local``, Open MPI will compile itself with
-      RPATH flags pointing to the directory where FOO's libraries
+      RPATH flags pointing to the directory where ``FOO``'s libraries
       are located.  Open MPI does not RPATH ``/usr/lib[64]`` and
       ``/usr/local/lib[64]`` because many systems already search these
       directories for run-time libraries by default; adding RPATH for
       them could have unintended consequences for the search path
       ordering.
 
+.. note:: The ``--with-FOO-libdir=DIR`` options are not usually
+          needed; they are typically only needed when ``FOO``'s
+          libraries are installed in an "unexpected" location.
+
+          Also note the difference between ``--with-FOO=DIR`` and
+          ``--with-FOO-subdir=DIR``: the former is a directory to
+          which suffixes such as ``/include`` and ``/lib`` are added,
+          whereas the latter is assumed to be a full library directory
+          name (e.g., ``/opt/some_library/lib``).
+
 
 Installation Options
 --------------------
+
+The following are general installation command line options that can
+be used with ``configure``:
 
 * ``--prefix=DIR``:
   Install Open MPI into the base directory named ``DIR``.  Hence, Open
@@ -132,7 +160,7 @@ Installation Options
   ``--disable-wrapper-rpath``.
 
   If you would like to keep the rpath option, but not enable runpath
-  a different configure option is avalabile
+  a different ``configure`` option is avalabile
   ``--disable-wrapper-runpath``.
 
 * ``--enable-dlopen``:
@@ -198,8 +226,13 @@ Installation Options
   disable building the portals BTL and the ud OOB component.
 
 
+.. _install-network-support-label:
+
 Networking support / options
 ----------------------------
+
+The following are command line options for various network types that
+can be used with ``configure``:
 
 * ``--with-fca=DIR``:
   Specify the directory where the Mellanox FCA library and
@@ -305,6 +338,9 @@ Networking support / options
 Run-time system support
 -----------------------
 
+The following are command line options for various runtime systems that
+can be used with ``configure``:
+
 * ``--enable-mpirun-prefix-by-default``:
   This option forces the ``mpirun`` command to always behave as if
   ``--prefix $prefix`` was present on the command line (where ``$prefix``
@@ -358,9 +394,14 @@ Run-time system support
   manager systems, both of which are frequently used as a batch
   scheduler in HPC systems.
 
+.. _install-misc-support-libraries-label:
 
 Miscellaneous support libraries
 -------------------------------
+
+The following are command line options for miscellaneous support
+libraries that are used by Open MPI that can be used with
+``configure``:
 
 * ``--with-libevent(=VALUE)``:
   This option specifies where to find the libevent support headers and
@@ -465,6 +506,9 @@ Miscellaneous support libraries
 MPI Functionality
 -----------------
 
+The following are command line options to set the default for various
+MPI API behaviors that can be used with ``configure``:
+
 * ``--with-mpi-param-check(=VALUE)``:
   Whether or not to check MPI function parameters for errors at
   runtime.  The following ``VALUE``\s are permitted:
@@ -547,6 +591,9 @@ MPI Functionality
 OpenSHMEM Functionality
 -----------------------
 
+The following are command line options to set the default for various
+OpenSHMEM API behaviors that can be used with ``configure``:
+
 * ``--disable-oshmem``:
   Disable building the OpenSHMEM implementation (by default, it is
   enabled).
@@ -559,6 +606,9 @@ OpenSHMEM Functionality
 
 Miscellaneous Functionality
 ---------------------------
+
+The following are command line options that don't fit any any of the
+above categories that can be used with ``configure``:
 
 * ``--without-memory-manager``:
   Disable building Open MPI's memory manager.  Open MPI's memory
@@ -586,9 +636,10 @@ Miscellaneous Functionality
   .. danger:: The heterogeneous functionality is currently broken --
               do not use.
 
+.. _install-wrapper-flags-label:
+
 * ``--with-wrapper-cflags=CFLAGS``
 * ``--with-wrapper-cxxflags=CXXFLAGS``
-* ``--with-wrapper-fflags=FFLAGS``
 * ``--with-wrapper-fcflags=FCFLAGS``
 * ``--with-wrapper-ldflags=LDFLAGS``
 * ``--with-wrapper-libs=LIBS``:
@@ -614,6 +665,8 @@ Miscellaneous Functionality
 
 There are many other options available -- see ``./configure --help``.
 
+.. _install-configure-compilers-and-flags-label:
+
 Changing the compilers that Open MPI uses to build itself uses the
 standard Autoconf mechanism of setting special environment variables
 either before invoking configure or on the configure command line.
@@ -629,7 +682,7 @@ The following environment variables are recognized by configure:
 * ``FCFLAGS``: Compile flags to pass to the Fortran compiler
 * ``LDFLAGS``: Linker flags to pass to all compilers
 * ``LIBS``: Libraries to pass to all compilers (it is rarely
-   necessary for users to need to specify additional ``LIBS``)
+  necessary for users to need to specify additional ``LIBS``)
 * ``PKG_CONFIG``: Path to the ``pkg-config`` utility
 
 For example:
@@ -644,6 +697,48 @@ For example:
    then invoking ``./configure``).  The above form will save all
    variables and values in the ``config.log`` file, which makes
    post-mortem analysis easier if problems occur.
+
+Note that the flags you specify must be compatible across all the
+compilers.  In particular, flags specified to one language compiler
+must generate code that can be compiled and linked against code that
+is generated by the other language compilers.  For example, on a 64
+bit system where the compiler default is to build 32 bit executables:
+
+.. code-block:: sh
+   :linenos:
+
+   # Assuming the GNU compiler suite
+   shell$ ./configure CFLAGS=-m64 ...
+
+will produce 64 bit C objects, but 32 bit objects for Fortran.  These
+codes will be incompatible with each other, and Open MPI will not build
+successfully.  Instead, you must specify building 64 bit objects for
+*all* languages:
+
+.. code-block:: sh
+   :linenos:
+
+   # Assuming the GNU compiler suite
+   shell$ ./configure CFLAGS=-m64 CXXFLAGS=-m64 FCFLAGS=-m64 ...
+
+The above command line will pass ``-m64`` to all the compilers, and
+therefore will produce 64 bit objects for all languages.
+
+.. warning:: Note that setting ``CFLAGS`` (etc.) does *not* affect the
+             flags used by the wrapper compilers.  In the above,
+             example, you may also need to add ``-m64`` to various
+             ``--with-wrapper-FOO`` options:
+
+             .. code-block::
+                :linenos:
+
+                shell$ ./configure CFLAGS=-m64 CXXFLAGS=-m64 FCFLAGS=-m64 \
+                   --with-wrapper-cflags=-m64 \
+                   --with-wrapper-cxxflags=-m64 \
+                   --with-wrapper-fcflags=-m64 ...
+
+             Failure to do this will result in MPI applications
+             failing to compile / link properly.
 
 Note that if you intend to compile Open MPI with a ``make`` other than
 the default one in your ``PATH``, then you must either set the ``$MAKE``
@@ -680,7 +775,7 @@ Automake, such as:
 
 * ``all``: build the entire Open MPI package
 * ``install``: install Open MPI
-* ``uninstall``: remove all traces of Open MPI from the $prefix
+* ``uninstall``: remove all traces of Open MPI from the installation tree
 * ``clean``: clean out the build tree
 
 Once Open MPI has been built and installed, it is safe to run ``make
@@ -693,5 +788,4 @@ MPI is ensure that ``PREFIX/bin`` is in their ``PATH`` and
 ``PREFIX/lib`` is in their ``LD_LIBRARY_PATH``.  Users may need to
 ensure to set the ``PATH`` and ``LD_LIBRARY_PATH`` in their shell
 setup files (e.g., ``.bashrc``, ``.cshrc``) so that non-interactive
-``rsh``/`ssh`-based logins will be able to find the Open MPI
-executables.
+``ssh``-based logins will be able to find the Open MPI executables.

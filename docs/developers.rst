@@ -66,14 +66,6 @@ Note that no testing has been performed to see what the minimum
 version of Flex is required by Open MPI.  We suggest that you use
 v2.5.35 at the earliest.
 
-.. important:: Windows developer builds of Open MPI *require* Flex
-   version 2.5.35.  Specifically, we know that v2.5.35 works and
-   2.5.4a does not.  We have not tested to figure out exactly what the
-   minimum required flex version is on Windows; we suggest that you
-   use 2.5.35 at the earliest.  It is for this reason that the
-   ``contrib/dist/make_dist_tarball`` script checks for a
-   Windows-friendly version of Flex before continuing.
-
 For now, Open MPI will allow developer builds with Flex 2.5.4.  This
 is primarily motivated by the fact that RedHat/Centos 5 ships with
 Flex 2.5.4.  It is likely that someday Open MPI developer builds will

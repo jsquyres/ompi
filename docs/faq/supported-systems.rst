@@ -39,7 +39,7 @@ Essentially all the common platforms that the operating
 systems listed in the previous question support.
 
 For example, Linux runs on a *wide* variety of platforms, and we
-certainly can't claim to support all of them.  Open MPI includes
+certainly don't claim to test all of them.  Open MPI includes
 Linux-compiler-based assembly for support of Intel, AMD, and PowerPC
 chips, for example.
 

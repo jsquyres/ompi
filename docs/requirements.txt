@@ -1,3 +1,4 @@
 sphinx
 recommonmark
 docutils
+sphinx-rtd-theme

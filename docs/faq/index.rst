@@ -17,6 +17,7 @@ that they are worth categorizing in an official way.
    contributing
    supported-systems
    sysadmin
+   building
    fault-tolerance
    tuning
    mpi-removed
