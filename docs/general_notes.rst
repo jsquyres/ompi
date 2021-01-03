@@ -17,8 +17,8 @@ base as of this writing (April 2020):
   access to the current OpenSHMEM specification, please visit
   http://openshmem.org/.
 
-  This OpenSHMEM implementation will only work in Linux environments
-  with a restricted set of supported networks.
+  .. note:: This OpenSHMEM implementation will only work in Linux
+            environments with a restricted set of supported networks.
 
 * Open MPI includes support for a wide variety of supplemental
   hardware and software package.  When configuring Open MPI, you may
