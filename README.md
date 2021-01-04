@@ -16,4 +16,6 @@ about the MPI API specification.
 
 See the [docs subdirectory](docs) for Open MPI documentation.
 
+***** JMS: Need to update this link to the corresponding readthedocs.io link.
+
 Make today an Open MPI day!
