@@ -10,26 +10,33 @@ Obtaining a Git clone
 
 Open MPI's Git repositories are hosted at GitHub.
 
-#. First, you will need a Git client. We recommend getting the latest version available. If you do not have the command "git" in your path, you will likely need to download and install Git.
-#. `ompi <https://github.com/open-mpi/ompi/>`_ is the main Open MPI repository where most active development is done.  Git clone this repository.  For example:
+#. First, you will need a Git client. We recommend getting the latest
+   version available. If you do not have the command ``git`` in your
+   path, you will likely need to download and install Git.
+#. `ompi <https://github.com/open-mpi/ompi/>`_ is the main Open MPI
+   repository where most active development is done.  Git clone this
+   repository.  Note that the use of the ``--recursive`` CLI option is
+   necessary because Open MPI uses Git submodules:
 
-.. code-block::
-   :linenos:
+   .. code-block::
+      :linenos:
 
-   shell$ git clone --recursive https://github.com/open-mpi/ompi.git
-   Cloning into 'ompi'...
-   remote: Counting objects: 256644, done.
-   remote: Total 256644 (delta 0), reused 0 (delta 0)
-   Receiving objects: 100% (256644/256644), 61.98 MiB | 2.15 MiB/s, done.
-   Resolving deltas: 100% (213377/213377), done.
-   Checking connectivity... done.
-   shell$
+      shell$ git clone --recursive https://github.com/open-mpi/ompi.git
 
-Note that Git is natively capable of using many forms of web proxies. If your network setup requires the user of a web proxy, `consult the Git documentation for more details <https://git-scm.com/>`_.
+Note that Git is natively capable of using many forms of web
+proxies. If your network setup requires the user of a web proxy,
+`consult the Git documentation for more details
+<https://git-scm.com/>`_.
 
-.. note:: Prior to October 2014, Open MPI was maintained in a Subversion repository. This Subversion repository had two read-only mirrors: a Mercurial mirror at bitbucket.org and a Git mirror at github.com. These two mirrors are now defunct and will no longer be updated.
+.. note:: Prior to October 2014, Open MPI was maintained in a
+          Subversion repository. This Subversion repository had two
+          read-only mirrors: a Mercurial mirror at bitbucket.org and a
+          Git mirror at github.com. These two mirrors are now defunct
+          and will no longer be updated.
 
-   If you are using either of these mirrors, you should stop using them and switch to the main Open MPI Git repository at GitHub.
+          If you are using either of these mirrors, you should stop
+          using them and switch to the main Open MPI Git repository at
+          GitHub.
 
 
 Developer Build Prerequisites
