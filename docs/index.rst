@@ -1,9 +1,9 @@
 .. Open MPI documentation, version 5.0.0.
-   .
+
    You need the Sphinx package in order to build this documentation.
    You probably also want a Python virtual environment.  This might be
    a useful command sequence to get you started:
-   .
+
    # Make a virtual environment
    virtualenv venv
    # Activate the virtual environment
