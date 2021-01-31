@@ -1,5 +1,5 @@
-Compiling MPI applications
-==========================
+Building MPI applications
+=========================
 
 .. JMS How can I create a TOC just for this page here at the top?
 
@@ -44,6 +44,10 @@ Simply use the following instead:
 
    shell$ mpicc my_mpi_application.c -o my_mpi_application
 
+.. caution:: It is *absolutely not sufficient* to simply add ``-lmpi``
+             to your link line and assume that you will obtain a valid
+             Open MPI executable.
+
 Note that Open MPI's wrapper compilers do not do any actual compiling
 or linking; all they do is manipulate the command line and add in all
 the relevant compiler / linker flags and then invoke the underlying
@@ -57,7 +61,7 @@ fault of the Open MPI wrapper compiler.
 Wait |mdash| what is ``mpifort``?  Shouldn't I use ``mpif77`` and ``mpif90``?
 -----------------------------------------------------------------------------
 
-``mpifort`` is a new name for the Fortran wrapper compiler that
+``mpifort`` is the new name for the Fortran wrapper compiler that
 debuted in Open MPI v1.7.
 
 *It supports compiling all versions of Fortran*, and *utilizing all
@@ -68,26 +72,29 @@ mpi_f08``).  There is no need to distinguish between "Fortran 77"
 worry about what dialect it is, nor which MPI Fortran interface it
 uses.
 
-Other MPI implementations will also soon support a wrapper compiler
-named ``mpifort``, so hopefully we can move the whole world to this
-simpler wrapper compiler name, and eliminate the use of ``mpif77`` and
-``mpif90``.
+Other MPI implementations also support a wrapper compiler named
+``mpifort``; you do not lose any portability by using ``mpifort``.
+Please help us move the whole world to this simpler wrapper compiler
+name, and completely eliminate the use of ``mpif77`` and ``mpif90``.
 
-.. important:: ``mpif77`` and ``mpif90`` are
-               deprecated as of Open MPI v1.7.
+.. important:: ``mpif77`` and ``mpif90`` were deprecated back in Open
+               MPI v1.7.
 
-Although ``mpif77`` and ``mpif90`` still exist in Open MPI v1.7 for
-legacy reasons, they will likely be removed in some (undetermined)
-future release.  It is in your interest to convert to ``mpifort`` now.
+.. warning:: Although ``mpif77`` and ``mpif90`` still exist in Open
+             MPI for legacy reasons, they will likely be removed in
+             some (undetermined) future release.  It is in your
+             interest to convert to ``mpifort`` now.
 
-Also note that these names are literally just sym links to ``mpifort``
-under the covers.  So you're using ``mpifort`` whether you realize it
-or not.  :-)
+Also note that the ``mpif77`` and ``mpif90`` names are literally just
+symolic links to ``mpifort`` under the covers.  Meaning: you're using
+``mpifort`` whether you realize it or not.
 
 Basically, the 1980's called; they want their ``mpif77`` wrapper
 compiler back.  *Let's let them have it.*
 
 /////////////////////////////////////////////////////////////////////////
+
+.. _faq-building-mpi-apps-wrapper-compiler-alternatives-label:
 
 I can't / don't want to use Open MPI's wrapper compilers. What do I do?
 -----------------------------------------------------------------------
@@ -106,12 +113,22 @@ Things are *much* better these days; wrapper compilers can handle
 almost any situation, and are far more reliable than you attempting to
 hard-code the Open MPI-specific compiler and linker flags manually.
 
-That being said, there *are* some |mdash| very, very few |mdash| situations
-where using wrapper compilers can be problematic |mdash| such as nesting
-multiple wrapper compilers of multiple projects.  Hence, Open MPI
-provides a workaround to find out what command line flags you need to
-compile MPI applications.  There are generally two sets of flags that
-you need: compile flags and link flags.
+That being said, there *are* some situations |mdash| very, very few
+situations |mdash| where using wrapper compilers can be problematic
+|mdash| such as nesting multiple wrapper compilers of multiple
+projects.  Hence, Open MPI provides a workaround to find out what
+command line flags you need to compile MPI applications.  There are
+generally two sets of flags that you need: compile flags and link
+flags.
+
+You can use one of two methods to dynamically discover what compiler /
+linker flags are necessary on your system:
+
+#. Use the ``--showme`` flags to Open MPI's wrapper compilers, or
+#. Use the ``pkg-config(1)`` system.
+
+Here's an example showing the use of the ``--showme`` wrapper compiler
+flags:
 
 .. code-block:: sh
    :linenos:
@@ -126,16 +143,7 @@ The ``--showme:*`` flags work with all Open MPI wrapper compilers
 (specifically: ``mpicc``, ``mpiCC`` / ``mpicxx`` / ``mpic++``,
 ``mpifort``, and if you really must use them, ``mpif77``, ``mpif90``).
 
-Hence, if you need to use some compiler other than Open MPI's wrapper
-compilers, we advise you to run the appropriate Open MPI wrapper
-compiler with the ``--showme`` flags to see what Open MPI needs to
-compile / link, and then use those with your compiler.
-
-.. caution:: It is *absolutely not sufficient* to simply add ``-lmpi``
-             to your link line and assume that you will obtain a valid
-             Open MPI executable.
-
-.. caution:: It is almost never a good idea to hard-code these results
+.. warning:: It is almost never a good idea to hard-code these results
              in a Makefile (or other build system).  It is almost
              always best to run (for example) ``mpicc
              --showme:compile`` in a dynamic fashion to find out what
@@ -151,7 +159,33 @@ compile / link, and then use those with your compiler.
                 my_app: my_app.c
                         $(CC) $(MPI_COMPILE_FLAGS) my_app.c $(MPI_LINK_FLAGS) -o my_app
 
+And here's an example showing how to use ``pkg-config`` |mdash| you
+may need to add ``$prefix/lib/pkgconfig`` to the ``PKG_CONFIG_PATH``
+environment variable for Open MPI's config files to be found:
+
+.. code-block:: sh
+   :linenos:
+
+   # Show the flags necessary to compile MPI C applications
+   shell$ export PKG_CONFIG_PATH=/opt/openmpi/lib/pkgconfig
+   shell$ pkg-config ompi-c --cflags
+
+   # Show the flags necessary to link MPI C applications
+   shell$ pkg-config ompi-c --libs
+
+Open MPI supplies multiple ``pkg-config(1)`` configuration files; one
+for each different wrapper compiler (language):
+
+* ``ompi``: Synonym for ``ompi-c``; Open MPI applications using the C
+  MPI bindings
+* ``ompi-c``: Open MPI applications using the C MPI bindings
+* ``ompi-cxx``: Open MPI applications using the C MPI bindings
+* ``ompi-fort``: Open MPI applications using the Fortran MPI bindings
+
+
 /////////////////////////////////////////////////////////////////////////
+
+.. _faq-building-mpi-apps-override-wrapper-flags-label:
 
 How do I override the flags specified by Open MPI's wrapper compilers?
 ----------------------------------------------------------------------
@@ -169,6 +203,8 @@ selected.  These files are installed in ``$pkgdatadir``, which defaults
 to ``$prefix/share/openmpi/WRAPPER_NAME-wrapper-data.txt``.  A
 few environment variables are available for run-time replacement of
 the wrapper's default values (from the text files):
+
+.. note:: You may need to scroll right in the following table.
 
 .. list-table::
    :header-rows: 1
@@ -284,7 +320,7 @@ interesting for end-users:
 
 /////////////////////////////////////////////////////////////////////////
 
-.. _faq-mpi-apps-showme-label:
+.. _faq-building-mpi-apps-showme-label:
 
 How can I tell what the wrapper compiler default flags are?
 -----------------------------------------------------------
@@ -438,7 +474,7 @@ Due to popular user request, Open MPI changed its policy starting with
 v1.7.4: by default on supported systems, Open MPI's wrapper compilers
 *do* insert ``-rpath`` (or similar) flags when linking MPI applications.
 You can see the exact flags added by the ``--showme`` functionality
-described in :ref:`this FAQ entry <faq-mpi-apps-showme-label>`.
+described in :ref:`this FAQ entry <faq-building-mpi-apps-showme-label>`.
 
 This behavior can be disabled by configuring Open MPI with the
 ``--disable-wrapper-rpath`` CLI option.
@@ -529,6 +565,6 @@ Starting with v4.0.0, Open MPI |mdash| by default |mdash| removes the
 prototypes for MPI symbols that were deprecated in 1996 and finally
 removed from the MPI standard in MPI-3.0 (2012).
 
-:doc:`See this FAQ category </faq/mpi-removed>` for much more
-information, including how to easily update your MPI application
+:doc:`See this FAQ category </faq/removed-mpi-constructs>` for much
+more information, including how to easily update your MPI application
 to avoid these problems.

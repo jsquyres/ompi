@@ -1,3 +1,5 @@
+.. _version_numbers_section_label:
+
 Version numbers and binary compatibility
 ==========================================
 
@@ -56,6 +58,23 @@ work (because it is mixing vX and vY of Open MPI in a single job).
 Similarly, if using a container technology that internally bundles all
 the libraries from Open MPI vX, attempting to launch that container
 with ``mpirun`` / ``oshrun`` from Open MPI vY is not guaranteed to work.
+
+.. warning:: Prior to v1.3.2, subtle and strange failures are almost
+             guaranteed to occur if applications were compiled and
+             linked against shared libraries from one version of Open
+             MPI and then run with another.  The Open MPI team
+             strongly discourages making any ABI assumptions before
+             v1.3.2.
+
+.. warning:: ABI for the ``use mpi`` Fortran interface was
+             inadvertantly broken in the v1.6.3 release, and was
+             restored in the v1.6.4 release.  Any Fortran applications
+             that utilize the ``use mpi`` MPI interface that were
+             compiled and linked against the v1.6.3 release will not
+             be link-time compatible with other releases in the 1.5.x
+             / 1.6.x series.  Such applications remain source
+             compatible, however, and can be recompiled/re-linked with
+             other Open MPI releases.
 
 
 Software Version Number

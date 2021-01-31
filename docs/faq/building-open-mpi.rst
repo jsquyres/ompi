@@ -47,7 +47,7 @@ What are the default build options for Open MPI?
 ------------------------------------------------
 
 If you have obtained a developer's checkout from Git,
-:doc:`you must consult these directions </developer>`.
+:doc:`you must consult these directions </developers>`.
 
 The default options for building an Open MPI tarball are:
 
@@ -87,12 +87,13 @@ Instead, you probably want to install your new version of Open MPI to
 another path, such as ``/opt/openmpi-version`` (or whatever is
 appropriate for your system).
 
-The :ref:`where to install <faq-building-where-to-install-label>` FAQ
-question constans some suggestions on where to install Open MPI.
+The :ref:`where to install
+<faq-building-open-mpi-where-to-install-label>` FAQ question contains
+some suggestions on where to install Open MPI.
 
 /////////////////////////////////////////////////////////////////////////
 
-.. _faq-building-where-to-install-label:
+.. _faq-building-open-mpi-where-to-install-label:
 
 Where should I install Open MPI?
 --------------------------------
@@ -179,8 +180,9 @@ There are two common approaches:
 
              Two common options to avoid this extra filesystem traffic
              are to build Open MPI to not use plugins (see :ref:`this
-             FAQ entry for detail <faq-building-avoid-dso-label>`) or
-             to install Open MPI locally (see below).
+             FAQ entry for detail
+             <faq-building-open-mpi-avoid-dso-label>`) or to install
+             Open MPI locally (see below).
 
 #. If you are concerned with networked filesystem costs of accessing
    the Open MPI binaries, you can install Open MPI on the local hard
@@ -264,7 +266,7 @@ upgrading your Open MPI installation:
 
 /////////////////////////////////////////////////////////////////////////
 
-.. _faq-building-avoid-dso-label:
+.. _faq-building-open-mpi-avoid-dso-label:
 
 Can I disable Open MPI's use of plugins?
 ----------------------------------------
@@ -322,7 +324,7 @@ ways:
    built as standalone DSOs.  However, Open MPI will still look for
    DSOs in the filesystem at run-time.  Specifically: this option
    *significantly* decreases (but does not eliminate) filesystem
-   traffic during ``MPI_INIT`, but does allow the flexibility of
+   traffic during ``MPI_INIT``, but does allow the flexibility of
    adding new plugins to an existing Open MPI installation.
 
    Note that the ``--disable-mca-dso`` option does not affect whether
@@ -474,7 +476,7 @@ Installation guide for more details.
 
 /////////////////////////////////////////////////////////////////////////
 
-.. _faq-building-sed-errors-label:
+.. _faq-building-open-mpi-sed-errors-label:
 
 Configure issues warnings about sed and unterminated commands
 -------------------------------------------------------------
@@ -508,14 +510,14 @@ coming from (and eliminate it):
 
 /////////////////////////////////////////////////////////////////////////
 
-Open MPI configured ok, but I get "Makefile:602: *** missing separator" kinds of errors when building
------------------------------------------------------------------------------------------------------
+Open MPI configured ok, but I get ``Makefile:602: *** missing separator`` kinds of errors when building
+-------------------------------------------------------------------------------------------------------
 
 This is *usually* an indication that ``configure`` succeeded but
 really shouldn't have.
 
-:ref:`See this FAQ entry <faq-building-sed-errors-label>` for one
-possible cause.
+:ref:`See this FAQ entry <faq-building-open-mpi-sed-errors-label>` for
+one possible cause.
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -866,8 +868,8 @@ that you want it to use:
 Note that you cannot configure with ``--disable-dlopen`` as that will
 break the ability of the Open MPI library to dynamically load ``libcuda.so``.
 
-:doc:`See this FAQ entry </faq/cuda>`
-for detals on how to use the CUDA support.";
+:doc:`See this FAQ section </faq/cuda>` for detals on how to use the
+CUDA support.";
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -1142,12 +1144,13 @@ There are a few different possible solutions to this issue:
 
 Be sure to :ref:`see this section of the Installation guide
 <install-misc-support-libraries-label>` and :ref:`this FAQ entry
-<faq-building-intext-hwloc-libevent-label>` for more information about
-the bundled hwloc and/or Libevent vs. system-installed versions.
+<faq-building-open-mpi-intext-hwloc-libevent-label>` for more
+information about the bundled hwloc and/or Libevent
+vs. system-installed versions.
 
 /////////////////////////////////////////////////////////////////////////
 
-.. _faq-building-intext-hwloc-libevent-label:
+.. _faq-building-open-mpi-intext-hwloc-libevent-label:
 
 Should I use the bundled hwloc and Libevent, or system-installed versions?
 --------------------------------------------------------------------------

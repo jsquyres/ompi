@@ -111,16 +111,18 @@ that release of Open MPI supports.
 
 /////////////////////////////////////////////////////////////////////////
 
+.. _faq_supported_systems_mpi_compliance_label:
+
 How much MPI does Open MPI support?
 -----------------------------------
 
-Open MPI 1.2 supports all of MPI-2.0.
+* Open MPI 1.2 supports all of MPI-2.0.
 
-Open MPI 1.3 supports all of MPI-2.1.
+* Open MPI 1.3 supports all of MPI-2.1.
 
-Open MPI 1.8 supports all of MPI-3.0.
+* Open MPI 1.8 supports all of MPI-3.0.
 
-Starting with v2.0, Open MPI supports all of MPI-3.1.
+* Starting with v2.0, Open MPI supports all of MPI-3.1.
 
 
 /////////////////////////////////////////////////////////////////////////

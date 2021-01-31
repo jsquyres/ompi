@@ -41,9 +41,14 @@ are solely command-line manipulators, and have nothing to do with the
 actual compilation or linking of programs.  The end result is an MPI
 executable that is properly linked to all the relevant libraries.
 
+.. caution:: It is *absolutely not sufficient* to simply add ``-lmpi``
+             to your link line and assume that you will obtain a valid
+             Open MPI executable.
+
 Customizing the behavior of the wrapper compilers is possible (e.g.,
 changing the compiler [not recommended] or specifying additional
-compiler/linker flags); see the Open MPI FAQ for more information.
+compiler/linker flags); see :doc:`this section of the Open MPI FAQ
+</faq/building-mpi-apps>` for more information.
 
 Alternatively, Open MPI also installs ``pkg-config(1)`` configuration
 files under ``$libdir/pkgconfig``.  If ``pkg-config`` is configured to find
@@ -57,22 +62,10 @@ performed like this:
                `pkg-config ompi-c --cflags --libs`
    shell$
 
-Open MPI supplies multiple ``pkg-config(1)`` configuration files; one
-for each different wrapper compiler (language):
-
-* ``ompi``: Synonym for ``ompi-c``; Open MPI applications using the C
-   MPI bindings
-* ``ompi-c``: Open MPI applications using the C MPI bindings
-* ``ompi-cxx``: Open MPI applications using the C MPI bindings
-* ``ompi-fort``: Open MPI applications using the Fortran MPI bindings
-
-The following ``pkg-config(1)`` configuration files *may* be installed,
-depending on which command line options were specified to Open MPI's
-configure script.  They are not necessary for MPI applications, but
-may be used by applications that use Open MPI's lower layer support
-libraries.
-
-* ``opal``: Open Portable Access Layer applications
+See :ref:`this FAQ item
+<faq-building-mpi-apps-wrapper-compiler-alternatives-label>` for more
+information on Open MPI's wrapper compilers and the use of
+``pkg-config``.
 
 
 Running Open MPI Applications

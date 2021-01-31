@@ -219,11 +219,11 @@ to tweak are:
 
       shell$ ompi_info --param all all
 
-  .. note:: Starting with Open MPI v1.8, ``ompi_info`` categorizes
-     its parameters in so-called levels, as defined by
-     the MPI_T interface.  You will need to specify ``--level 9``
-     (or ``--all``) to show *all* MCA parameters.  `See
-     this blog entry <http://blogs.cisco.com/performance/open-mpi-and-the-mpi-3-mpi_t-interface>`_
+  .. note:: Starting with Open MPI v1.8, ``ompi_info`` categorizes its
+     parameters in *levels*, as defined by the MPI_T interface from
+     the MPI standard.  You will need to specify ``--level 9`` (or
+     ``--all``) to show *all* MCA parameters.  `See this blog entry
+     <http://blogs.cisco.com/performance/open-mpi-and-the-mpi-3-mpi_t-interface>`_
      for further information.
 
   .. code-block:: sh

@@ -132,7 +132,7 @@ I want to redistribute Open MPI.  Can I?
 
 Absolutely.
 
-*NOTE:* We are not lawyers and this is not legal advice.
+.. note:: We are not lawyers and this is not legal advice.
 
 Please read the :doc:`Open MPI license </license>` (the BSD license).
 It contains extremely liberal provisions for redistribution.

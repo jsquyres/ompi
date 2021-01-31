@@ -15,10 +15,12 @@ There are many ways to contribute.  Here are a few:
 #. Subscribe to `the mailing lists
    <https://www.open-mpi.org/community/lists/>`_ and become active in
    the discussions.
-#. Obtain `a source code checkout <https://www.open-mpi.org/source/>`_
-   of Open MPI's code base and start looking through the code (be sure
-   to see the :doc:`Developers guide </developers>`) for technical
-   details about the code base).
+#. Obtain `a Git clone <https://www.open-mpi.org/source/>`_ of Open
+   MPI's code base and start looking through the code.
+
+   * Be sure to see the :doc:`Developers guide </developers>` for
+     technical details about the code base and how to build it).
+
 #. Write your own components and contribute them back to the main code
    base.
 #. Contribute bug fixes and feature enhancements to the main code

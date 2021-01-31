@@ -39,8 +39,8 @@ proxies. If your network setup requires the user of a web proxy,
           GitHub.
 
 
-Developer Build Prerequisites
------------------------------
+Prerequisites
+-------------
 
 Compilers
 ^^^^^^^^^
@@ -52,13 +52,23 @@ You'll also need a Fortran compiler if you want to build the Fortran MPI binding
 GNU Autotools
 ^^^^^^^^^^^^^
 
-When building Open MPI from its repository sources, the GNU Autotools must be installed.
+When building Open MPI from its repository sources, the GNU Autotools
+must be installed.
 
-.. note:: The GNU Autotools are *not* required when building Open MPI from distribution tarballs.  Open MPI distribution tarballs are bootstrapped such that end-users do not need to have the GNU Autotools installed.
+.. note:: The GNU Autotools are *not* required when building Open MPI
+          from distribution tarballs.  Open MPI distribution tarballs
+          are bootstrapped such that end-users do not need to have the
+          GNU Autotools installed.
 
-You can generally install GNU Autoconf, Automake, and Libtool via your Linux distro native package system, or via Homebrew or MacPorts on MacOS.  This usually "just works."
+You can generally install GNU Autoconf, Automake, and Libtool via your
+Linux distro native package system, or via Homebrew or MacPorts on
+MacOS.  This usually "just works."
 
-If you run into problems with the GNU Autotools, or need to download / build them manually, :doc:`see the GNU Autotool section of the Open MPI developer's docs </gnu-autotools>` for much more detail on how to do this.
+If you run into problems with the GNU Autotools, or need to download /
+build them manually, :ref:`see the GNU Autotool section of the Open
+MPI developer's docs <gnu-autotools-section-label>` for much more
+detail on how to do this.
+
 
 Flex
 ^^^^
@@ -83,22 +93,25 @@ on some platforms, but the warnings do not seem to be consistent or
 uniform on all platforms, compilers, and flex versions.  As such, we
 have done little to try to remove those warnings.
 
-If you do not have Flex installed and cannot easily install it via your operating system's packaging system (to include Homebrew or MacPorts on MacOS), see `the Flex Github repository
+If you do not have Flex installed and cannot easily install it via
+your operating system's packaging system (to include Homebrew or
+MacPorts on MacOS), see `the Flex Github repository
 <https://github.com/westes/flex>`_.
 
 
 Pandoc
 ^^^^^^
 
-.. JMS THIS MAY/WILL NEED TO CHANGE IF WE SWITCH TO SPHINX
+.. error:: **JMS THIS MAY/WILL NEED TO CHANGE IF WE SWITCH TO SPHINX**
 
 The Pandoc tool is used to generate Open MPI's man pages.
 Specifically: Open MPI's man pages are written in Markdown; Pandoc is
 the tool that converts that Markdown to nroff (i.e., the format of man
 pages).
 
-.. warning:: You must have Pandoc >=v1.12 when building Open MPI from a developer's
-   tree.  If configure cannot find Pandoc >=v1.12, it will abort.
+.. warning:: You must have Pandoc >=v1.12 when building Open MPI from
+   a developer's tree.  If configure cannot find Pandoc >=v1.12, it
+   will abort.
 
 If you need to install Pandoc, check your operating system-provided
 packages (to include MacOS Homebrew and MacPorts).  `The Pandoc
@@ -109,7 +122,7 @@ for their releases.
 Sphinx
 ^^^^^^
 
-.. JMS Need to write more here
+.. error:: **JMS Need to write more here**
 
 Sphinx...
 
@@ -117,8 +130,8 @@ Sphinx...
 * https://www.sphinx-doc.org/
 
 
-Developer Builds: Compiler Pickyness by Default
------------------------------------------------
+Compiler Pickyness by Default
+-----------------------------
 
 If you are building Open MPI from a Git clone (i.e., there is a
 ``.git`` directory in your build tree), the default build includes
@@ -185,10 +198,12 @@ You do *NOT* need to re-run ``autogen.pl`` if you modify a
 Building Open MPI
 -----------------
 
-Once you have run ``autogen.pl`` successfully, you can configure and build Open MPI just like end users do with official distribution Open MPI tarballs.
+Once you have run ``autogen.pl`` successfully, you can configure and
+build Open MPI just like end users do with official distribution Open
+MPI tarballs.
 
-:ref:`See the general "Install Open MPI" documentation for more details. <building-and-installing-section-label>`
-
+:ref:`See the general "Install Open MPI" documentation for more
+details. <building-and-installing-section-label>`
 
 
 Open MPI terminology
@@ -208,7 +223,8 @@ Open MPI has multiple main sections of code:
 There are strict abstraction barriers in the code between these
 sections.  That is, they are compiled into separate libraries:
 ``liboshmem``, ``libmpi``, ``libopal`` with a strict dependency order:
-OSHMEM depends on OMPI, OMPI depends on OPAL.  For example, MPI executables are linked with:
+OSHMEM depends on OMPI, OMPI depends on OPAL.  For example, MPI
+executables are linked with:
 
 .. code-block:: sh
    :linenos:
@@ -217,8 +233,8 @@ OSHMEM depends on OMPI, OMPI depends on OPAL.  For example, MPI executables are 
    # This actually turns into:
    shell$ cc myapp.c -o myapp -lmpi -lopen-rte -lopen-pal ...
 
-More system-level libraries may listed after ``-lopal``, but you get the
-idea.
+More system-level libraries may listed after ``-lopal``, but you get
+the idea.
 
 Strictly speaking, these are not "layers" in the classic software
 engineering sense (even though it is convenient to refer to them as
@@ -230,12 +246,13 @@ interface.
 As such, this code organization more reflects abstractions and
 software engineering, not a strict hierarchy of functions that must be
 traversed in order to reach a lower layer.  For example, OMPI can
-directly call the operating system as necessary (and not go through OPAL).  Indeed,
-many top-level MPI API functions are quite performance sensitive; it
-would not make sense to force them to traverse an arbitrarily deep
-call stack just to move some bytes across a network.
+directly call the operating system as necessary (and not go through
+OPAL).  Indeed, many top-level MPI API functions are quite performance
+sensitive; it would not make sense to force them to traverse an
+arbitrarily deep call stack just to move some bytes across a network.
 
-Note that Open MPI also uses some third-party libraries for core functionality:
+Note that Open MPI also uses some third-party libraries for core
+functionality:
 
 * PMIx
 * PRRTE
@@ -299,17 +316,19 @@ tree:
     * ``oshmem``: Top-level OpenSHMEM code base
     * ``ompi``: The Open MPI code base
     * ``opal``: The OPAL code base
-* ``config``: M4 scripts supporting the top-level ``configure`` script ``mpi.h``
+* ``config``: M4 scripts supporting the top-level ``configure`` script
+  ``mpi.h``
 * ``etc``: Some miscellaneous text files
 * ``docs``: Source code for Open MPI documentation
 * ``examples``: Trivial MPI / OpenSHMEM example programs
-* ``3rd-party``: Included copies (via Git submodules in Git clones) of required core libraries
+* ``3rd-party``: Included copies (via Git submodules in Git clones) of
+  required core libraries
 
 Each of the three main source directories (``oshmem``, ``ompi``, and
-``opal``) generate a top-level library named ``liboshmem``, ``libmpi``, and
-``libopen-pal``, respectively.  They can be built as either static or shared
-libraries.  Executables are also produced in subdirectories of some of
-the trees.
+``opal``) generate a top-level library named ``liboshmem``,
+``libmpi``, and ``libopen-pal``, respectively.  They can be built as
+either static or shared libraries.  Executables are also produced in
+subdirectories of some of the trees.
 
 Each of the sub-project source directories have similar (but not
 identical) directory structures under them:
@@ -377,3 +396,351 @@ of the v5.0 source tree):
 
 Under these mandated directories, frameworks and/or components may have
 arbitrary directory structures, however.
+
+
+Installing the GNU Autootools
+-----------------------------
+
+.. _gnu-autotools-section-label:
+
+There is enough detail in building the GNU Autotools that it warrants
+its own section.
+
+.. note:: As noted above, you only need to read/care about this
+          section if you are building Open MPI from a Git clone.  End
+          users installing an Open MPI distribution tarball do *not*
+          need to have the GNU Autotools installed.
+
+Autotools versions
+^^^^^^^^^^^^^^^^^^
+
+The following tools are required for developers to compile Open MPI
+from its repository sources (users who download Open MPI tarballs do
+not need these tools - they are only required for developers working
+on the internals of Open MPI itself):
+
+.. list-table::
+    :header-rows: 1
+
+    * - Software package
+      - Notes
+      - URL
+
+    * - GNU m4
+      - See version chart below
+      - https://ftp.gnu.org/gnu/m4/
+    * - GNU Autoconf
+      - See version chart below
+      - https://ftp.gnu.org/gnu/autoconf/
+    * - GNU Automake
+      - See version chart below
+      - https://ftp.gnu.org/gnu/automake/
+    * - GNU Libtool
+      - See version chart below
+      - https://ftp.gnu.org/gnu/libtool/
+
+The table below lists the versions that are used to make nightly
+snapshot and official release Open MPI tarballs. Other versions of the
+tools may work for some (but almost certainly not all) platforms, but
+the ones listed below are the versions that we know work across an
+extremely wide variety of platforms and environments.
+
+To strengthen the above point: the core Open MPI developers typically
+use very, very recent versions of the GNU tools.  There are known bugs
+in older versions of the GNU tools that Open MPI no longer compensates
+for (it seemed senseless to indefinitely support patches for ancient
+versions of Autoconf, for example).
+
+.. warning:: You **will** have problems if you do not use recent
+             versions of the GNU Autotools.
+
+That being said, ``autogen.pl`` and ``configure.ac`` scripts tend to
+be a bit lenient and enforce slightly older minimum versions than the
+ones listed below. This is because such older versions still make
+usable Open MPI builds on many platforms - especially Linux on x86_64
+with GNU compilers - and are convenient for developers whose Linux
+distro may not have as recent as the versions listed below (but are
+recent enough to produce a working version for their platform).
+
+To be clear: the versions listed below are required to support a wide
+variety of platforms and environments, and are used to make nightly
+and official release tarballs. When building Open MPI, YMMV when using
+versions older than those listed below |mdash| especially if you are
+not building on Linux x86_64 with the GNU compilers.
+
+Using older versions is unsupported. If you run into problems, upgrade
+to at least the versions listed below.
+
+.. note:: You may need to scroll right in the following table.
+
+.. list-table::
+    :header-rows: 1
+
+    * - Open MPI
+      - M4
+      - Autoconf
+      - Automake
+      - Libtool
+      - Flex
+      - Pandoc
+      - Sphinx
+
+    * - v1.0.x
+      - NA
+      - 2.58 - 2.59
+      - 1.7 - 1.9.6
+      - 1.5.16 - 1.5.22
+      - 2.5.4
+      -	NA
+      - NA
+    * - v1.1.x
+      - NA
+      - 2.59
+      - 1.9.6
+      - 1.5.16 - 1.5.22
+      - 2.5.4
+      - NA
+      - NA
+    * - v1.2.x
+      - NA
+      - 2.59
+      - 1.9.6
+      - 1.5.22 - 2.1a
+      - 2.5.4
+      - NA
+      - NA
+    * - v1.3.x
+      - 1.4.11
+      - 2.63
+      - 1.10.1
+      - 2.2.6b
+      - 2.5.4
+      - NA
+      - NA
+    * - v1.4.x
+      - 1.4.11
+      - 2.63
+      - 1.10.3
+      - 2.2.6b
+      - 2.5.4
+      - NA
+      - NA
+    * - v1.5.x for x=0-4
+      - 1.4.13
+      - 2.65
+      - 1.11.1
+      - 2.2.6b
+      - 2.5.4
+      - NA
+      - NA
+    * - v1.5.x for x>=5
+      - 1.4.16
+      - 2.68
+      - 1.11.3
+      - 2.4.2
+      - 2.5.35
+      - NA
+      - NA
+    * - v1.6.x
+      - 1.4.16
+      - 2.68
+      - 1.11.3
+      - 2.4.2
+      - 2.5.35
+      - NA
+      - NA
+    * - v1.7.x
+      - 1.4.16
+      - 2.69
+      - 1.12.2
+      - 2.4.2
+      - 2.5.35
+      - NA
+      - NA
+    * - v1.8.x
+      - 1.4.16
+      - 2.69
+      - 1.12.2
+      - 2.4.2
+      - 2.5.35
+      - NA
+      - NA
+    * - v1.10.x
+      - 1.4.16
+      - 2.69
+      - 1.12.2
+      - 2.4.2
+      - 2.5.35
+      - NA
+      - NA
+    * - v2.0.x through v4.y
+      - 1.4.17
+      - 2.69
+      - 1.15
+      - 2.4.6
+      - 2.5.35
+      - NA
+      - NA
+    * - Git master
+      - 1.4.17
+      - 2.69
+      - 1.15
+      - 2.4.6
+      - 2.5.35
+      - 1.12
+      - 3.4.1
+
+.. error:: **JMS Remove Pandoc, above?**
+
+Here are some random notes about the GNU Autotools:
+
+#. Other version combinations may work, but are untested and
+   unsupported. In particular, developers tend to use higher versions
+   of Autotools for master/development work, and they usually work
+   fine.
+
+#. The v1.4 and v1.5 series had their Automake versions updated on 10
+   July 2011 (from 1.10.1 to 1.10.3, and 1.11 to 1.11.1, respectively)
+   due to CVE-2009-4029. This applies to all new snapshot tarballs
+   produced after this date, and the v1.4 series as of v1.4.4, and the
+   v1.5 series as of 1.5.4.
+
+#. If Autoconf 2.60 (and higher) is used, Automake 1.10 (and higher)
+   must be used.
+
+#. The ``master`` branch and all release branches starting with v1.2
+   require the use of Libtool 2.x (or higher) so that Open MPI can
+   build the Fortran 90 module as a shared library. If (and only if)
+   you intend to not build the Fortran 90 library or your Fortran 77
+   and Fortran 90 compilers have the same name (e.g., gfortran), you
+   can use Libtool 1.5.22 to build Open MPI v1.0 through v1.2.x.
+
+#. There was a period of time where Open MPI nightly snapshot tarballs
+   were made with `a Libtool 2.0 development snapshot
+   <https://www.open-mpi.org/source/libtool.tar.gz>`_. This has
+   long-since been deprecated; Open MPI uses official Libtool releases
+   (no official Open MPI releases used the Libtool 2.0 development
+   snapshot).
+
+
+Checking your versions
+^^^^^^^^^^^^^^^^^^^^^^
+
+You can check what versions of the Autotools you have installed with
+the following:
+
+.. code-block:: sh
+   :linenos:
+
+   shell$ m4 --version
+   shell$ autoconf --version
+   shell$ automake --version
+   shell$ libtoolize --version
+
+Installing the GNU Autotools from source
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note:: Most operating system packaging systems (to include Homebrew
+          and MacPorts on MacOS) install recent-enough versions of the
+          GNU Autotools.  You should generally only install the GNU
+          Autotools manually if you can't use your operating system
+          packaging system to install them for you.
+
+The GNU Autotools sources can be can be downloaded from:
+
+* https://ftp.gnu.org/gnu/autoconf/
+* https://ftp.gnu.org/gnu/automake/
+* https://ftp.gnu.org/gnu/libtool/
+* And if you need it: https://ftp.gnu.org/gnu/m4/
+
+It is certainly easiest to download/build/install all four of these
+tools together.  But note that Open MPI has no specific m4
+requirements; it is only listed here because Autoconf requires minimum
+versions of GNU m4.  Hence, you may or may not *need* to actually
+install a new version of GNU m4.  That being said, if you are confused
+or don't know, just install the latest GNU m4 with the rest of the GNU
+Autotools and everything will work out fine.
+
+
+Build and Install Ordering
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You must build and install the GNU Autotools in the following order:
+
+#. m4
+#. Autoconf
+#. Automake
+#. Libtool
+
+You *must* install the last three tools (Autoconf, Automake, Libtool)
+into the same prefix directory.  These three tools are somewhat
+inter-related, and if they're going to be used together, they MUST
+share a common installation prefix.
+
+You can install m4 anywhere as long as it can be found in the path;
+it may be convenient to install it in the same prefix as the other
+three.  Or you can use any recent-enough m4 that is in your path.
+
+.. warning:: It is *strongly* encouraged that you do **not** install
+   your new versions over the OS-installed versions.  This could cause
+   other things on your system to break.  Instead, install into
+   ``$HOME/local``, or ``/usr/local``, or wherever else you tend to
+   install "local" kinds of software.
+
+   In doing so, be sure to prefix your ``$PATH`` with the directory
+   where they are installed.  For example, if you install into
+   ``$HOME/local``, you may want to edit your shell startup file
+   (``.bashrc``, ``.cshrc``, ``.tcshrc``, etc.) to have something
+   like:
+
+   .. code-block:: sh
+      :linenos:
+
+      # For bash/sh:
+      export PATH=$HOME/local/bin:$PATH
+      # For csh/tcsh:
+      set path = ($HOME/local/bin $path)
+
+   Ensure to set your ``$PATH`` *BEFORE* you configure/build/install
+   the four packages.
+
+All four packages require two simple commands to build and
+install (where ``PREFIX`` is the prefix discussed in 3, above).
+
+.. code-block:: sh
+   :linenos:
+
+   shell$ cd M4_DIRECTORY
+   shell$ ./configure --prefix=PREFIX
+   shell$ make all install
+
+.. important:: If you are using a shell that does not automatically
+               re-index the ``$PATH`` (e.g., the ``csh`` or ``tcsh``
+               shells), be sure to run the ``rehash`` command before
+               you install the next package so that the executables
+               that were just installed can be found by the next
+               package.
+
+.. code-block:: sh
+   :linenos:
+
+   # Make $PATH be re-indexed if necessary, e.g., via "rehash"
+   shell$ cd AUTOCONF_DIRECTORY
+   shell$ ./configure --prefix=PREFIX
+   shell$ make all install
+
+.. code-block:: sh
+   :linenos:
+
+   # Make $PATH be re-indexed if necessary, e.g., via "rehash"
+   shell$ cd AUTOMAKE_DIRECTORY
+   shell$ ./configure --prefix=PREFIX
+   shell$ make all install
+
+.. code-block:: sh
+   :linenos:
+
+   # Make $PATH be re-indexed if necessary, e.g., via "rehash"
+   shell$ cd LIBTOOL_DIRECTORY
+   shell$ ./configure --prefix=PREFIX
+   shell$ make all install

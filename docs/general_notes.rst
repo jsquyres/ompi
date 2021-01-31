@@ -65,12 +65,13 @@ base as of this writing (April 2020):
 Platform Notes
 --------------
 
-.. JMS We should have a canonical list of
-   -  *required* 3rd-party package versions supported (PRRTE, hwloc,
+.. error:: **JMS We should have a canonical list of:**
+
+   *  *required* 3rd-party package versions supported (PRRTE, hwloc,
       libevent)
-   - back-end run-time systems supported (behind PRRTE)
-   - OS's and compilers supported
-   - network interconnects supported.
+   * back-end run-time systems supported (behind PRRTE)
+   * OS's and compilers supported
+   * network interconnects supported.
 
 * Systems that have been tested are:
 
@@ -482,9 +483,9 @@ MPI Functionality and Features
      first deprecated over 20 years ago, and finally removed from the
      MPI specification in MPI-3.0 (in 2012).
 
-  .. important:: :doc:`The Open MPI FAQ </faq/mpi-removed>` contains
-     examples of how to update legacy MPI applications using these
-     deleted symbols to use the "new" symbols.
+  .. important:: :doc:`The Open MPI FAQ </faq/removed-mpi-constructs>`
+     contains examples of how to update legacy MPI applications using
+     these deleted symbols to use the "new" symbols.
 
   All that being said, if you are unable to immediately update your
   application to stop using these legacy MPI-1 symbols, you can

@@ -17,7 +17,7 @@ Specifically, the following symbols (specified in the MPI
 language-neutral names) are no longer prototyped in ``mpi.h`` by
 default:
 
-.. JMS update table with man page links
+.. error:: **JMS Update table with man page links**
 
 .. list-table::
     :header-rows: 1

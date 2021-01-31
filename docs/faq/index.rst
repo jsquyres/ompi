@@ -17,8 +17,10 @@ that they are worth categorizing in an official way.
    contributing
    supported-systems
    sysadmin
-   building
-   mpi-apps
+   building-open-mpi
+   building-mpi-apps
+   removed-mpi-constructs
+   running-mpi-apps
    fault-tolerance
    tuning
-   mpi-removed
+   ofi
