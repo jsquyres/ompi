@@ -159,14 +159,15 @@ The ``--showme:*`` flags work with all Open MPI wrapper compilers
                 my_app: my_app.c
                         $(CC) $(MPI_COMPILE_FLAGS) my_app.c $(MPI_LINK_FLAGS) -o my_app
 
-And here's an example showing how to use ``pkg-config`` |mdash| you
-may need to add ``$prefix/lib/pkgconfig`` to the ``PKG_CONFIG_PATH``
+Here's an example showing how to use ``pkg-config`` |mdash| you may
+need to add ``$prefix/lib/pkgconfig`` to the ``PKG_CONFIG_PATH``
 environment variable for Open MPI's config files to be found:
 
 .. code-block:: sh
    :linenos:
 
-   # Show the flags necessary to compile MPI C applications
+   # Show the flags necessary to compile MPI C applications.
+   # Set PKG_CONFIG_PATH as relevant for your Open MPI installation.
    shell$ export PKG_CONFIG_PATH=/opt/openmpi/lib/pkgconfig
    shell$ pkg-config ompi-c --cflags
 
@@ -484,7 +485,7 @@ This behavior can be disabled by configuring Open MPI with the
 Can I build 100% static MPI applications?
 -----------------------------------------
 
-.. caution:: Fully static linking is not for the weak, and it is not
+.. caution:: Fully static linking is not for the meek, and it is not
              recommended.  But it is possible, with some caveats.
 
 #. You must have static libraries available for *everything* that your
@@ -546,7 +547,7 @@ following:
 
 * ``-static``: Tell the linker to generate a static executable.
 * ``-Wl,--whole-archive -lfoo /path/to/plugin.a
-  -Wl,--no-whol-archive``: Tell the linker to include the entire
+  -Wl,--no-whole-archive``: Tell the linker to include the entire
   ``foo`` library and the entire ``plugin.a`` archive in the
   executable.
 

@@ -19,6 +19,8 @@ default:
 
 .. error:: **JMS Update table with man page links**
 
+.. note:: You may need to scroll right in the following table.
+
 .. list-table::
     :header-rows: 1
 
