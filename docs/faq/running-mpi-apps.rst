@@ -1373,6 +1373,8 @@ really, absolutely, positively sure of what you are doing.
 
 /////////////////////////////////////////////////////////////////////////
 
+.. _faq-running-mpi-apps-totalview-label:
+
 How do I run with the TotalView parallel debugger?
 --------------------------------------------------
 
@@ -1406,7 +1408,10 @@ executable, it would look like this:
 
 /////////////////////////////////////////////////////////////////////////
 
+.. _faq-running-mpi-apps-ddt-label:
+
 How do I run with the DDT parallel debugger?
+--------------------------------------------
 
 As of August 2015, DDT has built-in startup for MPI applications
 within its Alinea Forge GUI product.  You can simply use the built-in

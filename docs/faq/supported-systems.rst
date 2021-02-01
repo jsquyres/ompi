@@ -13,9 +13,9 @@ We primarily develop Open MPI on Linux and MacOS.
 Other operating systems are supported, however.  The exact list of
 operating systems supported has changed over time (e.g., native
 Microsoft Windows support was added in v1.3.3, and although it was
-removed prior to v1.8, is still supported through Cygwin).  See the
-README file in your copy of Open MPI for a listing of the OSes that
-that version supports.
+removed prior to v1.8, is still supported through Cygwin).  :ref:`See
+the Platform Notes section <platform-notes-section-label>` for a
+listing of the OSes that that version supports.
 
 Open MPI is fairly POSIX-neutral, so it will run without *too* many
 modifications on most POSIX-like systems.  Hence, if we haven't listed
@@ -40,8 +40,8 @@ systems listed in the previous question support.
 
 For example, Linux runs on a *wide* variety of platforms, and we
 certainly don't claim to test all of them.  Open MPI includes
-Linux-compiler-based assembly for support of Intel, AMD, and PowerPC
-chips, for example.
+Linux-compiler-based assembly for support of Intel, AMD, ARM, and
+PowerPC chips, for example.
 
 
 /////////////////////////////////////////////////////////////////////////
@@ -196,12 +196,10 @@ attaching, which several parallel debuggers support (e.g., DDT, fx2).
 As part of v1.2.4 (released in September 2007), Open MPI also supports
 the TotalView API for viewing message queues in running MPI processes.
 
-.. JMS Need to update these refs when they are converted
-
-`See this FAQ entry </faq/running?run-with-tv>`_ for
-details on how to run Open MPI jobs under TotalView, and <a
-`this FAQ entry </faq/running?run-with-ddt>`_ for
-details on how to run Open MPI jobs under DDT.
+:ref:`See this FAQ entry <faq-running-mpi-apps-totalview-label>` for
+details on how to run Open MPI jobs under TotalView, and :ref:`this
+FAQ entry <faq-running-mpi-apps-ddt-label>` for details on how to run
+Open MPI jobs under DDT.
 
 .. note:: The integration of Open MPI message queue support is
    problematic with 64 bit versions of TotalView prior to v8.3:
