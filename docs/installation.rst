@@ -660,8 +660,8 @@ above categories that can be used with ``configure``:
   ``LIBS``: Flags passed by all the wrappers to the linker
 
   There are other ways to configure Open MPI's wrapper compiler
-  behavior; see `the Open MPI FAQ <https://www.open-mpi.org/faq/>`_
-  for more information.
+  behavior; see :doc:`the Open MPI FAQ </faq/index>` for more
+  information.
 
 There are many other options available -- see ``./configure --help``.
 

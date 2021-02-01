@@ -33,6 +33,7 @@ vendors, application developers and computer science researchers.
    :numbered:
 
    quickstart
+   getting-help
    general_notes
    installation
    version-numbering

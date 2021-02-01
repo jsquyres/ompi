@@ -24,3 +24,30 @@ that they are worth categorizing in an official way.
    fault-tolerance
    tuning
    ofi
+
+.. TODO:
+
+   troubleshooting
+   parallel debugging
+   rsh/ssh
+   PBS / Torque
+   Slurm
+   SGE
+   Large Clusters
+
+   General tuning (tuning)
+   Shared memory (vader)
+   TCP
+   IB, RoCE, iWARP
+   Omni-Path (folded into ofi?)
+
+   Performance Tools
+   OMPIO
+
+   OS X
+
+   VampirTrace (?????)
+
+   Java
+
+   CUDA: Building + Running
