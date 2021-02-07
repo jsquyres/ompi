@@ -9,7 +9,7 @@ What is OFI / Libfabric?
 ------------------------
 
 "OFI" stands for the `OpenFabrics Interfaces
-<http://libfabric.org/>`_, which are implemented in the ``libfabric``
+<https://libfabric.org/>`_, which are implemented in the ``libfabric``
 library.  These two terms are typically used interchangeably.
 
 Open MPI supports many different underlying networks via Libfabric,
@@ -80,7 +80,7 @@ list. For example:
    shell$ ompi_info --param mtl ofi --level 9
 
 For more information refer to the `Libfabric web site
-<http://libfabric.org/>`_.
+<https://libfabric.org/>`_.
 
 /////////////////////////////////////////////////////////////////////////
 
