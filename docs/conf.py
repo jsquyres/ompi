@@ -40,6 +40,7 @@ for ompi_line in ompi_lines:
 
 # Release is a sphinx config variable -- assign it to the computed
 # Open MPI version number.
+series = f"{ompi_data['major']}.{ompi_data['minor']}.x"
 release = f"{ompi_data['major']}.{ompi_data['minor']}.{ompi_data['release']}{ompi_data['greek']}"
 
 
@@ -80,5 +81,7 @@ html_static_path = ['_static']
 rst_prolog = f"""
 .. |mdash|  unicode:: U+02014 .. Em dash
 .. |rarrow| unicode:: U+02192 .. Right arrow
+
 .. |ompi_ver| replace:: {release}
+.. |ompi_series| replace:: {series}
 """

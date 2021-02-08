@@ -200,6 +200,8 @@ There are two common approaches:
 
 /////////////////////////////////////////////////////////////////////////
 
+.. _faq-building-open-mpi-install-overwrite:
+
 Should I install a new version of Open MPI over an old version?
 ---------------------------------------------------------------
 

@@ -24,14 +24,14 @@ that they are worth categorizing in an official way.
    fault-tolerance
    tuning
    ofi
+   troubleshooting
+   ssh
+   slurm
 
 .. TODO:
 
-   troubleshooting
    parallel debugging
-   rsh/ssh
    PBS / Torque
-   Slurm
    SGE
    Large Clusters
 
