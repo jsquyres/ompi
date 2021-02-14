@@ -1,4 +1,4 @@
-.. Open MPI FAQ, version 5.0.0.
+.. Open MPI FAQ, version 5.0.x.
    .
    See the top-level index.rst for how to build this documentation.
 
@@ -27,12 +27,12 @@ that they are worth categorizing in an official way.
    troubleshooting
    ssh
    slurm
+   gridengine
+   tm
 
 .. TODO:
 
    parallel debugging
-   PBS / Torque
-   SGE
    Large Clusters
 
    General tuning (tuning)

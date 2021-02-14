@@ -1463,15 +1463,6 @@ See the official DDT documentation for more details.
 
 /////////////////////////////////////////////////////////////////////////
 
-How do I specify to the ``rsh`` launcher to use something other than ``ssh``?
------------------------------------------------------------------------------
-
-:ref:`See this FAQ entry <faq-ssh-use-something-other-than-ssh>`.
-
-.. error:: **JMS Can we rename this the "ssh" launcher? :-)**
-
-/////////////////////////////////////////////////////////////////////////
-
 How do I run with the Slurm and PBS/Torque launchers?
 -----------------------------------------------------
 
@@ -1481,9 +1472,10 @@ components named ``slurm`` and/or ``tm``), Open MPI will automatically
 detect when it is running inside such jobs and will just "do the Right
 Thing."
 
-See :ref:`this FAQ entry <faq-slurm-run-jobs>` for a description of
-how to run jobs in Slurm; see :ref:`this FAQ entry <faq/tm-run-jobs>`
-for a description of how to run jobs in PBS/Torque.
+See :ref:`this FAQ entry <faq-slurm-support-label>` for a description
+of how to run jobs in Slurm; see :ref:`this FAQ entry
+<faq-tm-support-label>` for a description of how to run jobs in
+PBS/Torque.
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -1502,9 +1494,10 @@ is running inside such jobs and will just "do the Right Thing."
 Can I suspend and resume my MPI job?
 ------------------------------------
 
-Yes, but only under SGE.
+Yes, but only under Grid Engine.
 
-See :ref:`this FAQ entry <faq-sge-suspend-resume>` for more details.
+See :ref:`this FAQ entry <faq-gridengine-suspend-resume-label>` for
+more details.
 
 .. error:: **JMS Is this still true?**
 

@@ -717,12 +717,14 @@ XGrid support is built automatically if the XGrid tools are installed.
 
 /////////////////////////////////////////////////////////////////////////
 
-How do I build Open MPI with support for SGE / OGE?
----------------------------------------------------
+.. _faq-building-open-mpi-grid-engine-label:
 
-Support for the Sun Grid Engine (SGE) |mdash| later renamed to the
-Oracle Gid Engine (OGE), and then forked into a few open source
-dristributions |mdash| is available, but is not enabled by default.
+How do I build Open MPI with support for Grid Engine?
+-----------------------------------------------------
+
+Support for the Grid Engine family of schedulers (E.g., Sun Grid
+Engine (SGE), Oracle Grid Engine (OGE), etc.) is available, but is not
+enabled by default.
 
 You can explicitly request the SGE support with
 the ``--with-sge`` command line switch to the Open MPI ``configure``
