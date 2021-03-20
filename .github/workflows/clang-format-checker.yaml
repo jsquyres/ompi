@@ -15,3 +15,9 @@ jobs:
         steps:
           - name: Check out the code
             uses: actions/checkout@v2
+
+          - name: Ensure clang-format v11 is installed
+            run: sudo apt install -y clang-format-11
+
+          - name: Run the clang format checker
+            run: $GITHUB_WORKSPACE/.github/workflows/clang-format-checker.sh
