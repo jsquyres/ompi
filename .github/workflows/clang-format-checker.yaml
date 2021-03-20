@@ -1,0 +1,17 @@
+name: GitHub Action CI
+
+on:
+    pull_request:
+        # We don't need this to be run on all types of PR behavior
+        # See https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request
+        types:
+          - opened
+          - synchronize
+
+jobs:
+    ci:
+        name: Clang format checker
+        runs-on: ubuntu-latest
+        steps:
+          - name: Check out the code
+            uses: actions/checkout@v2
