@@ -33,8 +33,8 @@ Note that there are many, many configuration options to the
 environmnet; see below for desciptions of the options available.
 
 If your installation prefix path is not writable by a regular user,
-you may need to use sudo or su to run the `make install` step.  For
-example:
+you may need to use `sudo` or `su` to run the `make install` step.
+For example:
 
 ```
 $ sudo make install |& tee install.out
