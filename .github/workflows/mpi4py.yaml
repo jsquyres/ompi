@@ -7,7 +7,6 @@ on:
         types:
           - opened
           - synchronize
-          - edited
 
 jobs:
   mpi4py:
@@ -71,11 +70,11 @@ jobs:
         CFLAGS: '-O0'
 
     - name: Test mpi4py (np=1)
-      run:  mpiexec -n 1 python mpi4py/test/runtests.py -v
+      run:  mpiexec -n 1 python mpi4py/test/runtests.py -e spawn -e dynproc -v
     - name: Test mpi4py (np=2)
-      run:  mpiexec -n 2 python mpi4py/test/runtests.py -v -f
+      run:  mpiexec -n 2 python mpi4py/test/runtests.py -e spawn -e dynproc-v -f
     - name: Test mpi4py (np=3)
-      run:  mpiexec -n 3 python mpi4py/test/runtests.py -v -f
+      run:  mpiexec -n 3 python mpi4py/test/runtests.py -e spawn -e dynproc-v -f
 
     - name: Test mpi4py.futures (np=1)
       run:  mpiexec -n 1 python mpi4py/demo/futures/test_futures.py -v
