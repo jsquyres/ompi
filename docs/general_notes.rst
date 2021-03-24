@@ -707,16 +707,6 @@ Network Support
 * uGNI is a Cray library for communicating over the Gemini and Aries
   interconnects.
 
-* The OpenFabrics Enterprise Distribution (OFED) software package v1.0
-  will not work properly with Open MPI v1.2 (and later) due to how its
-  Mellanox InfiniBand plugin driver is created.  The problem is fixed
-  with OFED v1.1 (and later).
-
-* The use of ``fork()`` with Libiverbs-based networks (i.e., the UCX
-  PML) is only partially supported, and only on Linux kernels >=
-  v2.6.15 with ``libibverbs`` v1.1 or later (first released as part of
-  OFED v1.2), per restrictions imposed by the OFED network stack.
-
 * Linux ``knem`` support is used when the ``sm`` (shared memory) BTL is
   compiled with knem support (see the ``--with-knem`` configure option)
   and the ``knem`` Linux module is loaded in the running kernel.  If the
@@ -731,6 +721,11 @@ Network Support
   mechanisms for Open MPI to utilize single-copy semantics for shared
   memory.
 
+* The OFI MTL does not support sending messages larger than the active
+  Libfabric provider's ``max_msg_size``.  If you receive an error
+  message about sending too large of a message when using the OFI MTL,
+  please reach out to your networking vendor to ask them to support a
+  larger ``max_msg_size`` for tagged messages.
 
 Open MPI Extensions
 -------------------
