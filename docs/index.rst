@@ -46,6 +46,18 @@ vendors, application developers and computer science researchers.
    frameworks
    license
 
+How can I be notified of the latest releases?
+=============================================
+
+The best way to hear about new Open MPI releases is via the low-volume
+announcement mailing list.  `Sign up here
+<https://lists.open-mpi.org/mailman/listinfo/announce>`_.
+
+Additionally, if you are a downstream packager of Open MPI (e.g., you
+package Open MPI for an operating system distribution), you may wish
+to sign up for the low-volume packagers list.  `Sign up here
+<https://lists.open-mpi.org/mailman/listinfo/ompi-packagers>`_.
+
 Questions?  Problems?
 =====================
 
@@ -58,22 +70,21 @@ extra information as possible.  `See the community help web page
 information that we request in order to provide assistance:
 
 The best way to report bugs, send comments, or ask questions is to
-sign up on the user's and/or developer's mailing list (for user-level
-and developer-level questions; when in doubt, send to the user's
-list):
+sign up on the user's and/or developer's mailing list:
 
-* users@lists.open-mpi.org
-* devel@lists.open-mpi.org
+* User's mailng list: `Sign up here
+  <https://lists.open-mpi.org/mailman/listinfo/users>`_.  This list is
+  for general user-level questions.
+* Developer's mailing list: `Sign up here
+  <https://lists.open-mpi.org/mailman/listinfo/devel>`_.: This list is
+  for developer-level / internals-of-Open-MPI level questions.
 
-Because of spam, only subscribers are allowed to post to these lists
-(ensure that you subscribe with and post from exactly the same e-mail
-address -- joe@example.com is considered different than
-joe@mycomputer.example.com!).  Visit these pages to subscribe to the
-lists:
+If you don't know which mailing list to send to, send to the user's
+list first.
 
-* `Subscribe to the users mailing list
-  <https://lists.open-mpi.org/mailman/listinfo/users>`_
-* `Subscribe to the developers mailing list
-  <https://lists.open-mpi.org/mailman/listinfo/devel>`_
+Because of spam, *only subscribers are allowed to post to these
+lists*. Ensure that you subscribe with and post from exactly the same
+e-mail address -- joe@example.com is considered different than
+joe@mycomputer.example.com!
 
 Make today an Open MPI day!
