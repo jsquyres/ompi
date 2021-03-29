@@ -29,10 +29,10 @@ that they are worth categorizing in an official way.
    slurm
    gridengine
    tm
+   debugging
 
 .. TODO:
 
-   parallel debugging
    Large Clusters
 
    General tuning (tuning)
