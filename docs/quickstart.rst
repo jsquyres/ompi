@@ -30,8 +30,8 @@ HPC network interconnect type and/or computing environmnet; see
 options available.
 
 If your installation prefix path is not writable by a regular user,
-you may need to use `sudo` or `su` to run the ``make install`` step.
-For example:
+you may need to use ``sudo`` or ``su`` to run the ``make install``
+step.  For example:
 
 .. code-block:: sh
    :linenos:
