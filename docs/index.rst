@@ -32,6 +32,7 @@ vendors, application developers and computer science researchers.
    :maxdepth: 2
    :numbered:
 
+   to-do
    quickstart
    getting-help
    general_notes
@@ -50,12 +51,14 @@ How can I be notified of the latest releases?
 =============================================
 
 The best way to hear about new Open MPI releases is via the low-volume
-announcement mailing list.  `Sign up here
+announcement mailing list.  Click here to `sign up for the
+announcement list
 <https://lists.open-mpi.org/mailman/listinfo/announce>`_.
 
 Additionally, if you are a downstream packager of Open MPI (e.g., you
 package Open MPI for an operating system distribution), you may wish
-to sign up for the low-volume packagers list.  `Sign up here
+to sign up for the low-volume packagers list.  Click here to `sign up
+for the packagers list
 <https://lists.open-mpi.org/mailman/listinfo/ompi-packagers>`_.
 
 Questions?  Problems?
@@ -72,12 +75,13 @@ information that we request in order to provide assistance:
 The best way to report bugs, send comments, or ask questions is to
 sign up on the user's and/or developer's mailing list:
 
-* User's mailng list: `Sign up here
-  <https://lists.open-mpi.org/mailman/listinfo/users>`_.  This list is
-  for general user-level questions.
-* Developer's mailing list: `Sign up here
-  <https://lists.open-mpi.org/mailman/listinfo/devel>`_.: This list is
-  for developer-level / internals-of-Open-MPI level questions.
+* User's mailng list: Click here to `sign up for the general user's
+  mailing list <https://lists.open-mpi.org/mailman/listinfo/users>`_.
+  This list is for general user-level questions.
+* Developer's mailing list: Click here to `sign up for the developer's
+  mailing list <https://lists.open-mpi.org/mailman/listinfo/devel>`_.:
+  This list is for developer-level / internals-of-Open-MPI level
+  questions.
 
 If you don't know which mailing list to send to, send to the user's
 list first.

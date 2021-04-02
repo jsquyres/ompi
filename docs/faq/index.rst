@@ -30,6 +30,7 @@ that they are worth categorizing in an official way.
    gridengine
    tm
    debugging
+   large-clusters
 
 .. TODO:
 
