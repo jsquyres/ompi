@@ -31,12 +31,12 @@ that they are worth categorizing in an official way.
    tm
    debugging
    large-clusters
+   java
+
+   general-tuning
 
 .. TODO:
 
-   Large Clusters
-
-   General tuning (tuning)
    Shared memory (vader)
    TCP
    IB, RoCE, iWARP
@@ -46,9 +46,5 @@ that they are worth categorizing in an official way.
    OMPIO
 
    OS X
-
-   VampirTrace (?????)
-
-   Java
 
    CUDA: Building + Running

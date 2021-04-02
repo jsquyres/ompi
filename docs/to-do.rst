@@ -9,3 +9,7 @@ Need to update these docs to reflect:
 * 32 bit support only built when we have C11 compiler
 
 * What specifically does ``--disable-io-romio`` do?
+
+* Do we still have AMCA files?
+
+* Do we still have ``--tune`` files?

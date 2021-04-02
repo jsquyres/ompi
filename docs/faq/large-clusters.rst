@@ -18,7 +18,7 @@ predecessors. We recommend that anyone running large jobs and/or on
 large clusters make the upgrade to the |ompi_series| series.
 
 Several major launch time enhancements have been made starting with the
-v3.0 release. Most of these take place in the background &mdash; i.e., there
+v3.0 release. Most of these take place in the background |mdash| i.e., there
 is nothing you (as a user) need do to take advantage of them. However,
 there are a few that are left as options until we can assess any potential
 negative impacts on different applications.
@@ -37,7 +37,7 @@ These are activated by setting the corresponding MCA parameter, and include:
   endpoint information for all processes, only the endpoint
   information for those processes this peer communicates with will be
   retrieved. The parameter is especially effective for applications
-  with sparse communication patterns &mdash; i.e., where a process
+  with sparse communication patterns |mdash| i.e., where a process
   only communicates with a few other peers. Applications that use
   dense communication patterns (i.e., where a peer communicates
   directly to all other peers in the job) will probably see a negative
@@ -141,7 +141,7 @@ opening a socket back to ``mpirun`` upon startup. In a large cluster,
 this can mean thousands of connections being formed on the node where
 ``mpirun`` resides, and requires that ``mpirun`` actually process all
 these connection requests. ``mpirun`` defaults to processing
-connection requests sequentially &mdash; so on large clusters, a
+connection requests sequentially |mdash| so on large clusters, a
 backlog can be created that can cause remote daemons to timeout
 waiting for a response.
 
@@ -171,8 +171,8 @@ change at all.  If you know your cluster's configuration, there are
 several steps you can take to both reduce Open MPI's memory footprint
 and reduce the launch time of large-scale applications.  These steps
 use a combination of build-time configuration options to eliminate
-components &mdash; thus eliminating their libraries and avoiding
-unnecessary component open/close operations &mdash; as well as
+components |mdash| thus eliminating their libraries and avoiding
+unnecessary component open/close operations |mdash| as well as
 run-time MCA parameters to specify what modules to use by default for
 most users.
 
@@ -202,5 +202,5 @@ You can still save launch time and memory, though, by setting the
 ``routed=debruijn`` MCA parameter in the default MCA parameter file.
 This causes OMPI to not open the other components during startup, but
 allows users to override this on their command line or in their
-environment so no functionality is lost &mdash; you just save some
+environment so no functionality is lost |mdash| you just save some
 memory and time.

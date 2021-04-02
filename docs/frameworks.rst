@@ -15,16 +15,17 @@ Open MPI:
 
 * ``bml``: BTL management layer
 * ``coll``: MPI collective algorithms
-* ``fbtl``: file byte transfer layer: abstraction for individual
-   read: collective read and write operations for MPI I/O
+* ``fbtl``: point to point file byte transfer layer: abstraction for
+  individual read: collective read and write operations for MPI I/O
+* ``fcoll``: collective file system functions for MPI I/O
 * ``fs``: file system functions for MPI I/O
+* ``hook``: Generic hooks into Open MPI
 * ``io``: MPI I/O
 * ``mtl``: Matching transport layer, used for MPI point-to-point
-   messages on some types of networks
+  messages on some types of networks
 * ``op``: Back end computations for intrinsic MPI_Op operators
 * ``osc``: MPI one-sided communications
 * ``pml``: MPI point-to-point management layer
-* ``rte``: Run-time environment operations
 * ``sharedfp``: shared file pointer operations for MPI I/O
 * ``topo``: MPI topology routines
 * ``vprotocol``: Protocols for the "v" PML
@@ -42,6 +43,8 @@ OpenSHMEM component frameworks
 
 Back-end run-time environment (RTE) component frameworks
 --------------------------------------------------------
+
+.. error:: JMS Should we even list these since they're in PRRTE and/or PMIx?
 
 * ``dfs``: Distributed file system
 * ``errmgr``: RTE error manager
@@ -68,7 +71,6 @@ Miscellaneous frameworks
 * ``backtrace``: Debugging call stack backtrace support
 * ``btl``: Point-to-point Byte Transfer Layer
 * ``dl``: Dynamic loading library interface
-* ``event``: Event library (libevent) versioning support
 * ``hwloc``: Hardware locality (hwloc) versioning support
 * ``if``: OS IP interface support
 * ``installdirs``: Installation directory relocation services
@@ -78,10 +80,10 @@ Miscellaneous frameworks
 * ``mpool``: Memory pooling
 * ``patcher``: Symbol patcher hooks
 * ``pmix``: Process management interface (exascale)
-* ``pstat``: Process status
 * ``rcache``: Memory registration cache
-* ``sec``: Security framework
+* ``reachable``: Network reachability determination
 * ``shmem``: Shared memory support (NOT related to OpenSHMEM)
+* ``threads``: OS and userspace thread support
 * ``timer``: High-resolution timers
 
 Framework notes
