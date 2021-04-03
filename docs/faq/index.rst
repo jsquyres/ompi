@@ -34,11 +34,13 @@ that they are worth categorizing in an official way.
    java
 
    general-tuning
+   shared-memory
+   tcp
+   ompio
+   macos
 
 .. TODO:
 
-   Shared memory (vader)
-   TCP
    IB, RoCE, iWARP
    Omni-Path (folded into ofi?)
 
