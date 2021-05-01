@@ -46,14 +46,14 @@ jobs:
               cd $GITHUB_WORKSPACE/base
               git remote -v
               git log -n 1
-              # This should only be in the base repo
-              git show 0b38190209 || /bin/true
+              # This commit is not yet merged in the base repo
+              git show 7cc6aea9fa28bf7284bca12b19cce9a763739772 || /bin/true
               echo ===============
               cd $GITHUB_WORKSPACE/head
               git remote -v
               git log -n 1
-              # This should only be in the base repo
-              git show 0b38190209 || /bin/true
+              # This commit is not yet merged in the base repo
+              git show 7cc6aea9fa28bf7284bca12b19cce9a763739772 || /bin/true
                 
           - name: Setup Python
             uses: actions/setup-python@v2
