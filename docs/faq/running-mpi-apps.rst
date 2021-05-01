@@ -31,6 +31,11 @@ then the following should be in your ``PATH`` and ``LD_LIBRARY_PATH``
    * - ``LD_LIBRARY_PATH``
      - ``/opt/openmpi/lib``
 
+.. error:: JMS Josh H points out that we might also want to mention
+           ``OMPIHOME`` for PRRTE's ``.ini`` file here.  Leaving this
+           as a future to-do item, since PRRTE's ``.ini`` file support
+           does not exist yet.
+
 Depending on your environment, you may need to set these values in
 your shell startup files (e.g., ``.bashrc``, ``.cshrc``, etc.).
 
@@ -342,7 +347,7 @@ general, is available in :ref:`this FAQ entry
 
 Note, however, that not all environments require a hostfile.  For
 example, Open MPI will automatically detect when it is running in
-batch / scheduled environments (such as Slur, PBS/Torque, SGE,
+batch / scheduled environments (such as Slurm, PBS/Torque, SGE,
 LoadLeveler), and will use host information provided by those systems.
 
 Also note that if using a launcher that requires a hostfile and no
@@ -459,9 +464,9 @@ them across multiple hosts, try the following:
    check that you have reserved enough hosts, are running in an
    allocated job, etc.
 
-#. Ensure that your PATH and LD_LIBRARY_PATH are set correctly on
-   each remote host on which you are trying to run.  For example, with
-   ``ssh``:
+#. Ensure that your ``PATH`` and ``LD_LIBRARY_PATH`` are set correctly
+   on each remote host on which you are trying to run.  For example,
+   with ``ssh``:
 
    .. code-block::
       :linenos:
@@ -776,8 +781,12 @@ Several notable options are:
 How do I use the ``--hostfile`` option to ``mpirun``?
 -----------------------------------------------------
 
-The ``--hostfile`` option to ``mpirun`` takes a filename that
-lists hosts on which to launch MPI processes.
+.. error:: JMS For cross reference, this is the PRRTE man page section
+           about ``--hostfile``:
+           https://github.com/openpmix/prrte/blame/master/src/tools/prte/prte-map.1.md#L236
+
+The ``--hostfile`` option to ``mpirun`` takes a filename that lists
+hosts on which to launch MPI processes.
 
 .. important:: The hosts listed in a hostfile have *nothing* to do
                with which network interfaces are used for MPI
@@ -845,17 +854,8 @@ Hostfiles works in two different ways:
    and ``mpirun`` will abort.
 
    Finally, note that in exclusionary mode, processes will *only* be
-   executed on the hostfile-specified hosts, even if it causes
-   oversubscription.  For example:
-
-   .. code-block::
-      :linenos:
-
-      shell$ cat my_hosts
-      node03
-      shell$ mpirun -np 4 --hostfile my_hosts hostname
-
-   This will launch 4 copies of ``hostname`` on host ``node03``.
+   executed on the hostfile-specified hosts, If this ends up causing
+   an oversubscription situation, ``mpirun`` will abort by default.
 
 #. *Inclusionary:* If a list of hosts has *not* been provided by
    another source, then the hosts provided by the ``--hostfile``
@@ -870,9 +870,9 @@ Hostfiles works in two different ways:
       :linenos:
 
       shell$ cat my_hosts
-      node01.example.com
-      node02.example.com
-      node03.example.com
+      node01.example.com slots=1
+      node02.example.com slots=1
+      node03.example.com slots=1
       shell$ mpirun -np 3 --hostfile my_hosts hostname
 
    This will launch a single copy of ``hostname`` on the hosts
@@ -895,7 +895,7 @@ Hence, if you specify multiple applications (as in an MPMD job),
     06:11:45 up 1 day,  2:32,  0 users,  load average: 21.65, 20.85, 19.84
 
 Notice that ``hostname`` was launched on ``node01.example.com`` and
-``uptime`` was launched on host02.example.com.
+``uptime`` was launched on ``node02.example.com``.
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -966,15 +966,9 @@ Slots are discussed in much more detail :ref:`in this FAQ entry
    ``my_hosts``); ``mpirun`` will abort.
 
    Finally, note that in exclusionary mode, processes will *only* be
-   executed on the ``--host``-specified hosts, even if it causes
-   oversubscription.  For example:
-
-   .. code-block::
-      :linenos:
-
-      shell$ mpirun -np 4 --host a uptime
-
-   This will launch 4 copies of ``uptime`` on host ``a``.
+   executed on the ``--host``-specified hosts.  If this ends up
+   causing an oversubscription situation, ``mpirun`` will abort by
+   default.
 
 #. *Inclusionary:* If a list of hosts has *not* been provided by
    another source, then the hosts provided by the ``--host`` option
@@ -1051,8 +1045,12 @@ The number of slots on a host depends on a few factors:
 
    #. If the ``slots`` parameter is specified, that value is used for
       the number of slots on that host.
-   #. Otherwise, the number of slots defaults to the number of
-      processor cores on that host.
+   #. Otherwise:
+
+      #. If ``--map-by :HWTCPUS`` was specified, the number of slots
+         defaults to the number of hardware threads on that host.
+      #. Otherwise, the number of slots defaults to the number of
+         processor cores on that host.
 
 #. If the host is specified via the ``--host`` command line option:
 
@@ -1065,11 +1063,8 @@ The number of slots on a host depends on a few factors:
 
 .. caution:: The exact scheme used to determine the number of slots
              has varied between different major versions of Open MPI.
-             The scheme described above is relevant for this version
-             of Open MPI.
-
-.. error:: **JMS Ralph: I can't find a --use-hwthreads-as-cores type
-           of option in PRRTE.  Does it still exist?**
+             The scheme described above is relevant for Open MPI
+             |ompi_series|.
 
 Max slot counts, however, are rarely specified by schedulers.  The max
 slot count for each node will default to "infinite" if it is not
@@ -1077,7 +1072,9 @@ provided (meaning that Open MPI will oversubscribe the node if you ask
 it to |mdash| see more on oversubscribing in :ref:`this FAQ entry
 <faq-running-mpi-apps-oversubscribing-label>`).
 
-.. error:: **JMS Ralph: do we still have the concept of "max slots"?**
+.. error:: JMS Ralph: do we still have the concept of "max slots"?
+           Issue is open:
+           https://github.com/openpmix/prrte/issues/770.
 
 Here are some examples, all from unscheduled environments:
 
@@ -1182,18 +1179,17 @@ three factors:
    single job)
 #. The default and maximum number of slots on each host
 
-.. error:: **JMS Ralph: do we still have the concept of "max slots"?**
+.. error:: JMS Ralph: do we still have the concept of "max slots"?
+           Issue is open:
+           https://github.com/openpmix/prrte/issues/770.
 
 Open MPI currently supports two scheduling policies: by slot and by
 node:
 
 #. *By slot:* This is the default scheduling policy, but can also be
-   explicitly requested by using either the ``--byslot`` option to
-   ``mpirun`` or by setting the MCA parameter
-   ``rmaps_base_schedule_policy`` to the string ``slot``.
-
-   .. error:: **JMS This MCA param ^^ no longer exists.  What is it now?**
-   .. error:: **JMS Should --byslot now be --map-by slot?**
+   explicitly requested by using either the ``--map-by slot`` option
+   to ``mpirun`` or by setting the MCA parameter
+   ``rmaps_default_mapping_policy`` to the string ``slot``.
 
    In this mode, Open MPI will schedule processes on a node until all
    of its default slots are exhausted before proceeding to the next
@@ -1209,7 +1205,7 @@ node:
       shell$ cat my-hosts
       node0 slots=2 max_slots=20
       node1 slots=2 max_slots=20
-      shell$ mpirun --hostfile my-hosts -np 8 --byslot hello | sort
+      shell$ mpirun --hostfile my-hosts -np 8 --map-by slot hello | sort
       Hello World I am rank 0 of 8 running on node0
       Hello World I am rank 1 of 8 running on node0
       Hello World I am rank 2 of 8 running on node1
@@ -1219,14 +1215,9 @@ node:
       Hello World I am rank 6 of 8 running on node1
       Hello World I am rank 7 of 8 running on node1
 
-   .. error:: **JMS Do we still have max_slots?**
-
 #. *By node:* This policy can be requested either by using the
-   ``--bynode`` option to ``mpirun`` or by setting the MCA parameter
-   ``rmaps_base_schedule_policy`` to the string "node".
-
-   .. error:: **JMS This MCA param ^^ no longer exists.  What is it now?**
-   .. error:: **JMS Should --bynode now be --map-by node?**
+   ``--map-by node`` option to ``mpirun`` or by setting the MCA parameter
+   ``rmaps_default_mapping_policy`` to the string "node".
 
    In this mode, Open MPI will schedule a single process on each node
    in a round-robin fashion (looping back to the beginning of the node
@@ -1241,7 +1232,7 @@ node:
       shell$ cat my-hosts
       node0 slots=2 max_slots=20
       node1 slots=2 max_slots=20
-      shell$ mpirun --hostname my-hosts -np 8 --bynode hello | sort
+      shell$ mpirun --hostname my-hosts -np 8 --map-by node hello | sort
       Hello World I am rank 0 of 8 running on node0
       Hello World I am rank 1 of 8 running on node1
       Hello World I am rank 2 of 8 running on node0
@@ -1251,15 +1242,22 @@ node:
       Hello World I am rank 6 of 8 running on node0
       Hello World I am rank 7 of 8 running on node1
 
-   .. error:: **JMS Do we still have max_slots?**
-
 In both policies, if the default slot count is exhausted on all nodes
-while there are still processes to be scheduled, Open MPI will loop
-through the list of nodes again and try to schedule one more process
-to each node until all processes are scheduled.  Nodes are skipped in
-this process if their maximum slot count is exhausted.  If the maximum
-slot count is exhausted on all nodes while there are still processes
-to be scheduled, Open MPI will abort without launching any processes.
+while there are still processes to be scheduled, Open MPI will trigger
+an oversubscription condition.
+
+If ``:OVERSUBSCRIBE`` is added as a modifier to the ``--map-by``
+option (e.g., ``mpirun --map-by node:OVERSUBSCRIBE ...`` -- :ref:`see
+this FAQ item <faq-running-mpi-apps-oversubscribing-label>` for more
+details), Open MPI will continue to loop through the list of nodes
+again and try to schedule one more process to each node until all
+processes are scheduled.  Nodes are skipped in this process if their
+maximum slot count is exhausted.  If the maximum slot count is
+exhausted on all nodes while there are still processes to be
+scheduled, Open MPI will abort without launching any processes.
+
+If ``:OVERSUBSCRIBE`` is *not* specified and an oversubscription
+condition occurs, Open MPI will abort without launching any processes.
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -1278,14 +1276,14 @@ result.
                a number of slots that is more than the available
                number of processors.**
 
-For example, if you want to run 4 processes on a dual-processor-core
-host, then indicate that you only have 2 slots but want to run 4
+For example, if you want to run 4 processes on a host with 2 processor
+cores, then indicate that you only have 2 slots but want to run 4
 processes.  For example:
 
 .. code-block:: sh
    :linenos:
 
-   # In a hostfile, the number of lots will default to the number of
+   # In a hostfile, the number of slots will default to the number of
    # processor cores on the host
    shell$ cat my-hostfile
    localhost
@@ -1300,11 +1298,13 @@ to run 4 processes but there are only 2 slots available.  You must
 specifically tell Open MPI that it is ok to oversubscribe via
 ``--map-by :OVERSUBSCRIBE``:
 
-.. code-block::
+.. code-block:: sh
    :linenos:
 
    shell$ cat my-hostfile
-   localhost
+   # For the purposes of this example, explicitly tell Open MPI
+   # that we have 2 slots on the host.
+   localhost slots=2
    shell$ mpirun -np 4 --hostfile my-hostfile --map-by :OVERSUBSCRIBE a.out
 
 The reason you should tell Open MPI whether you're oversubscribing or
@@ -1378,33 +1378,9 @@ really, absolutely, positively sure of what you are doing.
 How do I run with the TotalView parallel debugger?
 --------------------------------------------------
 
-Generally, you can run Open MPI processes with TotalView as follows:
-
-.. code-block::
-   :linenos:
-
-   shell$ mpirun --debug ...mpirun arguments...
-
-.. error:: **JMS Is this still true?**
-
-Assuming that TotalView is the first supported parallel debugger in
-your path, Open MPI will autmoatically invoke the correct underlying
-command to run your MPI process in the TotalView debugger.
-
-For reference, this underlying command form is the following:
-
-.. code-block::
-   :linenos:
-
-   shell$ totalview mpirun -a ...mpirun arguments...
-
-So if you wanted to run a 4-process MPI job of your ``a.out``
-executable, it would look like this:
-
-.. code-block::
-   :linenos:
-
-   shell$ totalview mpirun -a -np 4 a.out
+This has changed with different releases of TotalView and Open MPI; it
+is best to consult TotalView's documentation for how you should debug
+Open MPI applications with TotalView.
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -1413,53 +1389,9 @@ executable, it would look like this:
 How do I run with the DDT parallel debugger?
 --------------------------------------------
 
-As of August 2015, DDT has built-in startup for MPI applications
-within its Alinea Forge GUI product.  You can simply use the built-in
-support to launch, monitor, and kill MPI jobs.
-
-If you are using an older version of DDT that does not have this
-built-in support, keep reading.
-
-If you've used DDT at least once before (to use the
-configuration wizard to setup support for Open MPI), you can start it
-on the command line with:
-
-.. code-block::
-   :linenos:
-
-   shell$ mpirun --debug ...mpirun arguments...
-
-.. error:: **JMS Is this still true?**
-
-Assuming that DDT is the first supported parallel debugger in your
-path, Open MPI will automatically invoke the correct underlying
-command to run your MPI process in the DDT debugger.  For reference
-(or if you are using an earlier version of Open MPI), this underlying
-command form is the following:
-
-.. code-block::
-   :linenos:
-
-   shell$ ddt -n {nprocs} -start {exe-name}
-
-Note that passing arbitrary arguments to Open MPI's ``mpirun`` is not
-supported with the DDT debugger.
-
-You can also attach to already-running processes with either of the
-following two syntaxes:
-
-.. code-block:: sh
-   :linenos:
-
-   shell$ ddt -attach {hostname1:pid} ``{hostname2:pid} ...`` {exec-name}
-   # Or
-   shell$ ddt -attach-file {filename of newline separated hostname:pid pairs} {exec-name}
-
-DDT can even be configured to operate with cluster/resource schedulers
-such that it can run on a local workstation, submit your MPI job via
-the scheduler, and then attach to the MPI job when it starts.
-
-See the official DDT documentation for more details.
+This has changed with different releases of DDT and Open MPI; it is
+best to consult DDT's documentation for how you should debug Open MPI
+applications with DDT.
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -1487,7 +1419,10 @@ you can check with the ``ompi_info`` command |mdash| look for
 components named ``lsf``), Open MPI will automatically detect when it
 is running inside such jobs and will just "do the Right Thing."
 
-.. error:: **JMS Josh/Geoff: need text here**
+Specifically, the LSF allocation is detected by the presence of the
+``LSB_JOBID`` environment variable. It then uses the ``lsbatch`` API
+to query the allocation and launch the ``prte`` daemons on the nodes
+in the allocation.
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -1555,6 +1490,8 @@ defined on every MPI process:
   MPI_COMM_WORLD
 * ``OMPI_COMM_WORLD_RANK``: the MPI rank of this process in
   MPI_COMM_WORLD
+* ``OMPI_COMM_WORLD_LOCAL_SIZE``: the number of ranks from this job
+  that are running on this node.
 * ``OMPI_COMM_WORLD_LOCAL_RANK``: the relative rank of this process on
   this node within its job. For example, if four processes in a job
   share a node, they will each be given a local rank ranging from 0 to
@@ -1562,7 +1499,5 @@ defined on every MPI process:
 * ``OMPI_UNIVERSE_SIZE``: the number of process slots allocated to
   this job. Note that this may be different than the number of
   processes in the job.
-* ``OMPI_COMM_WORLD_LOCAL_SIZE``: the number of ranks from this job
-  that are running on this node.
 * ``OMPI_COMM_WORLD_NODE_RANK``: the relative rank of this process on
   this node looking across *all* jobs.

@@ -111,35 +111,6 @@ We encourage the following forms of collaboration:
 
 /////////////////////////////////////////////////////////////////////////
 
-How is the Open MPI software licensed?
---------------------------------------
-
-The Open MPI code base is licensed under :doc:`the new BSD license
-</license>`.
-
-That being said, although we are an open source project, we recognize
-that everyone does not provide free, open source software.  Our
-collaboration models allow (and encourage!)  3rd parties to write and
-distribute their own components -- perhaps with a different license,
-and perhaps even as closed source.  This is all perfectly acceptable
-(and desirable!).
-
-
-/////////////////////////////////////////////////////////////////////////
-
-I want to redistribute Open MPI.  Can I?
-----------------------------------------
-
-Absolutely.
-
-.. note:: We are not lawyers and this is not legal advice.
-
-Please read the :doc:`Open MPI license </license>` (the BSD license).
-It contains extremely liberal provisions for redistribution.
-
-
-/////////////////////////////////////////////////////////////////////////
-
 How are 3rd party contributions handled?
 ----------------------------------------
 
