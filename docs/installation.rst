@@ -164,20 +164,138 @@ be used with ``configure``:
   ``--disable-wrapper-runpath``.
 
 * ``--enable-dlopen``:
-  Build all of Open MPI's components as standalone Dynamic Shared
-  Objects (DSO's) that are loaded at run-time (this is the default).
-  The opposite of this option, ``--disable-dlopen``, causes two things:
+  Enable loading of Open MPI components as standalone Dynamic
+  Shared Objects (DSOs) that are loaded at run-time.  This option is
+  enabled by default.
 
-  #. All of Open MPI's components will be built as part of Open MPI's
-     normal libraries (e.g., ``libmpi``).
-  #. Open MPI will not attempt to open any DSO's at run-time.
+  The opposite of this option, ``--disable-dlopen``, causes the following:
 
-  Note that this option does *not* imply that OMPI's libraries will be
-  built as static objects (e.g., ``libmpi.a``).  It only specifies the
-  location of OMPI's components: standalone DSOs or folded into the
-  Open MPI libraries.  You can control whether Open MPI's libraries
-  are build as static or dynamic via ``--enable|disable-static`` and
-  ``--enable|disable-shared``.
+  #. Open MPI will not attempt to open any DSOs at run-time.
+  #. configure behaves as if the ``--enable-mca-static`` argument was set.
+  #. configure will ignore the ``--enable-mca-dso`` argument.
+
+  See the description of ``--enable-mca-static`` / ``--enable-mca-dso`` for
+  more information.
+
+  .. note:: This option does *not* change how Open MPI's libraries
+            (``libmpi``, for example) will be built.  You can change
+            whether Open MPI builds static or dynamic libraries via
+            the ``--enable|disable-static`` and
+            ``--enable|disable-shared`` arguments.
+
+* ``--enable-mca-dso[=LIST]`` and ``--enable-mca-static[=LIST]``
+  These two options, along with ``--enable-mca-no-build``, govern the
+  behavior of how Open MPI's frameworks and components are built.
+
+  The ``--enable-mca-dso`` option specifies which frameworks and/or
+  components are built as Dynamic Shared Objects (DSOs).
+  Specifically, DSOs are built as "plugins" outside of the core Open
+  MPI libraries, and are loaded by Open MPI at run time.
+
+  The ``--enable-mca-static`` option specifies which frameworks and/or
+  components are built as part of the core Open MPI libraries (i.e.,
+  they are not built as DSOs, and therefore do not need to be
+  separately discovered and opened at run time).
+
+  Both options can be used one of two ways:
+
+  #. ``--enable-mca-OPTION`` (with no value)
+  #. ``--enable-mca-OPTION=LIST``
+
+  ``--enable-mca-OPTION=no`` or ``--disable-mca-OPTION`` are both legal
+  options, but have no impact on the selection logic described below.
+  Only affirmative options change the selection process.
+
+  ``LIST`` is a comma-delimited list of Open MPI frameworks and/or
+  framework+component tuples.  Examples:
+
+  * ``btl`` specifies the entire BTL framework
+  * ``btl-tcp`` specifies just the TCP component in the BTL framework
+  * ``mtl,btl-tcp`` specifies the entire MTL framework and the TCP
+     component in the BTL framework
+
+  Open MPI's ``configure`` script uses the values of these two options
+  when evaluating each component to determine how it should be built
+  by evaluating these conditions in order:
+
+  #. If an individual component's build behavior has been specified
+     via these two options, ``configure`` uses that behavior.
+  #. Otherwise, if the component is in a framework whose build
+     behavior has been specified via these two options, ``configure``
+     uses that behavior.
+  #. Otherwise, ``configure`` uses the global default build behavior.
+
+  At each level of the selection process, if the component is
+  specified to be built as both a static and dso component, the static
+  option will win.
+
+  .. note:: As of Open MPI |ompi_ver|, ``configure``'s global default
+            is to build all components as static (i.e., part of the
+            Open MPI core libraries, not as DSO's).  Prior to Open MPI
+            |ompi_series|, the global default behavior was to build
+            most components as DSOs.
+
+  .. important:: If the ``--disable-dlopen`` option is specified, then
+                 Open MPI will not be able to search for DSOs at run
+                 time, and the value of the ``--enable-mca-dso``
+                 option will be silently ignored.
+
+  Some examples:
+
+  #. Default to building all components as static (i.e., as part of
+     the Open MPI core libraries -- no DSOs):
+
+     .. code-block::
+        :linenos:
+
+        $ ./configure
+
+  #. Build all components as static, except the TCP BTL, which will be
+     built as a DSO:
+
+     .. code-block::
+        :linenos:
+
+        $ ./configure --enable-mca-dso=btl-tcp
+
+  #. Build all components as static, except all BTL components, which
+     will be built as DSOs:
+
+     .. code-block::
+        :linenos:
+
+        $ ./configure --enable-mca-dso=btl
+
+  #. Build all components as static, except all MTL components and the
+     TCP BTL component, which will be built as DSOs:
+
+     .. code-block::
+        :linenos:
+
+        $ ./configure --enable-mca-dso=mtl,btl-tcp
+
+  #. Build all BTLs as static, except the TCP BTL, as the
+     ``<framework-component>`` option is more specific than the
+     ``<framework>`` option:
+
+     .. code-block::
+        :linenos:
+
+        $ ./configure --enable-mca-dso=btl --enable-mca-static=btl-tcp
+
+  #. Build the TCP BTL as static, because the static option at the
+     same level always wins:
+
+     .. code-block::
+        :linenos:
+
+        $ ./configure --enable-mca-dso=btl-tcp --enable-mca-static=btl-tcp
+
+* ``--enable-mca-no-build=LIST``: Comma-separated list of
+  ``<framework>-<component>`` pairs that will not be built. For
+  example, ``--enable-mca-no-build=btl-portals4,shmem-sysv`` will
+  disable building the ``portals4`` BTL and the ``sysv`` shared memory
+  component.
 
 * ``--disable-show-load-errors-by-default``:
   Set the default value of the ``mca_base_component_show_load_errors``
@@ -219,11 +337,6 @@ be used with ``configure``:
   for third-party packagers of Open MPI that might want to rename
   these libraries for their own purposes. This option is *not*
   intended for typical users of Open MPI.
-
-* ``--enable-mca-no-build=LIST``:
-  Comma-separated list of ``<type>-<component>`` pairs that will not be
-  built. For example, ``--enable-mca-no-build=btl-portals,oob-ud`` will
-  disable building the portals BTL and the ud OOB component.
 
 
 .. _install-network-support-label:
