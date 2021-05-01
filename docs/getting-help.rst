@@ -84,11 +84,11 @@ places.  If you have:
 For run-time problems
 ---------------------
 
-First, :doc:`Check the FAQ first </faq/index>`.  Really.  This can
+First, reach / search through this documentation.  Really.  This can
 save you a *lot* of time; many common problems and solutions are
-listed there.
+listed here.
 
-If you don't find the answer there, provide *all* of the following
+If you don't find the answer here, provide *all* of the following
 information:
 
 #. The version of Open MPI that you're using.
@@ -184,7 +184,7 @@ information:
 For compile problems
 --------------------
 
-First, :doc:`Check the FAQ first </faq/index>`.  Really.  This can
+First, reach / search through this documentation.  Really.  This can
 save you a *lot* of time; many common problems and solutions are
 listed there.
 

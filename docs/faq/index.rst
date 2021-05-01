@@ -38,6 +38,7 @@ that they are worth categorizing in an official way.
    tcp
    ompio
    macos
+   cuda
 
 .. TODO:
 
@@ -46,7 +47,5 @@ that they are worth categorizing in an official way.
 
    Performance Tools
    OMPIO
-
-   OS X
 
    CUDA: Building + Running

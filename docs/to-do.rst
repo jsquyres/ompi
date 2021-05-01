@@ -1,5 +1,8 @@
+To-Do Items
+===========
+
 Things that have changed in v5.0
-================================
+--------------------------------
 
 Need to update these docs to reflect:
 
@@ -18,17 +21,18 @@ Need to update these docs to reflect:
   https://github.com/open-mpi/ompi/commit/f97d081cf9b540c5a79e00aecee17b25e8c123ad
 
 Other random to-do items
-========================
+------------------------
 
 * https://github.com/open-mpi/ompi/issues/7668
 
 * Add docs about mpirun launch vs. direct launch.
 
 Josh Hursey notes
-=================
+-----------------
 
 Running MPI Applications Notes
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Reviewing:
   https://ompi--8329.org.readthedocs.build/en/8329/faq/running-mpi-apps.html
 
@@ -91,37 +95,42 @@ Reviewing:
  - Ref: https://github.com/openpmix/prrte/issues/709#issuecomment-797186098
  - PRRTE is dropping the '-tv' and '--debug' options. Ralph and I have been talking with
    Totalview and DDT on an email thread. What we concluded so far:
-   - These options are more trouble than they are worth, and both debugger groups are fine
-     with dropping them and providing guidance on how to just run the tool directly.
-   - PRRTE will throw an error if either of these options are specified.
-   - We should document the direct method of calling totalview, however that gets complex with
-     the MPIR-Shim wrapper.
-     - I don't have any details on which release of DDT will start supporting PMIx, but we will
-       need both an MPIR-Shim and non-MPIR-Shim version for those using older and newer products,
-       respectively.
+
+    - These options are more trouble than they are worth, and both debugger groups are fine
+      with dropping them and providing guidance on how to just run the tool directly.
+    - PRRTE will throw an error if either of these options are specified.
+    - We should document the direct method of calling totalview, however that gets complex with
+      the MPIR-Shim wrapper.
+
+        - I don't have any details on which release of DDT will start supporting PMIx, but we will
+          need both an MPIR-Shim and non-MPIR-Shim version for those using older and newer products,
+          respectively.
+
  - For now document the direct use of the totalview debugger - below suggested from Totalview
-----
-shell$ totalview [<tv-options>] -args <program> [<program-options>]
-# Making it easy to do the following in the shell to re-run the program with the debugger:
-shell$ totalview -args !!
-----
+
+    .. code-block:: sh
+        :linenos:
+
+        shell$ totalview [<tv-options>] -args <program> [<program-options>]
+        # Making it easy to do the following in the shell to re-run the program with the debugger:
+        shell$ totalview -args !!
 
 10.8.24
  - Ref: https://github.com/openpmix/prrte/issues/709#issuecomment-797186098
  - It's ARM not Alinea now: https://www.arm.com/products/development-tools/server-and-hpc/forge/ddt
  - PRRTE is dropping the '--debug' option. Do just keep the part about 'For reference'
  - This will also need to be updated with the MPIR-Shim option.
+
    - I don't have any details on which release of DDT will start supporting PMIx, but we will
      need both an MPIR-Shim and non-MPIR-Shim version for those using older and newer products,
      respectively.
 
 10.8.26
  - What kind of text are you looking for? Something like this:
-----
-The LSF allocation is detected by the presence of the `LSB_JOBID` environment variable. It
-then uses the lsbatch API to query the allocation and launch the `prte` daemons on the
-nodes in the allocation.
-----
+
+        The LSF allocation is detected by the presence of the `LSB_JOBID` environment variable. It
+        then uses the lsbatch API to query the allocation and launch the `prte` daemons on the
+        nodes in the allocation.
 
 10.8.27
  - I have no idea about Grid Engine. Sorry :(
