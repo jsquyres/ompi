@@ -14,12 +14,47 @@ jobs:
         name: Git commit checker
         runs-on: ubuntu-latest
         steps:
-          - name: Check out the code
+          - name: show info
+            env:
+              INFO: ${{ toJSON(github) }}
+              HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+              BASE_REPO: ${{ github.event.pull_request.base.repo.full_name }}
+            run: |
+              echo head repo: $HEAD_REPO
+              echo base repo: $BASE_REPO
+              echo "github context: $INFO"
+
+          - name: Check out the code-base
             uses: actions/checkout@v2
             with:
-                # Get all branches and history
-                fetch-depth: 0
+              path: base
+              repository: ${{ github.event.pull_request.base.repo.full_name }}
+              ref: master
+              # Get everything from the base repo
+              fetch-depth: 0
 
+          - name: Check out the code-head
+            uses: actions/checkout@v2
+            with:
+              repository: ${{ github.event.pull_request.head.repo.full_name }}
+              path: head
+              ref: ${{ github.event.pull_request.head.ref }}
+
+          - name: run some git commands
+            run: |
+              set -x
+              cd $GITHUB_WORKSPACE/base
+              git remote -v
+              git log -n 1
+              # This commit is not yet merged in the base repo
+              git show 7cc6aea9fa28bf7284bca12b19cce9a763739772 || /bin/true
+              echo ===============
+              cd $GITHUB_WORKSPACE/head
+              git remote -v
+              git log -n 1
+              # This commit is not yet merged in the base repo
+              git show 7cc6aea9fa28bf7284bca12b19cce9a763739772 || /bin/true
+                
           - name: Setup Python
             uses: actions/setup-python@v2
             with:
@@ -29,6 +64,6 @@ jobs:
             run: pip install gitpython PyGithub
 
           - name: Check all git commits
-            run: $GITHUB_WORKSPACE/.github/workflows/git-commit-checks.py
+            run: $GITHUB_WORKSPACE/head/.github/workflows/git-commit-checks.py
             env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
