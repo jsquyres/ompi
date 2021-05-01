@@ -39,13 +39,11 @@ that they are worth categorizing in an official way.
    ompio
    macos
    cuda
+   tools
+   opa
+   ib-and-roce
+   iwarp
 
 .. TODO:
 
    IB, RoCE, iWARP
-   Omni-Path (folded into ofi?)
-
-   Performance Tools
-   OMPIO
-
-   CUDA: Building + Running
