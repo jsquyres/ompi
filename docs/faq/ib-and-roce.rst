@@ -149,6 +149,8 @@ you can set a specific GID index:
 
 /////////////////////////////////////////////////////////////////////////
 
+.. _faq-ib-troubleshoot-label:
+
 I'm experiencing a problem with Open MPI on my InfiniBand / RoCE network; how do I troubleshoot and get help?
 -------------------------------------------------------------------------------------------------------------
 
@@ -158,37 +160,37 @@ troubleshooting and provide us with enough information about your
 environment to help you.  Please include answers to the following
 questions in your e-mail:
 
-* Which UCX and OpenFabrics version are you running?  Please specify
-  where you got the software from (e.g., from the OpenFabrics and/or
-  UCX community web sites, already included in your Linux
-  distribution, downloade from NVIDIA's web site, etc.).
+#. Which UCX and OpenFabrics version are you running?  Please specify
+   where you got the software from (e.g., from the OpenFabrics and/or
+   UCX community web sites, already included in your Linux
+   distribution, downloade from NVIDIA's web site, etc.).
 
-* What distro and version of Linux are you running?  What is your
-  kernel version?
+#. What distro and version of Linux are you running?  What is your
+   kernel version?
 
-* What is the output of the ``ibv_devinfo`` command on a known "good"
-  node and a known "bad" node?
+#. What is the output of the ``ibv_devinfo`` command on a known "good"
+   node and a known "bad" node?
 
-  .. note:: There must be at least one port listed as "PORT_ACTIVE"
-            for Open MPI to work.  If there is not at least one
-            PORT_ACTIVE port, something is wrong with your InfiniBand
-            / RoCE environment and Open MPI will not be able to run.
+   .. note:: There must be at least one port listed as "PORT_ACTIVE"
+             for Open MPI to work.  If there is not at least one
+             PORT_ACTIVE port, something is wrong with your InfiniBand
+             / RoCE environment and Open MPI will not be able to run.
 
-* What is the output of the ``ifconfig`` command on a known "good"
-  node and a known "bad" node?
+#. What is the output of the ``ifconfig`` command on a known "good"
+   node and a known "bad" node?
 
-  .. note:: Note that some Linux distributions do not put ``ifconfig``
-            in the default path for normal users; look for it at
-            ``/sbin/ifconfig`` or ``/usr/sbin/ifconfig``.
+   .. note:: Note that some Linux distributions do not put
+             ``ifconfig`` in the default path for normal users; look
+             for it at ``/sbin/ifconfig`` or ``/usr/sbin/ifconfig``.
 
-* If running under Bourne shells, what is the output of the ``ulimit
-  -l`` command?
+#. If running under Bourne shells, what is the output of the ``ulimit
+   -l`` command?
 
-  If running under C shells, what is the output of the ``limit | grep
-  memorylocked`` command?
+   If running under C shells, what is the output of the ``limit | grep
+   memorylocked`` command?
 
-  .. note:: If the value is not ``unlimited``, .................
+   .. note:: If the value is not ``unlimited``, .................
 
-  .. error:: JMS Would be good to point to some UCX/vendor docs here
-             about setting memory limits (rather than reproducing this
-             information ourselves).
+   .. error:: JMS Would be good to point to some UCX/vendor docs here
+              about setting memory limits (rather than reproducing this
+              information ourselves).

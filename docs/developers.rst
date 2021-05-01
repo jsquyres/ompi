@@ -166,10 +166,11 @@ Running ``autogen.pl``
 
 You can now run OMPI's top-level ``autogen.pl`` script.  This script
 will invoke the GNU Autoconf, Automake, and Libtool commands in the
-proper order and setup to run OMPI's top-level ``configure`` script.
+proper order and do a bunch of component discovery and housekeeping to
+setup to run OMPI's top-level ``configure`` script.
 
 Running ``autogen.pl`` may take a few minutes, depending on your
-system.  It's not very exciting to watch.  :smile:
+system.  It's not very exciting to watch.
 
 If you have a multi-processor system, enabling the multi-threaded
 behavior in Automake 1.11 (or newer) can result in ``autogen.pl``
@@ -186,7 +187,7 @@ in your shell startup files):
    # For csh/tcsh:
    set AUTOMAKE_JOBS 4
 
-You generally need to run autogen.pl whenever the top-level file
+You generally need to run ``autogen.pl`` whenever the top-level file
 ``configure.ac`` changes, or any files in the ``config/`` or
 ``<project>/config/`` directories change (these directories are where
 a lot of "include" files for Open MPI's ``configure`` script live).
@@ -321,8 +322,14 @@ tree:
 * ``etc``: Some miscellaneous text files
 * ``docs``: Source code for Open MPI documentation
 * ``examples``: Trivial MPI / OpenSHMEM example programs
-* ``3rd-party``: Included copies (via Git submodules in Git clones) of
-  required core libraries
+* ``3rd-party``: Included copies of required core libraries (either
+  via Git submodules in Git clones or via binary tarballs).
+
+  .. note:: While it may be considered unusual, we include binary
+            tarballs (instead of Git submodules) for 3rd party
+            projects that are a) *needed* by Open MPI, b) are not
+            universally included in OS distributions, and c) we rarely
+            update.
 
 Each of the three main source directories (``oshmem``, ``ompi``, and
 ``opal``) generate a top-level library named ``liboshmem``,
@@ -363,16 +370,7 @@ code can be in the ``mca`` trees.
 
 That is, framework and component names must be valid directory names
 (and C variables; more on that later).  For example, the TCP BTL
-component is located in the following directory:
-
-.. code-block:: sh
-    :linenos:
-
-    # In v1.6.x and earlier:
-    ompi/mca/btl/tcp/
-
-    # In v1.7.x and later:
-    opal/mca/btl/tcp/
+component is located in ``opal/mca/btl/tcp/``.
 
 The name ``base`` is reserved; there cannot be a framework or component
 named ``base``. Directories named ``base`` are reserved for the
@@ -581,13 +579,21 @@ to at least the versions listed below.
       - 2.5.35
       - NA
       - NA
+    * - v5.0.x
+      - 1.4.17
+      - 2.69
+      - 1.15
+      - 2.4.6
+      - 2.5.35
+      - NA
+      - 3.4.1
     * - Git master
       - 1.4.17
       - 2.69
       - 1.15
       - 2.4.6
       - 2.5.35
-      - 1.12
+      - NA
       - 3.4.1
 
 .. error:: **JMS Remove Pandoc, above?**
@@ -672,10 +678,11 @@ You must build and install the GNU Autotools in the following order:
 #. Automake
 #. Libtool
 
-You *must* install the last three tools (Autoconf, Automake, Libtool)
-into the same prefix directory.  These three tools are somewhat
-inter-related, and if they're going to be used together, they MUST
-share a common installation prefix.
+.. important:: You *must* install the last three tools (Autoconf,
+               Automake, Libtool) into the same prefix directory.
+               These three tools are somewhat inter-related, and if
+               they're going to be used together, they *must* share a
+               common installation prefix.
 
 You can install m4 anywhere as long as it can be found in the path;
 it may be convenient to install it in the same prefix as the other
@@ -701,11 +708,11 @@ three.  Or you can use any recent-enough m4 that is in your path.
       # For csh/tcsh:
       set path = ($HOME/local/bin $path)
 
-   Ensure to set your ``$PATH`` *BEFORE* you configure/build/install
+   Ensure to set your ``$PATH`` *before* you configure/build/install
    the four packages.
 
 All four packages require two simple commands to build and
-install (where ``PREFIX`` is the prefix discussed in 3, above).
+install:
 
 .. code-block:: sh
    :linenos:

@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Open MPI'
-copyright = '2020, The Open MPI Community'
+copyright = '2021, The Open MPI Community'
 author = 'The Open MPI Community'
 
 # The full version, including alpha/beta/rc tags

@@ -139,12 +139,13 @@ from git hash e4798fb.
 Shared Library Version Number
 -----------------------------
 
-The GNU Libtool official documentation details how the versioning
-scheme works.  The quick version is that the shared library versions
-are a triple of integers: (current,revision,age), or ``c:r:a``.  This
-triple is not related to the Open MPI software version number.  There
-are six simple rules for updating the values (taken almost verbatim
-from the Libtool docs):
+The `GNU Libtool official documentation
+<https://www.gnu.org/software/libtool/manual/>`_ details how the
+versioning scheme works.  The quick version is that the shared library
+versions are a triple of integers: (current,revision,age), or
+``c:r:a``.  This triple is not related to the Open MPI software
+version number.  There are six simple rules for updating the values
+(taken almost verbatim from the Libtool docs):
 
 #. Start with version information of ``0:0:0`` for each shared library.
 #. Update the version information only immediately before a public
@@ -166,8 +167,8 @@ Here's how we apply those rules specifically to Open MPI:
    MCA component ``.so`` versions stay unspecified.
 #. The above rules apply exactly as written to the following libraries
    starting with Open MPI version v1.5 (prior to v1.5, ``libopen-pal``
-   and ``libopen-rte`` were still at ``0:0:0`` for reasons discussed in bug
-   ticket #2092 https://svn.open-mpi.org/trac/ompi/ticket/2092):
+   and ``libopen-rte`` were still at ``0:0:0`` for obscure reasons
+   that are not worth detailing here):
 
     * ``libopen-rte``
     * ``libopen-pal``

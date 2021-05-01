@@ -15,8 +15,8 @@ The following options may be helpful:
 
 * ``--all``: Show a *lot* of information about your Open MPI
   installation.
-* ``--parsable``:  Display all the information in an easily
-  ``grep``/``cut``/``awk``/``sed``-able format.
+* ``--parsable``: Display all the information in a machine-parsable
+  format.
 * ``--param FRAMEWORK COMPONENT``:
   A ``FRAMEWORK`` value of ``all`` and a ``COMPONENT`` value of ``all`` will
   show all parameters to all components.  Otherwise, the parameters of
@@ -57,5 +57,5 @@ tests:
    gets a few messages (e.g., the ``ring_shmem.c`` in the ``examples/``
    directory in the Open MPI distribution.)
 
-If you can run all six of these tests successfully, that is a good
+If you can run all of these tests successfully, that is a good
 indication that Open MPI built and installed properly.

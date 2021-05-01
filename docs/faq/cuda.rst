@@ -514,7 +514,7 @@ example of using the CUDA-aware macro and run-time check.
    #include <stdio.h>
    #include "mpi.h"
 
-   #if !defined(OPEN_MPI)
+   #if !defined(OPEN_MPI) || !OPEN_MPI
    #error This source code uses an Open MPI-specific extension
    #endif
 

@@ -352,9 +352,6 @@ can be used with ``configure``:
   so that executables such as ``mpicc`` and ``mpirun`` can be found
   without needing to type long path names.
 
-* ``--enable-orte-static-ports``:
-   Enable ORTE static ports for TCP OOB (default: enabled).
-
 * ``--with-alps``:
   Force the building of for the Cray Alps run-time environment.  If
   Alps support cannot be found, configure will abort.
@@ -550,7 +547,7 @@ MPI API behaviors that can be used with ``configure``:
   * ``mpifh``: Only build ``mpif.h`` support.
   * ``usempi``: Only build ``mpif.h`` and ``mpi`` module support.
   * ``usempif08``:  Build ``mpif.h``, ``mpi`` module, and ``mpi_f08``
-     module support.
+    module support.
   * ``none``: Synonym for ``no``.
   * ``no``: Do not build any MPI Fortran support (same as
     ``--disable-mpi-fortran``).  This is mutually exclusive

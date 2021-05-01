@@ -34,9 +34,8 @@ base as of this writing (April 2020):
   files are with the appropriate options to configure.  See the
   listing of configure command-line switches, below, for more details.
 
-* The majority of Open MPI's documentation is here in this file, the
-  included man pages, and on `the Open MPI web site FAQ
-  <https://www.open-mpi.org/>`_.
+* The majority of Open MPI's documentation is here in this document.
+  The man pages are also installed by default.
 
 * Note that Open MPI documentation uses the word "component"
   frequently; the word "plugin" is probably more familiar to most
@@ -163,7 +162,7 @@ Compiler Notes
   * pgi-10: 10.0-0 known GOOD
   * pgi-11: NO known good version with ``--enable-debug``
   * pgi-12: 12.10 known BAD with ``-m32``, but known GOOD without ``-m32``
-            (and 12.8 and 12.9 both known BAD with ``--enable-debug``)
+    (and 12.8 and 12.9 both known BAD with ``--enable-debug``)
   * pgi-13: 13.9 known BAD with ``-m32``, 13.10 known GOOD without ``-m32``
   * pgi-15: 15.10 known BAD with ``-m32``
 
@@ -184,7 +183,7 @@ Compiler Notes
   underscore. See https://github.com/open-mpi/ompi/issues/3612 for
   more details.
 
-* MPI applications that use the `mpi_f08` module on PowerPC platforms
+* MPI applications that use the ``mpi_f08`` module on PowerPC platforms
   (tested ppc64le) will likely experience runtime failures if:
 
    * they are using a GNU linker (ld) version after v2.25.1 and before
@@ -444,10 +443,10 @@ MPI Functionality and Features
 
 * Note that starting with Open MPI v4.0.0, prototypes for several
   legacy MPI-1 symbols that were deleted in the MPI-3.0 specification
-  (which was published in 2012) are no longer available by default in
-  ``mpi.h``.  Specifically, several MPI-1 symbols were deprecated in the
-  1996 publishing of the MPI-2.0 specification.  These deprecated
-  symbols were eventually removed from the MPI-3.0 specification in
+  are no longer available by default in ``mpi.h``.  Specifically,
+  several MPI-1 symbols were deprecated in the 1996 publishing of the
+  MPI-2.0 specification.  These deprecated symbols were eventually
+  removed from the MPI-3.0 specification in
   2012.
 
   The symbols that now no longer appear by default in Open MPI's
@@ -471,12 +470,12 @@ MPI Functionality and Features
   * ``MPI_Handler_function`` (replaced by ``MPI_Comm_errhandler_function``)
 
   Although these symbols are no longer prototyped in ``mpi.h``, they
-  are still present in the MPI library in Open MPI v4.0.x. This
+  are still present in the MPI library in Open MPI |ompi_series|. This
   enables legacy MPI applications to link and run successfully with
-  Open MPI v4.0.x, even though they will fail to compile.
+  Open MPI |ompi_series|, even though they will fail to compile.
 
-  .. warning:: Future releases of Open MPI beyond the v4.0.x series may
-     remove these symbols altogether.
+  .. warning:: Future releases of Open MPI beyond the |ompi_series|
+     series may remove these symbols altogether.
 
   .. warning:: The Open MPI team **STRONGLY** encourages all MPI
      application developers to stop using these constructs that were
@@ -515,18 +514,13 @@ MPI Functionality and Features
 * ``MPI_THREAD_MULTIPLE`` is supported with some exceptions.
 
   The following PMLs support ``MPI_THREAD_MULTIPLE``:
-  #. ``cm`` (see list (1) of supported MTLs, below)
-  #. ``ob1`` (see list (2) of supported BTLs, below)
-  #. ``ucx``
 
-  (1) The ``cm`` PML and the following MTLs support
-      ``MPI_THREAD_MULTIPLE``:
+  #. ``cm``, when used with the following MTLs:
 
      #. ``ofi`` (Libfabric)
      #. ``portals4``
 
-  (2) The ``ob1`` PML and the following BTLs support
-      ``MPI_THREAD_MULTIPLE``:
+  #. ``ob1``, when used with the following BTLs:
 
      #. ``self``
      #. ``sm``
@@ -534,6 +528,8 @@ MPI Functionality and Features
      #. ``tcp``
      #. ``ugni``
      #. ``usnic``
+
+  #. ``ucx``
 
   Currently, MPI File operations are not thread safe even if MPI is
   initialized for ``MPI_THREAD_MULTIPLE`` support.
