@@ -39,6 +39,13 @@ jobs:
               path: head
               ref: ${{ github.event.pull_request.head.ref }}
 
+          - name: Check out the code
+            uses: actions/checkout@v2
+            with:
+                # Get all branches and history
+                fetch-depth: 0
+                path: default
+
           - name: run some git commands
             run: |
               set -x
@@ -53,12 +60,12 @@ jobs:
               git log -n 1
               # This should only be in the base repo
               git show 510accdee45e11f857c2b76c0a45485af37d42a1 || /bin/true
-
-          - name: Check out the code
-            uses: actions/checkout@v2
-            with:
-                # Get all branches and history
-                fetch-depth: 0
+              echo ===============
+              cd $GITHUB_WORKSPACE/default
+              git remote -v
+              git log -n 1
+              # This should only be in the base repo
+              git show 510accdee45e11f857c2b76c0a45485af37d42a1 || /bin/true
 
           - name: Setup Python
             uses: actions/setup-python@v2
