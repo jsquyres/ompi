@@ -37,6 +37,8 @@
 # $HEADER$
 #
 
+# Cisco Disco
+
 
 ############################################################################
 # Initialization, version number, and other random setup/init stuff
