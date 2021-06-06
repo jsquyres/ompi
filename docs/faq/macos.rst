@@ -37,7 +37,6 @@ Tools/Specifications/MPICC.pbcompspec`` in a text editor and put the
 following content in it:
 
 .. code-block::
-   :linenos:
 
    /**
     Xcode Compiler Specification for MPICC
@@ -81,7 +80,6 @@ There are two main options for installing Open MPI on MacOS:
    `MacPorts <https://macports.org/>`_.  For example:
 
    .. code-block:: sh
-      :linenos:
 
       # For Homebrew
       shell$ brew install openmpi
@@ -90,7 +88,7 @@ There are two main options for installing Open MPI on MacOS:
       shell$ port install openmpi
 
 #. Install Open MPI from source.  :doc:`See the installation section
-   of this documentation </installation>` for more details.
+   of this documentation </building-open-mpi>` for more details.
 
    .. warning:: Ensure to install a Fortran compiler if you want Open
                 MPI to build the Fortran MPI interfaces.  For

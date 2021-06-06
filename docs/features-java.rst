@@ -1,8 +1,11 @@
-Open MPI Java bindings
-======================
+.. This file is included by features.rst.
 
-This version of Open MPI provides support for Java-based
-MPI applications.
+.. _open-mpi-java-label:
+
+Open MPI Java bindings
+----------------------
+
+Open MPI v|ompi_ver| provides support for Java-based MPI applications.
 
 .. warning:: The Open MPI Java bindings are provided on a
    "provisional" basis -- i.e., they are not part of the current or
@@ -15,28 +18,21 @@ The rest of this document provides step-by-step instructions on
 building OMPI with Java bindings, and compiling and running Java-based
 MPI applications. Also, part of the functionality is explained with
 examples. Further details about the design, implementation and usage
-of Java bindings in Open MPI can be found in [#ompijava]_. The bindings
-follow a JNI approach, that is, we do not provide a pure Java
-implementation of MPI primitives, but a thin layer on top of the C
-implementation. This is the same approach as in mpiJava [#mpijava]_; in
-fact, mpiJava was taken as a starting point for Open MPI Java
-bindings, but they were later totally rewritten.
+of Java bindings in Open MPI can be found in its canonical reference
+paper [#ompijava]_. The bindings follow a JNI approach, that is, we do
+not provide a pure Java implementation of MPI primitives, but a thin
+layer on top of the C implementation. This is the same approach as in
+mpiJava [#mpijava]_; in fact, mpiJava was taken as a starting point
+for Open MPI Java bindings, but they were later totally rewritten.
 
 Building the Java Bindings
---------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If this software was obtained as a developer-level checkout as opposed
-to a tarball, you will need to start your build by running
-``./autogen.pl``. This will also require that you have a fairly recent
-version of GNU Autotools on your system - see the HACKING.md file for
-details.
-
-Java support requires that Open MPI be built at least with shared libraries
-(i.e., ``--enable-shared``) - any additional options are fine and will not
-conflict. Note that this is the default for Open MPI, so you don't
-have to explicitly add the option. The Java bindings will build only
-if ``--enable-mpi-java`` is specified, and a JDK is found in a typical
-system default location.
+Java support requires that Open MPI be built at least with shared
+libraries (i.e., ``--enable-shared``).  Note that this is the default
+for Open MPI, so you don't have to explicitly add the option. The Java
+bindings will build only if ``--enable-mpi-java`` is specified, and a
+JDK is found in a typical system default location.
 
 If the JDK is not in a place where we automatically find it, you can
 specify the location. For example, this is required on the Mac
@@ -56,21 +52,21 @@ following Java-related options::
 
   $ ./configure --with-platform=contrib/platform/hadoop/<your-platform> ...
 
-or ::
+or::
 
   $ ./configure --enable-mpi-java --with-jdk-bindir=<foo> --with-jdk-headers=<bar> ...
 
-or simply ::
+or simply::
 
   $ ./configure --enable-mpi-java ...
 
 if JDK is in a "standard" place that we automatically find.
 
 Running Java MPI Applications
------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For convenience, the ``mpijavac`` wrapper compiler has been provided for
-compiling Java-based MPI applications. It ensures that all required MPI
+The ``mpijavac`` wrapper compiler is available for compiling
+Java-based MPI applications. It ensures that all required Open MPI
 libraries and class paths are defined. You can see the actual command
 line using the ``--showme`` option, if you are interested.
 
@@ -79,20 +75,20 @@ standard ``mpirun`` command line::
 
   $ mpirun <options> java <your-java-options> <my-app>
 
-For convenience, ``mpirun`` has been updated to detect the ``java`` command
-and ensure that the required MPI libraries and class paths are defined
-to support execution. You therefore do _NOT_ need to specify the Java
-library path to the MPI installation, nor the MPI classpath. Any class
-path definitions required for your application should be specified
-either on the command line or via the ``CLASSPATH`` environment
-variable. Note that the local directory will be added to the class
-path if nothing is specified.
+``mpirun`` will detect the ``java`` token and ensure that the required
+MPI libraries and class paths are defined to support execution. You
+therefore do **not** need to specify the Java library path to the MPI
+installation, nor the MPI classpath. Any class path definitions
+required for your application should be specified either on the
+command line or via the ``CLASSPATH`` environment variable. Note that
+the local directory will be added to the class path if nothing is
+specified.
 
-As always, the ``java`` executable, all required libraries, and your
-application classes must be available on all nodes.
+.. note:: The ``java`` executable, all required libraries, and your
+          application classes must be available on all nodes.
 
 Basic usage of the Java bindings
---------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There is an MPI package that contains all classes of the MPI Java
 bindings: ``Comm``, ``Datatype``, ``Request``, etc. These classes have a
@@ -110,7 +106,6 @@ of the ``MPI`` class and must be invoked by all MPI Java
 applications. The following example illustrates these concepts:
 
 .. code-block:: java
-   :linenos:
 
    import mpi.*;
 
@@ -141,14 +136,13 @@ applications. The following example illustrates these concepts:
    }
 
 Exception handling
-------------------
+^^^^^^^^^^^^^^^^^^
 
-Java bindings in Open MPI support exception handling. By default, errors
-are fatal, but this behavior can be changed. The Java API will throw
-exceptions if the MPI.ERRORS_RETURN error handler is set:
+The Java bindings in Open MPI support exception handling. By default,
+errors are fatal, but this behavior can be changed. The Java API will
+throw exceptions if the ``MPI.ERRORS_RETURN`` error handler is set:
 
 .. code-block:: java
-   :linenos:
 
    MPI.COMM_WORLD.setErrhandler(MPI.ERRORS_RETURN);
 
@@ -158,7 +152,6 @@ Error-handling code can be separated from main application code by
 means of try-catch blocks, for instance:
 
 .. code-block:: java
-   :linenos:
 
    try
    {
@@ -173,16 +166,16 @@ means of try-catch blocks, for instance:
    }
 
 How to specify buffers
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
-In MPI primitives that require a buffer (either send or receive) the
+In MPI primitives that require a buffer (either send or receive), the
 Java API admits a Java array. Since Java arrays can be relocated by
 the Java runtime environment, the MPI Java bindings need to make a
 copy of the contents of the array to a temporary buffer, then pass the
 pointer to this buffer to the underlying C implementation. From the
 practical point of view, this implies an overhead associated to all
-buffers that are represented by Java arrays. The overhead is small
-for small buffers but increases for large arrays.
+buffers that are represented by Java arrays. The overhead is small for
+small buffers but increases for large arrays.
 
 There is a pool of temporary buffers with a default capacity of 64K.
 If a temporary buffer of 64K or less is needed, then the buffer will
@@ -192,9 +185,9 @@ be necessary to allocate the buffer and free it later.
 The default capacity of pool buffers can be modified with an Open MPI
 MCA parameter::
 
-  shell$ mpirun --mca mpi_java_eager size ...
+  shell$ mpirun --mca mpi_java_eager SIZE ...
 
-Where ``size`` is the number of bytes, or kilobytes if it ends with 'k',
+Where ``SIZE`` is the number of bytes, or kilobytes if it ends with 'k',
 or megabytes if it ends with 'm'.
 
 An alternative is to use "direct buffers" provided by standard classes
@@ -206,7 +199,6 @@ the number of elements in the buffer can be obtained with the method
 ``capacity()``. This example illustrates its use:
 
 .. code-block:: java
-   :linenos:
 
    int myself = MPI.COMM_WORLD.getRank();
    int tasks  = MPI.COMM_WORLD.getSize();
@@ -229,33 +221,33 @@ the number of elements in the buffer can be obtained with the method
        }
    }
 
-Direct buffers are available for: ``BYTE``, ``CHAR``, ``SHORT``, ``INT``,
-``LONG``, ``FLOAT``, and ``DOUBLE``. There is no direct buffer for booleans.
+Direct buffers are available for: ``BYTE``, ``CHAR``, ``SHORT``,
+``INT``, ``LONG``, ``FLOAT``, and ``DOUBLE``. There is no direct
+buffer for booleans.
 
 Direct buffers are not a replacement for arrays, because they have
-higher allocation and deallocation costs than arrays. In some
-cases arrays will be a better choice. You can easily convert a
-buffer into an array and vice versa.
+higher allocation and deallocation costs than arrays. In some cases
+arrays will be a better choice. You can easily convert a buffer into
+an array and vice versa.
 
 All non-blocking methods must use direct buffers and only
 blocking methods can choose between arrays and direct buffers.
 
-The above example also illustrates that it is necessary to call
-the ``free()`` method on objects whose class implements the ``Freeable``
-interface. Otherwise a memory leak is produced.
+The above example also illustrates that it is necessary to call the
+``free()`` method on objects whose class implements the ``Freeable``
+interface. Otherwise, a memory leak is produced.
 
 Specifying offsets in buffers
------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In a C program, it is common to specify an offset in a array with
-``&array[i]`` or ``array+i``, for instance to send data starting from
-a given position in the array. The equivalent form in the Java bindings
-is to ``slice()`` the buffer to start at an offset. Making a ``slice()``
-on a buffer is only necessary, when the offset is not zero. Slices
-work for both arrays and direct buffers.
+``&array[i]`` or ``array+i`` to send data starting from a given
+position in the array. The equivalent form in the Java bindings is to
+``slice()`` the buffer to start at an offset. Making a ``slice()`` on
+a buffer is only necessary, when the offset is not zero. Slices work
+for both arrays and direct buffers.
 
 .. code-block:: java
-   :linenos:
 
    import static mpi.MPI.slice;
    // ...
@@ -263,8 +255,45 @@ work for both arrays and direct buffers.
    // ...
    MPI.COMM_WORLD.send(slice(numbers, offset), count, MPI.INT, 1, 0);
 
+
+Supported APIs
+^^^^^^^^^^^^^^
+
+Complete MPI-3.1 coverage is provided in the Open MPI Java bindings,
+with a few exceptions:
+
+* The bindings for the ``MPI_Neighbor_alltoallw`` and
+  ``MPI_Ineighbor_alltoallw`` functions are not implemented.
+
+* Also excluded are functions that incorporate the concepts of
+  explicit virtual memory addressing, such as
+  ``MPI_Win_shared_query``.
+
+
+Known issues
+^^^^^^^^^^^^
+
+There exist issues with the Omnipath (PSM2) interconnect involving
+Java. The problems definitely exist in PSM2 v10.2; we have not tested
+previous versions.
+
+As of November 2016, there is not yet a PSM2 release that completely
+fixes the issue.
+
+The following ``mpirun`` command options will disable PSM2::
+
+   shell$ mpirun ... --mca mtl ^psm2 java ...your-java-options... your-app-class
+
+
 Questions?  Problems?
----------------------
+^^^^^^^^^^^^^^^^^^^^^
+
+The Java API documentation is generated at build time in
+``$prefix/share/doc/openmpi/javadoc``.
+
+Additionally, `this Cisco blog post
+<https://blogs.cisco.com/performance/java-bindings-for-open-mpi>`_ has
+quite a bit of information about the Open MPI Java bindings.
 
 If you have any problems, or find any bugs, please feel free to report
 them to `Open MPI user's mailing list

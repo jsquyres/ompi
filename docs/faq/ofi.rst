@@ -66,7 +66,6 @@ Both components have MCA parameters to specify the Libfabric provider(s) that
 will be included/excluded in the selection process. For example:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun --mca pml cm --mca mtl ofi --mca mtl_ofi_provider_include psm2 mpi_hello
 
@@ -75,7 +74,6 @@ In addition, each component has specific parameters for each one; see
 list. For example:
 
 .. code-block::
-   :linenos:
 
    shell$ ompi_info --param mtl ofi --level 9
 
@@ -100,7 +98,6 @@ The variables above may be included in the ``mpirun`` command line or in
 the environment. For example:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun -mca mtl [psm2|ofi] -x PSM2_MULTIRAIL=1 -np 2 -H host1,host2 ./a.out
 

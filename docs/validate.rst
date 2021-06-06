@@ -1,6 +1,9 @@
 Validating your installation
 ============================
 
+Checking your Open MPI configuration
+------------------------------------
+
 The ``ompi_info`` command can be used to check the status of your Open
 MPI installation (located in ``PREFIX/bin/ompi_info``).  Running it with
 no arguments provides a summary of information about your Open MPI
@@ -11,7 +14,7 @@ which components are installed as well as listing all the run-time
 settable parameters that are available in each component (as well as
 their default values).
 
-The following options may be helpful:
+The following ``ompi_info`` options may be helpful:
 
 * ``--all``: Show a *lot* of information about your Open MPI
   installation.
@@ -37,8 +40,12 @@ Changing the values of these parameters is explained in the
 :ref:`Internal frameworks section
 <internal-frameworks-section-label>`.
 
-When verifying a new Open MPI installation, we recommend running six
-tests:
+
+Testing your Open MPI installation
+----------------------------------
+
+When verifying a new Open MPI installation, we recommend running the
+following tests:
 
 #. Use ``mpirun`` to launch a non-MPI program (e.g., ``hostname`` or
    ``uptime``) across multiple nodes.

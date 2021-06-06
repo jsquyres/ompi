@@ -22,7 +22,6 @@ not required).
 For example:
 
 .. code-block:: sh
-   :linenos:
 
    # Allocate a PBS job with 4 nodes
    shell$ qsub -I -lnodes=4
@@ -34,7 +33,6 @@ This will run the MPI processes on the nodes that were allocated by
 PBS/Torque.  Or, if submitting a script:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ cat my_script.sh
    #!/bin/sh
@@ -102,7 +100,6 @@ The ``ompi_info`` command can be used to determine whether or not an
 installed Open MPI includes Torque/PBS Pro support:
 
 .. code-block::
-   :linenos:
 
    shell$ ompi_info | grep ras
 
@@ -112,6 +109,5 @@ information varies depending on which version of Open MPI is
 installed.
 
 .. code-block::
-   :linenos:
 
        MCA ras: tm (MCA v2.1.0, API v2.0.0, Component v3.0.0)

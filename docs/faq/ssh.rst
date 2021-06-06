@@ -74,7 +74,6 @@ The first thing that you need to do is generate an RSA key pair to use
 with ``ssh-keygen``:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ ssh-keygen -t rsa
 
@@ -92,7 +91,6 @@ to ``$HOME/.ssh/authorized_keys`` (or add it to the end of
 ``authorized_keys`` if that file already exists):
 
 .. code-block:: sh
-   :linenos:
 
    shell$ cd $HOME/.ssh
    shell$ cat id_rsa.pub >> authorized_keys
@@ -113,7 +111,6 @@ following files inside ``$HOME/.ssh`` have at least the following
 permissions:
 
 .. code-block:: sh
-   :linenos:
 
    -rw-r--r--  authorized_keys
    -rw-------  id_rsa
@@ -147,7 +144,6 @@ the shell environment variable ``$SSH_AUTH_SOCK`` exists; if so,
 running, you can start it manually with the following:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ eval `ssh-agent`
 
@@ -165,7 +161,6 @@ Once the ``ssh-agent`` is running, you can tell it your passphrase by
 running the ``ssh-add`` command:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ ssh-add $HOME/.ssh/id_rsa
 
@@ -206,7 +201,6 @@ file on each of the three remote machines (``alpha``, ``beta``, and
 ``gamma``) with at least the following line in it:
 
 .. code-block:: sh
-   :linenos:
 
    stevemachine.example.com steve
 

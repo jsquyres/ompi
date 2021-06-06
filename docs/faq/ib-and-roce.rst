@@ -45,7 +45,6 @@ communication.  To select a specific network device to use (for
 example, ``mlx5_0`` device port 1):
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun -x UCX_NET_DEVICES=mlx5_0:1 ...
 
@@ -53,7 +52,6 @@ It's also possible to force using UCX for MPI point-to-point and
 one-sided operations:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun --mca pml ucx --mca osc ucx ...
 
@@ -61,7 +59,6 @@ For OpenSHMEM, in addition to the above, it's possible to force using
 UCX for remote memory access and atomic memory operations:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun --mca pml ucx --mca osc ucx --mca scoll ucx --mca atomic ucx ...
 
@@ -98,7 +95,6 @@ The ``ompi_info`` command can display all the parameters available for
 any Open MPI component.  For example:
 
 .. code-block::
-   :linenos:
 
    shell$ ompi_info --param pml ucx --level 9
 
@@ -118,7 +114,6 @@ In order to tell the UCX PML which SL to use, the IB SL must be
 specified using the ``UCX_IB_SL`` environment variable.  For example:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun --mca pml ucx -x UCX_IB_SL=N ...
 
@@ -135,7 +130,6 @@ be specified using the ``UCX_NET_DEVICES`` environment variable.  For
 example:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun --mca pml ucx -x UCX_NET_DEVICES=mlx5_0:1 ...
 
@@ -143,7 +137,6 @@ UCX selects IPv4 RoCEv2 by default. If different behavior is needed,
 you can set a specific GID index:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun --mca pml ucx -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_IB_GID_INDEX=1 ...
 

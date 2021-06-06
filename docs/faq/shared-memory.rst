@@ -40,7 +40,6 @@ same, single node, then you also need to specify a BTL for internode
 communications.  For example:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun --mca btl self,sm,tcp -np 16 ./a.out
 

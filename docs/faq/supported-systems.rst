@@ -70,7 +70,7 @@ the reality of limited development, testing, and maintenance
 resources.
 
 That being said, :doc:`contributions are always welcome!
-</faq/contributing>`.
+</contributing>`.
 
 
 /////////////////////////////////////////////////////////////////////////
@@ -184,7 +184,7 @@ As such, supporting data heterogeneity is a feature that has fallen
 into disrepair: it is currently known to be broken in this release of
 Open MPI.
 
-:doc:`Contributions to fix it would be welcome! </faq/contributing>`
+:doc:`Contributions to fix it would be welcome! </contributing>`
 
 /////////////////////////////////////////////////////////////////////////
 

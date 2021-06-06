@@ -41,29 +41,6 @@ OpenSHMEM component frameworks
   point-to-point operations
 * ``sshmem``: OpenSHMEM shared memory backing facility
 
-Back-end run-time environment (RTE) component frameworks
---------------------------------------------------------
-
-.. error:: JMS Should we even list these since they're in PRRTE and/or PMIx?
-
-* ``dfs``: Distributed file system
-* ``errmgr``: RTE error manager
-* ``ess``: RTE environment-specific services
-* ``filem``: Remote file management
-* ``grpcomm``: RTE group communications
-* ``iof``: I/O forwarding
-* ``notifier``: System-level notification support
-* ``odls``: OpenRTE daemon local launch subsystem
-* ``oob``: Out of band messaging
-* ``plm``: Process lifecycle management
-* ``ras``: Resource allocation system
-* ``rmaps``: Resource mapping system
-* ``rml``: RTE message layer
-* ``routed``: Routing table for the RML
-* ``rtc``: Run-time control framework
-* ``schizo``: OpenRTE personality framework
-* ``state``: RTE state machine
-
 Miscellaneous frameworks
 ------------------------
 
@@ -100,7 +77,6 @@ changed at run-time.  Use the ``ompi_info`` command to check a component
 to see what its tunable parameters are.  For example:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ ompi_info --param btl tcp
 
@@ -146,7 +122,6 @@ To see *all* available parameters for a given component, specify that
 ompi_info should use level 9:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ ompi_info --param btl tcp --level 9
 
@@ -173,7 +148,6 @@ values of parameters:
    (Bourne-style shells):
 
    .. code-block:: sh
-      :linenos:
 
       shell$ OMPI_MCA_btl_tcp_frag_size=65536
       shell$ export OMPI_MCA_btl_tcp_frag_size
@@ -183,7 +157,6 @@ values of parameters:
    Where ``<name>`` is the name of the parameter.  For example:
 
    .. code-block:: sh
-      :linenos:
 
       shell$ mpirun --mca btl_tcp_frag_size 65536 -np 2 hello_world_mpi
 
@@ -209,7 +182,6 @@ components are used for MPI communications, specify them in a
 comma-delimited list to the ``btl`` MCA parameter:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun --mca btl tcp,self hello_world_mpi
 
@@ -217,7 +189,6 @@ To add shared memory support, add ``sm`` into the command-delimited list
 (list order does not matter):
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun --mca btl tcp,sm,self hello_world_mpi
 
@@ -229,7 +200,6 @@ To specifically deactivate a specific component, the comma-delimited
 list can be prepended with a ``^`` to negate it:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun --mca btl ^tcp hello_mpi_world
 

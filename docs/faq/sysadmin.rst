@@ -189,7 +189,6 @@ to tweak are:
   ``$prefix/etc/openmpi-mca-params.conf``:
 
   .. code-block::
-      :linenos:
 
       btl = ^tcp
 
@@ -201,7 +200,6 @@ to tweak are:
   following line in the file ``$prefix/etc/openmpi-mca-params.conf``:
 
   .. code-block::
-      :linenos:
 
       btl_tcp_if_exclude = lo,eth0
 
@@ -215,7 +213,6 @@ to tweak are:
   with:
 
   .. code-block::
-      :linenos:
 
       shell$ ompi_info --param all all
 
@@ -227,7 +224,6 @@ to tweak are:
      for further information.
 
   .. code-block:: sh
-     :linenos:
 
      shell$ ompi_info --level 9
      # or
@@ -238,14 +234,12 @@ to tweak are:
   specific plug-in with the command line parameters:
 
   .. code-block:: sh
-     :linenos:
 
      shell$ ompi_info --param btl all --level 9
 
   Shows all the parameters of all BTL components, and:
 
   .. code-block:: sh
-     :linenos:
 
      shell$ ompi_info --param btl tcp --level 9
 

@@ -70,7 +70,6 @@ Slurm-native mechanisms to launch and kill processes --
 For example:
 
 .. code-block:: sh
-   :linenos:
 
    # Allocate a Slurm job with 4 nodes
    shell$ salloc -N 4
@@ -83,7 +82,6 @@ Slurm.
 Or, if submitting a script:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ cat my_script.sh
    #!/bin/sh
@@ -122,14 +120,12 @@ Open MPI applications can then be launched directly via the ``srun``
 command.  For example:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ srun -N 4 my_mpi_application
 
 Or you can use ``sbatch`` with a script:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ cat my_script.sh
    #!/bin/sh

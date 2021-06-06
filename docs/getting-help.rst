@@ -1,4 +1,4 @@
-Getting Help
+Getting help
 ============
 
 If you have a problem or question, it is highly recommended that you
@@ -6,9 +6,12 @@ execute the following steps **in order**.  Many people have similar
 problems with configuration and initial setup of Open MPI -- it is
 possible that your question has already been answered.
 
-#. :doc:`Check the Open MPI FAQ </faq/index>`.  We generally take the
-   approach that if the same question comes up multiple times, we put
-   it on the FAQ.
+#. :doc:`Validate your Open MPI installation </validate>`.  This
+   ensures that you have a nominally-correct Open MPI installation.
+
+#. `Check prior GitHub issues
+   <https://github.com/open-mpi/ompi/issues>`_ and see if others have
+   asked the same question and had it answered.
 
 #. `Check the mailing list archives
    <https://www.open-mpi.org/community/lists/ompi.php>`_ "search"
@@ -16,35 +19,12 @@ possible that your question has already been answered.
    asked the same question and had it answered.
 
 #. If you do not find a solution to your problem in the above
-   resources, send the following information to the `Open MPI user's
-   mailing list <https://www.open-mpi.org/community/lists/ompi.php>`_.
-
-   .. note:: The mailing lists have *a 150 KB size limit on messages*
-             If attaching your files results in an email larger than
-             this, please try compressing it and/or posting it on the
-             web somewhere for people to download.  A `Github Gist
-             <https://gist.github.com/>`_ or a `Pastebin
-             <https://pastebin.com/>`_ might be an easy choice for
-             posting large text files.
-
-  .. important:: The more information you include in your report, the
-                 better.  E-mails simply stating, "It doesn't work!"
-                 are not helpful; we need to know as much information
-                 about your environment as possible in order to
-                 provide meaningful assistance.  **The best way to get
-                 help** is to provide a "recipie" for reproducing the
-                 problem.  This will allow the Open MPI developers to
-                 see the error for themselves, and therefore be able
-                 to fix it.
-
-  .. important:: Please **use a descriptive "subject" line in your
-                 email!** Some Open MPI question-answering people
-                 decide whether to read a mail based on its subject
-                 line (e.g., to see if it's a question that they can
-                 answer).  So please plese please use a good subject
-                 line that succinctly describes your problem.
+   resources, proceed to the :ref:`Where to send?
+   <getting-help-where-to-send-label>` section.
 
 /////////////////////////////////////////////////////////////////////
+
+.. _getting-help-where-to-send-label:
 
 Where to send?
 --------------
@@ -52,30 +32,53 @@ Where to send?
 Different types of questions and problems should be sent to different
 places.  If you have:
 
-* A general end-user question or problem, you should probably
-  subscribe to the `Open MPI user's mailing list
-  <https://www.open-mpi.org/community/lists/ompi.php>`_ and post it
-  there.
+#. A general end-user question or problem, you should probably
+   subscribe to the `Open MPI user's mailing list
+   <https://www.open-mpi.org/community/lists/ompi.php>`_ and post it
+   there.
 
-  * If you have a run-time question or problem, see the :ref:`For
-    run-time problems <getting-help-run-time-label>` section below for
-    the content of what to include in your email.
-  * If you have a compile-time question or problem, see the :ref:`For
-    compile-time problems <getting-help-compile-time-label>` section
-    below for the content of what to include in your email.
+   .. note:: Because of spam, only subscribers to the mailing list are
+             allowed to post to the mailing list.  Specifically: you
+             must subscribe to the mailing list before posting.
 
-* A bug report, you should probably post it to `Open MPI's Github
-  issue tracker <https://github.com/open-mpi/ompi/issues>`_.  Follow
-  the template to submit all the requested information.
+   * If you have a run-time question or problem, see the :ref:`For
+     run-time problems <getting-help-run-time-label>` section below for
+     the content of what to include in your email.
+   * If you have a compile-time question or problem, see the :ref:`For
+     compile-time problems <getting-help-compile-time-label>` section
+     below for the content of what to include in your email.
 
-* A patch, bug fix, or other code submission, please post a Github
-  Pull Request to the `Open MPI Github repository
-  <https://github.com/open-mpi/ompi/pulls>`_.
+   .. note:: The mailing lists have **a 150 KB size limit on
+             messages** (this is a limitation of the mailing list web
+             archives).  If attaching your files results in an email
+             larger than this, please try compressing it and/or
+             posting it on the web somewhere for people to download.
+             A `Github Gist <https://gist.github.com/>`_ or a
+             `Pastebin <https://pastebin.com/>`_ might be an easy
+             choice for posting large text files.
 
-* A developer-level / internal question about Open MPI itself, you
-  should probably subscribe to the `Open MPI developer's mailing list
-  <https://www.open-mpi.org/community/lists/ompi.php>`_ and post it
-  there.
+   .. important:: Please **use a descriptive "subject" line in your
+                  email!** Some Open MPI question-answering people
+                  decide whether to read a mail based on its subject
+                  line (e.g., to see if it's a question that they can
+                  answer).  So please plese please use a good subject
+                  line that succinctly describes your problem.
+
+#. A bug report, you should probably post it to `Open MPI's Github
+   issue tracker <https://github.com/open-mpi/ompi/issues>`_.  Follow
+   the template to submit all the requested information.
+
+#. A patch, bug fix, or other code submission, please post a Github
+   Pull Request to the `Open MPI Github repository
+   <https://github.com/open-mpi/ompi/pulls>`_.
+
+#. A developer-level / internal question about Open MPI itself, you
+   should probably subscribe to the `Open MPI developer's mailing list
+   <https://www.open-mpi.org/community/lists/ompi.php>`_ and post it
+   there.
+
+If you're unsure where to send your question, subscribe and send an
+email to the user's mailing list.
 
 /////////////////////////////////////////////////////////////////////
 
@@ -84,12 +87,18 @@ places.  If you have:
 For run-time problems
 ---------------------
 
-First, reach / search through this documentation.  Really.  This can
-save you a *lot* of time; many common problems and solutions are
-listed here.
+Please provide *all* of the following information:
 
-If you don't find the answer here, provide *all* of the following
-information:
+.. important:: The more information you include in your report, the
+               better.  E-mails/bug reports simply stating, "It
+               doesn't work!"  are not helpful; we need to know as
+               much information about your environment as possible in
+               order to provide meaningful assistance.
+
+               **The best way to get help** is to provide a "recipie"
+               for reproducing the problem.  This will allow the Open
+               MPI developers to see the error for themselves, and
+               therefore be able to fix it.
 
 #. The version of Open MPI that you're using.
 
@@ -114,10 +123,7 @@ information:
       ``mpirun`` to gather this information.  For example, if
       the file ``my_hostfile.txt`` contains the hostnames of the
       machines on which you are trying to run Open MPI
-      processes:
-
-      .. code-block:: sh
-         :linenos:
+      processes::
 
          shell$ mpirun --bynode --hostfile my_hostfile.txt --tag-output ompi_info --version
 
@@ -128,7 +134,6 @@ information:
       machines on which you are trying to run Open MPI processes:
 
       .. code-block:: sh
-         :linenos:
 
          # Bourne-style shell (e.g., bash, zsh, sh)
          shell$ for h in `cat my_hostfile.txt`
@@ -138,7 +143,6 @@ information:
          > done
 
       .. code-block:: sh
-         :linenos:
 
          # C-style shell (e.g., csh, tcsh)
          shell% foreach h (`cat my_hostfile.txt`)
@@ -168,14 +172,16 @@ information:
 
 #. Detailed information about your network:
 
-   #. For InfiniBand-based networks, include the information
+   .. error:: JMS Update link to IB FAQ entry.
+
+   #. For RoCE- or InfiniBand-based networks, include the information
       :ref:`in this FAQ entry <faq-ib-troubleshoot-label>`.
 
-   #. For TCP-based networks, include the output of the
-      ``ifconfig`` command on all relevant nodes.  Note that
-      some Linux distributions do not put ``ifconfig`` in the
-      default ``PATH`` of normal users; look for it in
-      ``/sbin/ifconfig`` or ``/usr/sbin/ifconfig``.
+   #. For Ethernet-based networks (including RoCE-based networks,
+      include the output of the ``ifconfig`` command on all relevant
+      nodes.  Note that some Linux distributions do not put
+      ``ifconfig`` in the default ``PATH`` of normal users; look for
+      it in ``/sbin/ifconfig`` or ``/usr/sbin/ifconfig``.
 
 /////////////////////////////////////////////////////////////////////
 
@@ -184,12 +190,18 @@ information:
 For compile problems
 --------------------
 
-First, reach / search through this documentation.  Really.  This can
-save you a *lot* of time; many common problems and solutions are
-listed there.
+Please provide *all* of the following information:
 
-If you don't find the answer there, provide *all* of the following
-information:
+.. important:: The more information you include in your report, the
+               better.  E-mails/bug reports simply stating, "It
+               doesn't work!"  are not helpful; we need to know as
+               much information about your environment as possible in
+               order to provide meaningful assistance.
+
+               **The best way to get help** is to provide a "recipie"
+               for reproducing the problem.  This will allow the Open
+               MPI developers to see the error for themselves, and
+               therefore be able to fix it.
 
 #. The version of Open MPI that you're using.
 
@@ -214,7 +226,6 @@ a unique directory, suitable for tarring and compressing into a single
 file:
 
 .. code-block:: sh
-   :linenos:
 
    # Bourne-style shell (e.g., bash, zsh, sh)
    shell$ mkdir $HOME/ompi-output
@@ -225,7 +236,6 @@ file:
    shell$ tar jcvf ompi-output.tar.bz2 ompi-output
 
 .. code-block:: sh
-   :linenos:
 
    # C-style shell (e.g., csh, tcsh)
    shell% mkdir $HOME/ompi-output
@@ -235,13 +245,4 @@ file:
    shell% cd $HOME
    shell% tar jcvf ompi-output.tar.bz2 ompi-output
 
-Then send the resulting ``ompi-output.tar.bz2`` file to the mailing
-list.
-
-.. note:: The mailing lists have a *150KB size limit* on attachments.
-   If your post is rejected because the attachment is too large, you
-   might want to post the files somewhere on the internet (e.g., a
-   GitHub gist or a Pastebin) and just send links in your post to the
-   mailing list.
-
-Make today an Open MPI day!
+Then attach the resulting ``ompi-output.tar.bz2`` file to your report.

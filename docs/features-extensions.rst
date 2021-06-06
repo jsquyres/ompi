@@ -1,5 +1,7 @@
-Open MPI API extensions
-=======================
+.. This file is included by features.rst.
+
+Open MPI extensions
+-------------------
 
 Open MPI contains a framework for extending the MPI API that is
 available to applications.  Each extension is usually a standalone set
@@ -12,7 +14,7 @@ to MPI applications.
    other MPI implementations!
 
 Available extenions
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 The following extensions are included in this version of Open MPI:
 
@@ -39,7 +41,7 @@ The following extensions are included in this version of Open MPI:
    provide an example for how to create other extensions.
 
 Compiling the extensions
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Open MPI extensions are all enabled by default; they can be disabled
 via the ``--disable-mpi-ext`` command line switch.
@@ -52,14 +54,13 @@ contains an extension.  Each has a ``README`` file that describes what
 it does.
 
 Using the extensions
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 To reinforce the fact that these extensions are non-standard, you must
 include a separate header file after ``<mpi.h>`` to obtain the function
 prototypes, constant declarations, etc.  For example:
 
 .. code-block:: c
-   :linenos:
 
    #include <mpi.h>
    #if defined(OPEN_MPI) && OPEN_MPI

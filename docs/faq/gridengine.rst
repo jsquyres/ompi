@@ -38,7 +38,6 @@ To verify if support for Grid Engine is configured into your Open MPI
 installation, run ``ompi_info`` as shown below and look for ``gridengine``.
 
 .. code-block::
-   :linenos:
 
    shell$ ompi_info | grep gridengine
                  MCA ras: gridengine (MCA v2.0, API v2.0, Component v1.3)
@@ -56,7 +55,6 @@ specified.  For example, this will run 4 MPI processes on the nodes
 that were allocated by Grid Engine:
 
 .. code-block:: sh
-   :linenos:
 
    # Get the environment variables for Grid Engine
 
@@ -72,7 +70,6 @@ that were allocated by Grid Engine:
 There are also other ways to submit jobs under Grid Engine:
 
 .. code-block:: sh
-   :linenos:
 
    # Submit a batch job with the 'mpirun' command embedded in a script
    shell$ qsub -pe ompi 4 my_mpirun_job.csh
@@ -89,7 +86,6 @@ PE "ompi".  The following example shows a PE named "ompi" that would
 look like:
 
 .. code-block::
-   :linenos:
 
    shell$ qconf -sp ompi
       pe_name            ompi
@@ -125,7 +121,6 @@ be created (by default).
 Be sure the queue will make use of the PE that you specified:
 
 .. code-block::
-   :linenos:
 
    shell$ qconf -sq all.q
    [...snipped...]
@@ -173,7 +168,6 @@ get the SIGUSR1 signal prior to getting the SIGTSTP signal.  Something
 like this batch script can be used:
 
 .. code-block:: sh
-   :linenos:
 
    #! /bin/bash
    #$ -S /bin/bash
@@ -193,7 +187,6 @@ script.  So we have to make sure that does not happen. Here is one way
 to handle it:
 
 .. code-block:: sh
-   :linenos:
 
    #! /bin/bash
    #$ -S /bin/bash
@@ -209,7 +202,6 @@ Alternatively, one can catch the signals in the script instead of doing
 an exec on the mpirun:
 
 .. code-block:: sh
-   :linenos:
 
    #! /bin/bash
    #$ -S /bin/bash
@@ -256,14 +248,12 @@ process.  To have them forwarded, you have to run the job with ``--mca
 orte_forward_job_control 1``.  Here is an example on Solaris:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -mca orte_forward_job_control 1 -np 2 a.out
 
 In another window, we suspend and continue the job:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ prstat -p 15301,15303,15305
       PID USERNAME  SIZE   RSS STATE  PRI NICE      TIME  CPU PROCESS/NLWP
@@ -294,7 +284,6 @@ change the ``suspend_method`` entry in the queue.  It has to be set to
 SIGTSTP.  Here is an example of what a queue should look like.
 
 .. code-block:: sh
-   :linenos:
 
    shell$ qconf -sq all.q
    qname                 all.q

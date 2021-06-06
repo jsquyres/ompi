@@ -1,6 +1,9 @@
-.. Open MPI FAQ, version 5.0.x.
-   .
-   See the top-level index.rst for how to build this documentation.
+.. Open MPI FAQ
+
+   This page will likely eventually go away (i.e., the "FAQ" section
+   will likely disappear -- its contents will likely just be folded in
+   elsewhere in the document).
+
 
 Frequently Asked Questions (FAQ)
 ================================
@@ -10,14 +13,16 @@ that they are worth categorizing in an official way.
 
 :ref:`search`
 
+.. There's still useful things here -- need to think about where to
+   put them:
+
+   building-open-mpi.rst
+
 .. toctree::
    :maxdepth: 1
 
-   general
-   contributing
    supported-systems
    sysadmin
-   building-open-mpi
    building-mpi-apps
    removed-mpi-constructs
    running-mpi-apps
@@ -31,7 +36,6 @@ that they are worth categorizing in an official way.
    tm
    debugging
    large-clusters
-   java
 
    general-tuning
    shared-memory
@@ -43,7 +47,3 @@ that they are worth categorizing in an official way.
    opa
    ib-and-roce
    iwarp
-
-.. TODO:
-
-   IB, RoCE, iWARP

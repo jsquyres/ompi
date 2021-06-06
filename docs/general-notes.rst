@@ -2,7 +2,7 @@ General notes
 =============
 
 The following abbreviated list of release notes applies to this code
-base as of this writing (April 2020):
+base as of this writing (June 2021):
 
 * Open MPI now includes two public software layers: MPI and OpenSHMEM.
   Throughout this document, references to Open MPI implicitly include
@@ -137,7 +137,6 @@ Compiler Notes
   provide the following on the configure command line:
 
   .. code-block:: sh
-     :linenos:
 
      shell$ ./configure FCFLAGS=-L/usr/local/lib ...
 
@@ -233,7 +232,6 @@ Compiler Notes
   compiler and the ``-m32`` option, you might see a warning:
 
   .. code-block::
-     :linenos:
 
      CC: Warning: failed to detect system linker version, falling back to custom linker usage
 
@@ -273,7 +271,6 @@ Compiler Notes
   ``configure`` script:
 
   .. code-block:: sh
-     :linenos:
 
      shell$ ./configure CFLAGS=-Msignextend CXXFLAGS=-Msignextend \
             --with-wrapper-cflags=-Msignextend \
@@ -403,7 +400,6 @@ Compiler Notes
   installation:
 
   .. code-block:: sh
-     :linenos:
 
      shell$ ompi_info | grep -i fort
 
@@ -502,7 +498,6 @@ MPI Functionality and Features
   warnings.  For example:
 
   .. code-block::
-     :linenos:
 
      shell$ cat deprecated_example.c
      #include <mpi.h>
@@ -550,7 +545,6 @@ MPI Functionality and Features
   output to stderr when some MPI functions are invoked:
 
   .. code-block::
-     :linenos:
 
      shell$ cd examples/
      shell$ mpicc hello_c.c -o hello_c -lompitrace
@@ -663,7 +657,6 @@ Network Support
   run-time:
 
   .. code-block:: sh
-     :linenos:
 
      shell$ mpirun --mca pml ob1 --mca btl [comma-delimted-BTLs] ...
      # or
@@ -733,5 +726,5 @@ Open MPI Extensions
 An MPI "extensions" framework is included in Open MPI, but is not
 enabled by default.
 
-:doc:`See the Open MPI API Extensions </extensions>` section for more
+:doc:`See the Open MPI-specific features </features>` section for more
 information on compiling and using MPI extensions.

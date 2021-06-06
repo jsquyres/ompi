@@ -59,7 +59,6 @@ usual ways</a>.  MPI-level MCA parameters can be displayed by invoking
 the following command:
 
 .. code-block:: sh
-   :linenos:
 
    # Use "--level 9" to see all the MCA parameters
    # (the default is "--level 1"):
@@ -162,7 +161,6 @@ is to insert the following code in your application where you want to
 attach:
 
 .. code-block:: c
-   :linenos:
 
    {
        volatile int i = 0;
@@ -187,7 +185,6 @@ are in this block of code (you'll likely attach during the
 GDB, the syntax is:
 
 .. code-block:: sh
-   :linenos:
 
    (gdb) set var i = 7
 
@@ -211,7 +208,6 @@ that is outside of Open MPI to work properly.  A naive approach would
 be to assume that the following would immediately work:
 
 .. code-block:: sh
-   :linenos:
 
     shell$ mpirun -np 4 xterm -e gdb my_mpi_application
 
@@ -267,7 +263,6 @@ following:
    command.  For example:
 
    .. code-block:: sh
-      :linenos:
 
       shell$ cat my_hostfile
       inky
@@ -283,7 +278,6 @@ following:
    output and the ``:0`` (or ``:0.0``) suffix.  For example:
 
    .. code-block:: sh
-      :linenos:
 
       shell$ hostname
       arcade.example.come
@@ -308,7 +302,6 @@ following:
    again to disable these permissions:
 
    .. code-block:: sh
-      :linenos:
 
       shell$ for host in `cat my_hostfile` ; do xhost -host ; done
 
@@ -348,7 +341,6 @@ message aggregation with the ``orte_base_help_aggregate`` MCA
 parameter.  For example:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun --mca orte_base_help_aggregate 0 ...
 
@@ -381,7 +373,6 @@ Here are some example codes that Memchecker can detect:
 Accessing buffer under control of non-blocking communication:
 
 .. code-block:: c
-   :linenos:
 
    int buf;
    MPI_Irecv(&buf, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, &req);
@@ -392,7 +383,6 @@ Accessing buffer under control of non-blocking communication:
 Wrong input parameters, e.g., wrong-sized send buffers:
 
 .. code-block:: c
-   :linenos:
 
    char *send_buffer;
    send_buffer = malloc(5);
@@ -403,7 +393,6 @@ Wrong input parameters, e.g., wrong-sized send buffers:
 Accessing a window in a one-sided communication:
 
 .. code-block:: c
-   :linenos:
 
    MPI_Get(A, 10, MPI_INT, 1, 0, 1, MPI_INT, win);
    A[0] = 4711;
@@ -412,7 +401,6 @@ Accessing a window in a one-sided communication:
 Uninitialized input buffers:
 
 .. code-block:: c
-   :linenos:
 
    char *buffer;
    buffer = malloc(10);
@@ -425,7 +413,6 @@ undefined for single-completion calls such as ``MPI_WAIT`` or
 ``MPI_TEST``, see MPI-1 p. 22):
 
 .. code-block:: c
-   :linenos:
 
    MPI_Wait(&request, &status);
    // The following line will produce a memchecker warning
@@ -451,7 +438,6 @@ build Memchecker support.
 For example:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ ./configure --prefix=/path/to/openmpi --enable-debug \
        --enable-memchecker --with-valgrind=/path/to/valgrind
@@ -460,7 +446,6 @@ You can check that Open MPI was built with Memchecker support by using
 the ``ompi_info`` application:
 
 .. code-block:: sh
-   :linenos:
 
    # The exact version numbers shown may be different for your Open
    # MPI installation
@@ -480,7 +465,6 @@ installed, and Open MPI is compiled with Memchecker support
 enabled. Then simply run your application with Valgrind, e.g.:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -np 2 valgrind ./my_app
 
@@ -489,7 +473,6 @@ application at this time, then just run your application as
 usual. E.g.:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -np 2 ./my_app
 
@@ -516,7 +499,6 @@ There are two cases:
    from ``valgrind.h``:
 
    .. code-block:: c
-      :linenos:
 
       #define __SPECIAL_INSTRUCTION_PREAMBLE                      \
                      "rolq \$3,  %%rdi; rolq \$13, %%rdi\\n\\t"   \
@@ -530,7 +512,6 @@ There are two cases:
       (i.e., not syntax hilighted).
 
    .. code-block::
-      :linenos:
 
       __asm__ volatile(__SPECIAL_INSTRUCTION_PREAMBLE               \
                      /* %RDX = client_request ( %RAX ) */           \
@@ -590,7 +571,6 @@ so-called Valgrind-suppression file, that can be passed on the command
 line:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -np 2 valgrind --suppressions=$PREFIX/share/openmpi/openmpi-valgrind.supp
 

@@ -23,7 +23,6 @@ are used, you can explicitly specify them on the ``mpirun`` command
 line:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun --mca pml ob1 --mca btl tcp,sm,self ...
 
@@ -62,7 +61,6 @@ available for the ``tcp`` BTL component (i.e., the component that uses
 TCP for MPI communications):
 
 .. code-block:: sh
-   :linenos:
 
    shell$ ompi_info --param btl tcp --level 9
 
@@ -120,7 +118,6 @@ TCP-related errors are usually reported by Open MPI in a message
 similar to these:
 
 .. code-block::
-   :linenos:
 
    btl_tcp_endpoint.c:572:mca_btl_tcp_endpoint_complete_connect: connect() failed with errno=113
    mca_btl_tcp_frag_send: writev failed with errno=104
@@ -130,7 +127,6 @@ see what that specific error number means on your operating system.
 On Linux, you can use the ``perror`` command:
 
 .. code-block:: sh
-   :linenos:
 
    # See what errno 113 is
    shell$ perror 113
@@ -207,7 +203,6 @@ not use specific IP networks |mdash| or not use any IP networks at all
    Specifically:
 
    .. code-block:: sh
-      :linenos:
 
       # This says to exclude the TCP BTL component
       # (implicitly including all others)
@@ -224,7 +219,6 @@ not use specific IP networks |mdash| or not use any IP networks at all
    list of network interfaces.  For example:
 
    .. code-block:: sh
-      :linenos:
 
       # This says to not use the eth0 and lo interfaces.
       # (and implicitly use all the rest).  Per the description
@@ -240,7 +234,6 @@ not use specific IP networks |mdash| or not use any IP networks at all
    CIDR notation.  For example:
 
    .. code-block:: sh
-      :linenos:
 
       # Only use the 192.168.1.0/24 and 10.10.0.0/16 subnets for MPI
       # communications:
@@ -335,7 +328,6 @@ that some users have found helpful.
    #. You can change the running kernel via the ``/proc`` filesystem:
 
       .. code-block:: sh
-         :linenos:
 
          shell# cat /proc/sys/net/ipv4/tcp_syn_retries
          5
@@ -344,7 +336,6 @@ that some users have found helpful.
    #. You can also use the ``sysctl`` command:
 
       .. code-block:: sh
-         :linenos:
 
          shell# sysctl net.ipv4.tcp_syn_retries
          net.ipv4.tcp_syn_retries = 5
@@ -355,7 +346,6 @@ that some users have found helpful.
       which are persistent across reboots:
 
       .. code-block:: sh
-         :linenos:
 
          shell$ grep tcp_syn_retries /etc/sysctl.conf
          net.ipv4.tcp_syn_retries = 6
@@ -366,7 +356,6 @@ that some users have found helpful.
       ``/etc/sysctl.conf``.  For example:
 
       .. code-block:: sh
-         :linenos:
 
          shell$ cat /etc/sysctl.d/my-tcp-settings
          net.ipv4.tcp_syn_retries = 6
@@ -447,7 +436,6 @@ This can be useful if you notice your job hanging and believe it may
 be the library trying to make connections to unreachable hosts.
 
 .. code-block:: sh
-   :linenos:
 
    # Here is an example with some of the output deleted for clarity.
    # One can see the connections that are attempted.
@@ -485,7 +473,6 @@ For example, if the output from your ``ifconfig`` has a single IP device
 with multiple IP addresses like this:
 
 .. code-block::
-   :linenos:
 
    0: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP qlen 1000
       link/ether 00:18:ae:f4:d2:29 brd ff:ff:ff:ff:ff:ff

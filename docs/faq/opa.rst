@@ -21,7 +21,6 @@ The variables above may be included in the ``mpirun`` command line or
 in the environment. For example:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun -mca mtl [psm2|ofi] -x PSM2_MULTIRAIL=1 -np 2 -H host1,host2 ./a.out
 

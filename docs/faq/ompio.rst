@@ -53,7 +53,6 @@ The ``ompi_info`` command can display all the parameters available for the
 OMPIO ``io``, ``fcoll``, ``fs``, and ``sharedfp`` components:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ ompi_info --param io       ompio
    shell$ ompi_info --param fcoll    all
@@ -82,7 +81,6 @@ the corresponding MCA parameter during ``mpirun`` or any other
 mechanism available in Open MPI to influence a parameter value, e.g.:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun --mca fcoll dynamic -np 64 ./a.out
 
@@ -223,7 +221,6 @@ benchmark) and run an individual, single process write test. E.g., for
 IMB:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -np 1 ./IMB-IO S_write_indv
 

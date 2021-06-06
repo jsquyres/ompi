@@ -33,14 +33,12 @@ Open MPI provides a wrapper compiler for four languages:
 Hence, if you expect to compile your program as:
 
 .. code-block::
-   :linenos:
 
    shell$ gcc my_mpi_application.c -o my_mpi_application
 
 Simply use the following instead:
 
 .. code-block::
-   :linenos:
 
    shell$ mpicc my_mpi_application.c -o my_mpi_application
 
@@ -131,7 +129,6 @@ Here's an example showing the use of the ``--showme`` wrapper compiler
 flags:
 
 .. code-block:: sh
-   :linenos:
 
    # Show the flags necessary to compile MPI C applications
    shell$ mpicc --showme:compile
@@ -151,7 +148,6 @@ The ``--showme:*`` flags work with all Open MPI wrapper compilers
              and assigning their results to variables:
 
              .. code-block:: make
-                :linenos:
 
                 MPI_COMPILE_FLAGS = $(shell mpicc --showme:compile)
                 MPI_LINK_FLAGS = $(shell mpicc --showme:link)
@@ -164,7 +160,6 @@ need to add ``$prefix/lib/pkgconfig`` to the ``PKG_CONFIG_PATH``
 environment variable for Open MPI's config files to be found:
 
 .. code-block:: sh
-   :linenos:
 
    # Show the flags necessary to compile MPI C applications.
    # Set PKG_CONFIG_PATH as relevant for your Open MPI installation.
@@ -338,7 +333,6 @@ To obtain the values of the other flags, there are two main methods:
    (lines broken here for readability):
 
    .. code-block::
-      :linenos:
 
       shell$ mpicc prog.c -o prog --showme
       gcc -I/path/to/openmpi/include -I/path/to/openmpi/include/openmpi/ompi \
@@ -352,7 +346,6 @@ To obtain the values of the other flags, there are two main methods:
 #. Use the ``ompi_info`` command.  For example:
 
    .. code-block::
-      :linenos:
 
       shell$ ompi_info --all | grep wrapper
          Wrapper extra CFLAGS:
@@ -370,7 +363,6 @@ Note that the ``--parsable`` option can be used to obtain
 machine-parsable versions of this output.  For example:
 
    .. code-block::
-      :linenos:
 
       shell$ ompi_info --all --parsable | grep wrapper:extra
       option:wrapper:extra_cflags:
@@ -389,7 +381,6 @@ The output of commands similar to the following may be somewhat
 surprising:
 
 .. code-block::
-   :linenos:
 
    shell$ mpicc -g --showme
    gcc -g
@@ -404,7 +395,6 @@ filename argument.  Specifically (output artificially wrapped below for
 readability):
 
 .. code-block::
-   :linenos:
 
    shell$ mpicc -g --showme
    gcc -g
@@ -418,7 +408,6 @@ added all the relevant flags.  This behavior is specifically to allow
 behavior such as the following:
 
 .. code-block::
-   :linenos:
 
    shell$ mpicc --version --showme
    gcc --version
@@ -524,7 +513,6 @@ For example, this is how to configure Open MPI to build static
 libraries on Linux:
 
 .. code-block::
-   :linenos:
 
    shell$ ./configure --without-memory-manager --enable-static ...
 

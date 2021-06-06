@@ -1,9 +1,12 @@
 Developer's guide
 =================
 
-This section is here for those who are building/exploring Open MPI in its
-source code form, most likely through a developer's tree (i.e., a Git
-clone).
+This section is here for those who are building/exploring the
+internals of Open MPI in its source code form, most likely through a
+developer's tree (i.e., a Git clone).
+
+If you are writing MPI applications that simply *use* Open MPI, you
+probably don't need to read this section.
 
 Obtaining a Git clone
 ---------------------
@@ -16,10 +19,7 @@ Open MPI's Git repositories are hosted at GitHub.
 #. `ompi <https://github.com/open-mpi/ompi/>`_ is the main Open MPI
    repository where most active development is done.  Git clone this
    repository.  Note that the use of the ``--recursive`` CLI option is
-   necessary because Open MPI uses Git submodules:
-
-   .. code-block::
-      :linenos:
+   necessary because Open MPI uses Git submodules::
 
       shell$ git clone --recursive https://github.com/open-mpi/ompi.git
 
@@ -53,7 +53,10 @@ GNU Autotools
 ^^^^^^^^^^^^^
 
 When building Open MPI from its repository sources, the GNU Autotools
-must be installed.
+must be installed (i.e., `GNU Autoconf
+<https://www.gnu.org/software/autoconf/>`_, `GNU Automake
+<https://www.gnu.org/software/automake/>`_, and `GNU Libtool
+<https://www.gnu.org/software/libtool/>`_).
 
 .. note:: The GNU Autotools are *not* required when building Open MPI
           from distribution tarballs.  Open MPI distribution tarballs
@@ -66,18 +69,19 @@ MacOS.  This usually "just works."
 
 If you run into problems with the GNU Autotools, or need to download /
 build them manually, :ref:`see the GNU Autotool section of the Open
-MPI developer's docs <gnu-autotools-section-label>` for much more
-detail on how to do this.
+MPI developer's docs <developers-installing-autotools-label>` for much
+more detail on how to do this.
 
 
 Flex
 ^^^^
 
-Flex is used during the compilation of a developer's checkout (it is
-not used to build official distribution tarballs).  Other flavors of
-lex are *not* supported: given the choice of making parsing code
-portable between all flavors of lex and doing more interesting work on
-Open MPI, we greatly prefer the latter.
+`Flex <https://github.com/westes/flex>`_ is used during the
+compilation of a developer's checkout (it is not used to build
+official distribution tarballs).  Other flavors of lex are *not*
+supported: given the choice of making parsing code portable between
+all flavors of lex and doing more interesting work on Open MPI, we
+greatly prefer the latter.
 
 Note that no testing has been performed to see what the minimum
 version of Flex is required by Open MPI.  We suggest that you use
@@ -99,36 +103,46 @@ MacPorts on MacOS), see `the Flex Github repository
 <https://github.com/westes/flex>`_.
 
 
-Pandoc
-^^^^^^
-
-.. error:: **JMS THIS MAY/WILL NEED TO CHANGE IF WE SWITCH TO SPHINX**
-
-The Pandoc tool is used to generate Open MPI's man pages.
-Specifically: Open MPI's man pages are written in Markdown; Pandoc is
-the tool that converts that Markdown to nroff (i.e., the format of man
-pages).
-
-.. warning:: You must have Pandoc >=v1.12 when building Open MPI from
-   a developer's tree.  If configure cannot find Pandoc >=v1.12, it
-   will abort.
-
-If you need to install Pandoc, check your operating system-provided
-packages (to include MacOS Homebrew and MacPorts).  `The Pandoc
-project web site <https://pandoc.org/>`_ itself also offers binaries
-for their releases.
-
-
 Sphinx
 ^^^^^^
 
-.. error:: **JMS Need to write more here**
+`Sphinx <https://www.sphinx-doc.org/>`_ is used to generate both the
+HTML version of the documentation (that you are reading right now) and
+the nroff man pages.
 
-Sphinx...
+Official Open MPI distribution tarballs contain pre-built HTML and
+nroff documentation.  This means that -- similar to the GNU Autotools
+-- end users do not need to have Sphinx installed, but will still have
+the HTML documentation available, and will have the man pages
+installed as part of the normal configure / build / install process.
 
-* Installable via Python ``pip``
-* https://www.sphinx-doc.org/
+However, the HTML and nroff documentation are *not* stored in Open
+MPI's Git repository; only the ReStructred Text source code of the
+documentation is in the Git repository.  Hence, if you are building
+Open MPI from a Git clone, you will need Sphinx (and some Python
+modules) in order to build the HTML and nroff documentation.
 
+If ``configure`` is unable to find Sphinx and/or the required Python
+modules, it will simply skip building the documentation.
+
+.. note:: If you have built/installed Open MPI from a Git clone and
+          unexpectedly did not have the man pages installed, it is
+          likely that you do not have Sphinx and/or the required
+          Python modules available.
+
+          See below for how to install the available pre-requisites.
+
+.. important:: ``make dist`` will fail if ``configure`` did not find
+               Sphinx and/or the required Python modules.
+               Specifically: if ``make dist`` is not able to generate
+               the most up-to-date HTML and nroff documentation, you
+               cannot build a distribution tarball.  This is an
+               intentional design decision.
+
+Most systems do not have Sphinx and/or the required Python modules
+installed by default.  :ref:`See the Installing Sphinx section
+<developers-installing-sphinx-label>` for details on how to install
+Sphinx.
 
 Compiler Pickyness by Default
 -----------------------------
@@ -177,10 +191,7 @@ behavior in Automake 1.11 (or newer) can result in ``autogen.pl``
 running faster.  Do this by setting the ``AUTOMAKE_JOBS`` environment
 variable to the number of processors (threads) that you want it to use
 before invoking ``autogen``.pl.  For example (you can again put this
-in your shell startup files):
-
-.. code-block:: sh
-   :linenos:
+in your shell startup files)::
 
    # For bash/sh:
    export AUTOMAKE_JOBS=4
@@ -228,7 +239,6 @@ OSHMEM depends on OMPI, OMPI depends on OPAL.  For example, MPI
 executables are linked with:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpicc myapp.c -o myapp
    # This actually turns into:
@@ -356,10 +366,7 @@ project.  For example, the MPI API implementations can be found under
 ``LANGUAGE`` is ``c``, ``fortran``.
 
 The layout of the ``mca`` trees are strictly defined.  They are of the
-form:
-
-.. code-block::
-    :linenos:
+form::
 
     PROJECT/mca/FRAMEWORK/COMPONENT
 
@@ -375,10 +382,7 @@ component is located in ``opal/mca/btl/tcp/``.
 The name ``base`` is reserved; there cannot be a framework or component
 named ``base``. Directories named ``base`` are reserved for the
 implementation of the MCA and frameworks.  Here are a few examples (as
-of the v5.0 source tree):
-
-.. code-block:: sh
-    :linenos:
+of the v5.0 source tree)::
 
     # Main implementation of the MCA
     opal/mca/base
@@ -396,10 +400,10 @@ Under these mandated directories, frameworks and/or components may have
 arbitrary directory structures, however.
 
 
+.. _developers-installing-autotools-label:
+
 Installing the GNU Autootools
 -----------------------------
-
-.. _gnu-autotools-section-label:
 
 There is enough detail in building the GNU Autotools that it warrants
 its own section.
@@ -480,7 +484,6 @@ to at least the versions listed below.
       - Automake
       - Libtool
       - Flex
-      - Pandoc
       - Sphinx
 
     * - v1.0.x
@@ -489,7 +492,6 @@ to at least the versions listed below.
       - 1.7 - 1.9.6
       - 1.5.16 - 1.5.22
       - 2.5.4
-      -	NA
       - NA
     * - v1.1.x
       - NA
@@ -498,14 +500,12 @@ to at least the versions listed below.
       - 1.5.16 - 1.5.22
       - 2.5.4
       - NA
-      - NA
     * - v1.2.x
       - NA
       - 2.59
       - 1.9.6
       - 1.5.22 - 2.1a
       - 2.5.4
-      - NA
       - NA
     * - v1.3.x
       - 1.4.11
@@ -514,14 +514,12 @@ to at least the versions listed below.
       - 2.2.6b
       - 2.5.4
       - NA
-      - NA
     * - v1.4.x
       - 1.4.11
       - 2.63
       - 1.10.3
       - 2.2.6b
       - 2.5.4
-      - NA
       - NA
     * - v1.5.x for x=0-4
       - 1.4.13
@@ -530,14 +528,12 @@ to at least the versions listed below.
       - 2.2.6b
       - 2.5.4
       - NA
-      - NA
     * - v1.5.x for x>=5
       - 1.4.16
       - 2.68
       - 1.11.3
       - 2.4.2
       - 2.5.35
-      - NA
       - NA
     * - v1.6.x
       - 1.4.16
@@ -546,14 +542,12 @@ to at least the versions listed below.
       - 2.4.2
       - 2.5.35
       - NA
-      - NA
     * - v1.7.x
       - 1.4.16
       - 2.69
       - 1.12.2
       - 2.4.2
       - 2.5.35
-      - NA
       - NA
     * - v1.8.x
       - 1.4.16
@@ -562,14 +556,12 @@ to at least the versions listed below.
       - 2.4.2
       - 2.5.35
       - NA
-      - NA
     * - v1.10.x
       - 1.4.16
       - 2.69
       - 1.12.2
       - 2.4.2
       - 2.5.35
-      - NA
       - NA
     * - v2.0.x through v4.y
       - 1.4.17
@@ -578,25 +570,20 @@ to at least the versions listed below.
       - 2.4.6
       - 2.5.35
       - NA
-      - NA
     * - v5.0.x
       - 1.4.17
       - 2.69
       - 1.15
       - 2.4.6
       - 2.5.35
-      - NA
-      - 3.4.1
+      - 4.0.2
     * - Git master
       - 1.4.17
       - 2.69
       - 1.15
       - 2.4.6
       - 2.5.35
-      - NA
-      - 3.4.1
-
-.. error:: **JMS Remove Pandoc, above?**
+      - 4.0.2
 
 Here are some random notes about the GNU Autotools:
 
@@ -633,10 +620,7 @@ Checking your versions
 ^^^^^^^^^^^^^^^^^^^^^^
 
 You can check what versions of the Autotools you have installed with
-the following:
-
-.. code-block:: sh
-   :linenos:
+the following::
 
    shell$ m4 --version
    shell$ autoconf --version
@@ -698,10 +682,7 @@ three.  Or you can use any recent-enough m4 that is in your path.
    where they are installed.  For example, if you install into
    ``$HOME/local``, you may want to edit your shell startup file
    (``.bashrc``, ``.cshrc``, ``.tcshrc``, etc.) to have something
-   like:
-
-   .. code-block:: sh
-      :linenos:
+   like::
 
       # For bash/sh:
       export PATH=$HOME/local/bin:$PATH
@@ -715,7 +696,6 @@ All four packages require two simple commands to build and
 install:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ cd M4_DIRECTORY
    shell$ ./configure --prefix=PREFIX
@@ -729,7 +709,6 @@ install:
                package.
 
 .. code-block:: sh
-   :linenos:
 
    # Make $PATH be re-indexed if necessary, e.g., via "rehash"
    shell$ cd AUTOCONF_DIRECTORY
@@ -737,7 +716,6 @@ install:
    shell$ make all install
 
 .. code-block:: sh
-   :linenos:
 
    # Make $PATH be re-indexed if necessary, e.g., via "rehash"
    shell$ cd AUTOMAKE_DIRECTORY
@@ -745,9 +723,81 @@ install:
    shell$ make all install
 
 .. code-block:: sh
-   :linenos:
 
    # Make $PATH be re-indexed if necessary, e.g., via "rehash"
    shell$ cd LIBTOOL_DIRECTORY
    shell$ ./configure --prefix=PREFIX
    shell$ make all install
+
+
+.. _developers-installing-sphinx-label:
+
+Installing Sphinx
+-----------------
+
+There are three general ways to install Sphinx.  The Sphinx
+documentation recomends installing Sphinx via ``pip``, which typically
+requires connectivity to the general internet.
+
+.. note:: If you are running on MacOS, you may be tempted to use
+          ``brew`` or ``ports`` to install Sphinx.  The Sphinx
+          documentation recomends **against** this.  Instead, you
+          should use ``pip`` to install Sphinx.
+
+
+Install Sphinx globally
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The following will install Sphinx in a system-wide location on your
+system (you may need to run with root privlidges)::
+
+   shell$ cd TOP_OF_OPEN_MPI_GIT_CLONE
+   shell$ pip3 install -r docs/sphinx-requirements.txt
+
+This will install Sphinx and some Python modules required for building
+the Open MPI documentation in a system-wide location.
+
+This will likely install the ``sphinx-build`` executable in a location
+that is already in your ``PATH``.  If the location is not already in
+your ``PATH``, then you need to add it to your ``PATH``.
+
+
+Install Sphinx locally
+^^^^^^^^^^^^^^^^^^^^^^
+
+If you cannot or do not want to install Sphinx globally on your
+system, the following will install Sphinx somewhere under your
+``$HOME``.  You should not need ``root`` permissions to run this
+command::
+
+   shell$ cd TOP_OF_OPEN_MPI_GIT_CLONE
+   shell$ pip3 install --user -r docs/sphinx-requirements.txt
+
+This will install Sphinx and some Python modules required for building
+the Open MPI documentation in a system-wide location.
+
+You will likely need to find the location where ``sphinx-build`` was
+installed and add it to your ``PATH``.
+
+.. note:: On MacOS, look for ``sphinx-build`` under
+          ``$HOME/Library/Python/VERSION/bin`` (where ``VERSION`` is
+          the version number of Python).
+
+
+Install Sphinx in a Python virtual environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can also install Sphinx in a Python virtual environment.  This
+places Sphinx in a sandbox that will not conflict with other
+``pip``-installed Python modules.  This example installs Sphinx and
+other Python modules in the ``ompi-docs-venv`` tree under your Open
+MPI Git clone directory::
+
+   shell$ cd TOP_OF_OPEN_MPI_GIT_CLONE
+   shell$ python3 -m venv ompi-docs-venv
+   shell$ . ./ompi-docs-venv/venv/activate
+   (ompi-docs-venv) shell$ pip3 install --user -r docs/sphinx-requirements.txt
+
+.. important:: You will need to source the ``activate`` script to put
+               Sphinx in your ``PATH`` (e.g., before running Open
+               MPI's ``configure`` and build steps).

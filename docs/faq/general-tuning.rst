@@ -183,7 +183,6 @@ For example, the following shows all the MCA parameters for all
 components that ``ompi_info`` finds:
 
 .. code-block:: sh
-   :linenos:
 
    # Starting with Open MPI v1.7, you must use "--level 9" to see
    # all the MCA parameters (the default is "--level 1"):
@@ -197,7 +196,6 @@ This example shows all the MCA parameters for all BTL components that
 ``ompi_info`` finds:
 
 .. code-block:: sh
-   :linenos:
 
    # All remaining examples assume Open MPI v1.7 or later (i.e.,
    # they assume the use of the "--level" command line option)
@@ -206,7 +204,6 @@ This example shows all the MCA parameters for all BTL components that
 This example shows all the MCA parameters for the TCP BTL component:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ ompi_info --param btl tcp --level 9
 
@@ -224,7 +221,6 @@ listed below, and are resolved in the following priority order:
    parameters on the command line.  For example:
 
    .. code-block:: sh
-      :linenos:
 
       shell$ mpirun --mca mpi_show_handle_leaks 1 -np 4 a.out
 
@@ -237,7 +233,6 @@ listed below, and are resolved in the following priority order:
    single value.  For example:
 
    .. code-block:: sh
-      :linenos:
 
       shell$ mpirun --mca param "value with multiple words" ...
 
@@ -247,7 +242,6 @@ listed below, and are resolved in the following priority order:
    previous example (for sh-flavored shells):
 
    .. code-block:: sh
-      :linenos:
 
       shell$ OMPI_MCA_mpi_show_handle_leaks=1
       shell$ export OMPI_MCA_mpi_show_handle_leaks
@@ -257,7 +251,6 @@ listed below, and are resolved in the following priority order:
    requires quoting, such as:
 
    .. code-block:: sh
-      :linenos:
 
       shell$ OMPI_MCA_param="value with multiple words"
 
@@ -276,7 +269,6 @@ listed below, and are resolved in the following priority order:
    permitted).  For example:
 
    .. code-block:: ini
-      :linenos:
 
       # This is a comment
       # Set the same MCA parameter as in previous examples
@@ -288,7 +280,6 @@ listed below, and are resolved in the following priority order:
    example:
 
    .. code-block:: ini
-      :linenos:
 
       # The following two values are different:
       param1 = value with multiple words
@@ -355,7 +346,6 @@ placed in the same directory as the application ``a.out``. A user
 will typically run the application as:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -np 2 a.out
 
@@ -363,7 +353,6 @@ To use the ``foo.conf`` AMCA parameter file, this command line
 changes to:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -np 2 --am foo.conf a.out
 
@@ -371,7 +360,6 @@ If the user wants to override a parameter set in ``foo.conf`` they
 can add it to the command line:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -np 2 --am foo.conf --mca btl tcp,self a.out
 
@@ -380,7 +368,6 @@ used. If we have another AMCA parameter file called ``bar.conf``
 that we want to use, we add it to the command line as follows:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -np 2 --am foo.conf:bar.conf a.out
 
@@ -435,7 +422,6 @@ placed in the same directory as the application ``a.out``. A user
 will typically run the application as:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -np 2 a.out
 
@@ -443,7 +429,6 @@ To use the ``foo.conf`` tuned parameter file, this command line
 changes to:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -np 2 --tune foo.conf a.out
 
@@ -452,7 +437,6 @@ used. If we have another tuuned parameter file called ``bar.conf``
 that we want to use, we add it to the command line as follows:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun -np 2 --tune foo.conf,bar.conf a.out
 
@@ -462,7 +446,6 @@ which contain zero or more `-x` and `--mca` options.  Comments are not
 allowed.  For example, the following tuned file:
 
 .. code-block::
-   :linenos:
 
    -x envvar1=value1 -mca param1 value1 -x envvar2
    -mca param2 value2
@@ -471,7 +454,6 @@ allowed.  For example, the following tuned file:
 is equivalent to:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun \
        -x envvar1=value1 -mca param1 value1 -x envvar2 \
@@ -506,7 +488,6 @@ listing).  It can take as a value a comma-separated list of components
 with the optional prefix ``^``.  For example:
 
 .. code-block:: sh
-   :linenos:
 
    # Tell Open MPI to exclude the tcp and uct BTL components
    # and implicitly include all the rest
@@ -525,7 +506,6 @@ behavior of not specifying it (i.e., "use all of these components").
 Hence, something like this:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun --mca btl self,sm,usnic,^tcp ...
 
@@ -654,7 +634,6 @@ warning, Open MPI can be set to never register the atfork handler with
 the ``mpi_warn_on_fork`` MCA parameter.  For example:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ mpirun --mca mpi_warn_on_fork 0 ...
 
@@ -785,7 +764,6 @@ When you run IMB-EXT with Open MPI, you'll see a
 message like this:
 
 .. code-block::
-   :linenos:
 
    [node01.example.com:2228] *** An error occurred in MPI_Win_free
    [node01.example.com:2228] *** on win
@@ -801,7 +779,6 @@ yourself.
 Here is a small patch that fixes the bug in IMB v3.2:
 
 .. code-block:: diff
-   :linenos:
 
    diff -u imb-3.2-orig/src/IMB_window.c imb-3.2-fixed/src/IMB_window.c
    --- imb-3.2-orig/src/IMB_window.c     2008-10-21 04:17:31.000000000 -0400
@@ -821,7 +798,6 @@ Here is a small patch that fixes the bug in IMB v3.2:
 And here is the corresponding patch for IMB v3.1:
 
 .. code-block:: diff
-   :linenos:
 
    Index: IMB_3.1/src/IMB_window.c
    ===================================================================

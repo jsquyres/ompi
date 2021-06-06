@@ -98,8 +98,8 @@ one node, ensure that it is available in ``/opt/openmpi-$ver_current``
 on *all* nodes.
 
 The :ref:`where to install
-<faq-building-open-mpi-where-to-install-label>` FAQ question contains
-some suggestions on where to install Open MPI.
+<building-open-mpi-installation-location-label>` FAQ question
+contains some suggestions on where to install Open MPI.
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -254,7 +254,6 @@ For example, say that Open MPI was installed into
 thusly:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun --prefix /opt/openmpi-$ver_current -np 4 a.out
 
@@ -282,7 +281,6 @@ following is equivalent to the above command line that uses
 ``--prefix``:
 
 .. code-block::
-   :linenos:
 
    shell$ /opt/openmpi-$ver_current/bin/mpirun -np 4 a.out
 
@@ -319,7 +317,6 @@ to start a single program, multiple data (SPMD) application in
 parallel is:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun -np 4 my_parallel_application
 
@@ -331,7 +328,6 @@ its synonym, the ``--machinefile`` option) to indicate on which hosts
 to start the processes:
 
 .. code-block::
-   :linenos:
 
    shell$ cat my_hostfile
    host01.example.com
@@ -363,7 +359,6 @@ multiple data (MPMD) style launches, either from the command line or
 from a file.  For example:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun -np 2 a.out : -np 2 b.out
 
@@ -378,14 +373,12 @@ the ``b.out`` processes will be ranks 2 and 3 in ``MPI_COMM_WORLD``.
 specified in a file instead of on the command line.  For example:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun --app my_appfile
 
 where the file ``my_appfile`` contains the following:
 
 .. code-block:: sh
-   :linenos:
 
    # Comments are supported; comments begin with #
    # Application context files specify each sub-application in the
@@ -453,7 +446,6 @@ them across multiple hosts, try the following:
    For example:
 
    .. code-block::
-      :linenos:
 
       shell$ ssh remotehost hostname
       remotehost
@@ -469,7 +461,6 @@ them across multiple hosts, try the following:
    with ``ssh``:
 
    .. code-block::
-      :linenos:
 
       shell$ ssh remotehost env | grep -i path
       PATH=...path on the remote host...
@@ -487,7 +478,6 @@ them across multiple hosts, try the following:
    multiple hosts.  For example, try running the ``hostname`` command:
 
    .. code-block::
-      :linenos:
 
       shell$ mpirun --host remotehost hostname
       remotehost
@@ -511,7 +501,6 @@ them across multiple hosts, try the following:
       launches on remote hosts.  For example:
 
       .. code-block::
-         :linenos:
 
          mpirun --mca plm_base_verbose 10 --host remotehost hostname``
 
@@ -522,7 +511,6 @@ them across multiple hosts, try the following:
    and terminate properly.  For example:
 
    .. code-block::
-      :linenos:
 
       shell$ mpirun --host remotehost,otherhost hello_c
       Hello, world, I am 0 of 1, (Open MPI v$ver_current, package: Open MPI jsquyres@example.com Distribution, ident: $ver_current, DATE)
@@ -540,7 +528,6 @@ them across multiple hosts, try the following:
    traffic across your network.  For example:
 
    .. code-block::
-      :linenos:
 
       shell$ mpirun --host remotehost,otherhost ring_c
       Process 0 sending 10 to 0, tag 201 (1 processes in ring)
@@ -565,7 +552,6 @@ them across multiple hosts, try the following:
    you're using the TCP BTL, see the output of:
 
    .. code-block::
-      :linenos:
 
       ompi_info --level 3 --param btl tcp
 
@@ -593,7 +579,6 @@ their corresponding environments were not setup properly.
 For example, you may see warnings similar to the following:
 
 .. code-block:: sh
-   :linenos:
 
    # With the Intel compiler suite
    shell$ mpirun -np 1 --host node1.example.com mpi_hello
@@ -632,7 +617,6 @@ Here's an example of a user-compiled MPI application working fine
 locally, but failing when invoked non-interactively on a remote node:
 
 .. code-block:: sh
-   :linenos:
 
    # Compile a trivial MPI application
    head_node$ cd $HOME
@@ -668,7 +652,6 @@ Yes.
 For example:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun -np 2 --host a,b uptime
 
@@ -695,7 +678,6 @@ all X requests to be shown on the target display and set the
 the target display, perhaps something like this:
 
 .. code-block::
-   :linenos:
 
    shell$ hostname
    my_desktop.secure-cluster.example.com
@@ -708,7 +690,6 @@ display).  A slightly more secure way is to only allow X connections
 from the nodes where your application will be running:
 
 .. code-block::
-   :linenos:
 
    shell$ hostname
    my_desktop.secure-cluster.example.com
@@ -800,7 +781,6 @@ be launched on that node).  Comments are also supported, and blank
 lines are ignored.  For example:
 
 .. code-block::
-   :linenos:
 
    # This is an example hostfile.  Comments begin with #.
    #
@@ -832,7 +812,6 @@ Hostfiles works in two different ways:
    through ``node04``.  If you run:
 
    .. code-block::
-      :linenos:
 
       shell$ cat my_hosts
       node03
@@ -844,7 +823,6 @@ Hostfiles works in two different ways:
    you run the following:
 
    .. code-block::
-      :linenos:
 
       shell$ cat my_hosts
       node17
@@ -867,7 +845,6 @@ Hostfiles works in two different ways:
    environment where a list of nodes is being transparently supplied):
 
    .. code-block::
-      :linenos:
 
       shell$ cat my_hosts
       node01.example.com slots=1
@@ -884,7 +861,6 @@ Hence, if you specify multiple applications (as in an MPMD job),
 ``--hostfile`` can be specified multiple times:
 
 .. code-block::
-   :linenos:
 
    shell$ cat hostfile_1
    node01.example.com
@@ -908,7 +884,6 @@ The ``--host`` option to ``mpirun`` takes a comma-delimited list of
 hosts on which to run.  For example:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun -np 3 --host a,b,c hostname
 
@@ -917,7 +892,6 @@ and ``c``.  Specifically: each host defaults to 1 slot, unless
 specified by the ``:N`` suffix.  For example:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun --host a,b:2,c:3 hostname
 
@@ -950,7 +924,6 @@ Slots are discussed in much more detail :ref:`in this FAQ entry
    ``node1`` through ``node4``.  If you run:
 
    .. code-block::
-      :linenos:
 
       shell$ mpirun -np 1 --hostfile my_hosts --host node3 hostname
 
@@ -958,7 +931,6 @@ Slots are discussed in much more detail :ref:`in this FAQ entry
    However, if you run:
 
    .. code-block::
-      :linenos:
 
       shell$ mpirun -np 1 --hostfile my_hosts --host node17 hostname
 
@@ -980,7 +952,6 @@ Slots are discussed in much more detail :ref:`in this FAQ entry
    environment where a list of nodes is being transparently supplied):
 
    .. code-block::
-      :linenos:
 
       shell$ mpirun -np 3 --host a,b,c hostname
 
@@ -992,7 +963,6 @@ Hence, if you specify multiple applications (as in an MPMD job),
 ``--host`` can be specified multiple times:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun -np 1 --host a hostname : -np 1 --host b uptime
 
@@ -1081,7 +1051,6 @@ Here are some examples, all from unscheduled environments:
 #. Use a hostfile and specify the ``slots`` parameter.
 
    .. code-block:: sh
-      :linenos:
 
       shell$ cat my-hostfile
       node01.example.come slots=4
@@ -1098,7 +1067,6 @@ Here are some examples, all from unscheduled environments:
    that ``node01.example.com`` has 2 processor cores):
 
    .. code-block:: sh
-      :linenos:
 
       shell$ cat my-hostfile
       node01.example.come
@@ -1112,7 +1080,6 @@ Here are some examples, all from unscheduled environments:
 #. Use ``--host``:
 
    .. code-block:: sh
-      :linenos:
 
       shell$ mpirun --host node01.example.com hostname
       node01
@@ -1123,7 +1090,6 @@ Here are some examples, all from unscheduled environments:
 #. Use ``--host`` with a ``:N`` suffix:
 
    .. code-block:: sh
-      :linenos:
 
       shell$ mpirun --host node01.example.com:2 hostname
       node01
@@ -1135,7 +1101,6 @@ Here are some examples, all from unscheduled environments:
 #. Use ``--host`` with a ``:N`` suffix, and mention the host multiple times:
 
    .. code-block:: sh
-      :linenos:
 
       shell$ mpirun --host node01.example.com:2,node01.example.com hostname
       node01
@@ -1200,7 +1165,6 @@ node:
    For example:
 
    .. code-block::
-      :linenos:
 
       shell$ cat my-hosts
       node0 slots=2 max_slots=20
@@ -1227,7 +1191,6 @@ node:
    For example:
 
    .. code-block::
-      :linenos:
 
       shell$ cat my-hosts
       node0 slots=2 max_slots=20
@@ -1281,7 +1244,6 @@ cores, then indicate that you only have 2 slots but want to run 4
 processes.  For example:
 
 .. code-block:: sh
-   :linenos:
 
    # In a hostfile, the number of slots will default to the number of
    # processor cores on the host
@@ -1299,7 +1261,6 @@ specifically tell Open MPI that it is ok to oversubscribe via
 ``--map-by :OVERSUBSCRIBE``:
 
 .. code-block:: sh
-   :linenos:
 
    shell$ cat my-hostfile
    # For the purposes of this example, explicitly tell Open MPI
@@ -1337,7 +1298,6 @@ message passing progression engine in two modes: *aggressive* and
 For example, on a node with a two processor cores:
 
 .. code-block::
-   :linenos:
 
    shell$ cat my-hostfile
    localhost slots=4
@@ -1459,7 +1419,6 @@ X, where Open MPI's shared library name ends in ``.dylib``; other
 operating systems use other suffixes, such as ``.so``):
 
 .. code-block:: python
-   :linenos:
 
    from ctypes import *
 

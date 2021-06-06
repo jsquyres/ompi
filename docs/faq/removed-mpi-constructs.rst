@@ -177,7 +177,6 @@ You are getting deprecation warnings because you are using
 symbols / functions that are deprecated in MPI.  For example:
 
 .. code-block:: sh
-    :linenos:
 
     shell$ mpicc deprecated-example.c -c
     deprecated-example.c: In function 'foo':
@@ -199,7 +198,6 @@ removed MPI-1 symbols you will still get compiler warnings when you use
 the removed symbols.  For example:
 
 .. code-block:: sh
-    :linenos:
 
     shell$ mpicc deleted-example.c -c
     deleted-example.c: In function 'foo':
@@ -223,7 +221,6 @@ In C, the only thing that changed was the function name:
 to change:
 
 .. code-block:: c++
-    :linenos:
 
     char buffer[30];
     MPI_Aint address;
@@ -239,7 +236,6 @@ $right_arrow ``INTEGER(KIND=MPI_ADDRESS_KIND)`` so that it can hold
 larger values (e.g., 64 bit pointers):
 
 .. code-block:: Fortran
-    :linenos:
 
     USE mpi
     REAL buffer
@@ -270,7 +266,6 @@ but most applications do not use this type directly and may not even
 notice the change.
 
 .. code-block:: c++
-    :linenos:
 
     void my_errhandler_function(MPI_Comm *comm, int *code, ...)
     {
@@ -292,7 +287,6 @@ In Fortran, only the subroutine name changed: ``MPI_ERRHANDLER_CREATE``
 |rarrow| ``MPI_COMM_CREATE_ERRHANDLER``.
 
 .. code-block:: Fortran
-    :linenos:
 
     USE mpi
     EXTERNAL my_errhandler_function
@@ -348,7 +342,6 @@ parameters, but most applications won't notice the difference.
 All other parameter types stayed the same.
 
 .. code-block:: c++
-    :linenos:
 
     int count = 2;
     int block_lengths[] = { 1, 2 };
@@ -391,7 +384,6 @@ parameters, but most applications won't notice the difference.
 All other parameter types stayed the same.
 
 .. code-block:: c++
-    :linenos:
 
     int count = 2;
     int block_lengths[] = { 1, 2 };
@@ -417,7 +409,6 @@ superseded by the slightly-different ``MPI_TYPE_GET_EXTENT`` function:
 the new function also returns the lower bound.
 
 .. code-block:: c++
-    :linenos:
 
     MPI_Aint lb;
     MPI_Aint extent;
@@ -440,7 +431,6 @@ superseded by the slightly-different ``MPI_TYPE_GET_EXTENT`` function:
 the new function also returns the extent.
 
 .. code-block:: c++
-    :linenos:
 
     MPI_Aint lb;
     MPI_Aint extent;
@@ -464,7 +454,6 @@ the new function returns the lower bound and the extent, which can be
 used to compute the upper bound.
 
 .. code-block:: c++
-    :linenos:
 
     MPI_Aint lb, ub;
     MPI_Aint extent;
@@ -495,7 +484,6 @@ achieved with ``MPI_TYPE_CREATE_RESIZED``.
 For example, using the old method:
 
 .. code-block:: c++
-    :linenos:
 
     int count = 3;
     int block_lengths[] = { 1, 1, 1 };
@@ -516,7 +504,6 @@ For example, using the old method:
 If we run the above, we get an output of:
 
 .. code-block::
-    :linenos:
 
     OLD: LB=-2, UB=10, extent=12
 
@@ -532,7 +519,6 @@ href=\"#mpi-1-mpi-type-ub\">this FAQ entry</a> for a mapping of
 ``MPI_TYPE_UB`` to ``MPI_TYPE_GET_EXTENT``):
 
 .. code-block:: c++
-    :linenos:
 
     MPI_Datatype newtype;
 
@@ -548,7 +534,6 @@ href=\"#mpi-1-mpi-type-ub\">this FAQ entry</a> for a mapping of
 If we run the above, we get an output of:
 
 .. code-block::
-    :linenos:
 
     NEW: LB=-2, UB=10, extent=12
 
@@ -591,7 +576,6 @@ the return type, number, and type of parameters didn't change):
 ``MPI_Comm_errhandler_function``.
 
 .. code-block:: c++
-    :linenos:
 
     void my_errhandler_function(MPI_Comm *comm, int *code, ...)
     {

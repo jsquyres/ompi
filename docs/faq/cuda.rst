@@ -26,7 +26,6 @@ Open MPI offers two flavors of CUDA support:
               to do this -- I don't know if it's still correct:
 
               .. code-block:: sh
-                 :linenos:
 
                  # Configure UCX this way
                  shell$ ./configure --prefix=/path/to/ucx-cuda-install --with-cuda=/usr/local/cuda --with-gdrcopy=/usr
@@ -51,7 +50,6 @@ you need to pass in some specific compiler flags for things to work
 correctly.  Add the following to your configure line.
 
 .. code-block:: sh
-   :linenos:
 
    # For PGI 15.9 and later:
    shell$ ./configure --with-wrapper-cflags=-ta:tesla
@@ -129,7 +127,6 @@ How can I tell if Open MPI was built with CUDA support?
 Use the ``ompi_info`` command:
 
 .. code-block::
-   :linenos:
 
    shell$ ompi_info --parsable --all | grep mpi_built_with_cuda_support:value
    mca:mpi:base:param:mpi_built_with_cuda_support:value:true
@@ -144,7 +141,6 @@ Yes, by enabling some vebosity flags.
 * The ``opal_cuda_verbose`` parameter has only one level of verbosity:
 
   .. code-block::
-     :linenos:
 
      shell$ mpirun --mca opal_cuda_verbose 10 ...
 
@@ -155,7 +151,6 @@ Yes, by enabling some vebosity flags.
   unless you have strange problems:
 
   .. code-block:: sh
-     :linenos:
 
      # A bunch of CUDA debug information
      shell$ mpirun --mca mpi_common_cuda_verbose 10 ...
@@ -171,7 +166,6 @@ Yes, by enabling some vebosity flags.
   .. error:: JMS Is ``smcuda`` still relevant/maintained?
 
   .. code-block:: sh
-     :linenos:
 
      shell$ mpirun --mca btl_smcuda_use_cuda_ipc 0 ...
 
@@ -180,7 +174,6 @@ Yes, by enabling some vebosity flags.
   ability to turn it off.
 
   .. code-block:: sh
-     :linenos:
 
      shell$ mpirun --mca btl_smcuda_use_cuda_ipc_same_gpu 0 ...
 
@@ -189,7 +182,6 @@ Yes, by enabling some vebosity flags.
   between two GPUs.
 
   .. code-block:: sh
-     :linenos:
 
      shell$ mpirun --mca btl_smcuda_cuda_ipc_verbose 100 ...
 
@@ -210,7 +202,6 @@ GPUs that are the same distance away.  This is dependent on having
 ``hwloc`` somewhere on your system.
 
 .. code-block:: c
-   :linenos:
 
    /**
     * Test program to show the use of hwloc to select the GPU closest to the CPU
@@ -428,7 +419,6 @@ Example of running ``osu_latency`` from the `OSU benchmarks
 using Open MPI and UCX CUDA support:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun -np 2 --mca pml ucx \
        -x UCX_TLS=rc,sm,cuda_copy,gdr_copy,cuda_ipc ./osu_latency D D
@@ -506,7 +496,6 @@ access them, you need to include ``mpi-ext.h``. Note that
 example of using the CUDA-aware macro and run-time check.
 
 .. code-block:: c
-   :linenos:
 
    /*
     * Program that shows the use of CUDA-aware macro and runtime check.
@@ -560,7 +549,6 @@ calls. If you want to limit how much memory is registered, you can use the
 to 1000000 bytes:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun --mca mpool_rgpusm_rcache_size_limit 1000000 ...
 
@@ -571,7 +559,6 @@ There also is the ability to have the cache empty itself out when the
 limit is reached:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun --mca mpool_rgpusm_rcache_empty_cache 1 ...
 
@@ -593,7 +580,6 @@ which should be set in the environment before ``MPI_Init()`` is called. For
 example:
 
 .. code-block::
-   :linenos:
 
    shell$ mpirun -x PSM2_CUDA=1 -x PSM2_GPUDIRECT=1 --mca mtl psm2 mpi_hello
 
