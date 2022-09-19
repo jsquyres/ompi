@@ -29,6 +29,27 @@
 #include "opal/util/show_help.h"
 #include "ompi/constants.h"
 
+static void setup_mca_prefixes(void)
+{
+#if 0
+    int argc = 0;
+    char **names = NULL;
+    opal_argv_append(&argc, &names, "ompi");
+    opal_argv_append(&argc, &names, "opal");
+    opal_argv_append(&argc, &names, "mpi");
+
+    add_frameworks(opal_frameworks, &argc, &names);
+    add_frameworks(ompi_frameworks, &argc, &names);
+
+    char *str = opal_argv_join(names, ',');
+    printf("GOT STRING: %s\n", str);
+    exit(1);
+#else
+    printf("JMS mpirun setting OMPI_MCA_PREFIXES\n");
+    opal_setenv("OMPI_MCA_PREFIXES", "ompi,opal,mpi", true, &environ);
+#endif
+}
+
 static char *find_prterun(void)
 {
     char *filename = NULL;
@@ -121,6 +142,9 @@ int main(int argc, char *argv[])
 
     setenv("OMPI_LIBDIR_LOC", opal_install_dirs.libdir, 1);
 
+    /* Set environment variable to tell prrte the names of the Open
+     * MPI frameworks and other MCA parameter prefixes. */
+    setup_mca_prefixes();
 
     /* calling mpirun (and now prterun) with a full path has a special
      * meaning in terms of -prefix behavior, so copy that behavior
