@@ -1,0 +1,72 @@
+name: Bug report
+description: Something is not working correctly.
+labels: "bug"
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to submit an issue!
+        
+        ## Background information
+
+  - type: dropdown
+    attributes:
+      label: What version of Open MPI are you using?
+      description: |
+        Examples: v4.1.2, v4.0.1, git branch name and hash, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: How was Open MPI installed?
+      description: |
+        Examples: from a source/distribution tarball, from a git
+        clone, from an operating system distribution package, etc.
+    validations:
+      required: true
+
+
+  - type: textarea
+    attributes:
+      label: If building from a git clone
+      description: |
+        Copy-n-paste the output from `git submodule status`.
+
+  - type: input
+    attributes:
+      label: Operating system/version
+      placeholder: ex. Ubuntu 22.04
+      
+  - type: textarea
+    attributes:
+      label: Computer hardware
+
+  - type: input
+    attributes:
+      label: Network type
+      placeholder: ex. Ethernet/TCP, Ethernet/RoCE, InfiniBand, etc.
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Details of the problem
+
+  - type: textarea
+    attributes:
+      label: Details
+      description: |
+        Please describe, in detail, the problem that you are having,
+        including the behavior you expect to see, the actual behavior
+        that you are seeing, steps to reproduce the problem, etc.  It
+        is most helpful if you can attach a small program that a
+        developer can use to reproduce your problem.
+    validations:
+      required: true
+    placeholder: |
+      If you include verbatim output (or a code block), please use a
+      GitHub Markdown block like this:
+      ```shell
+      shell$ mpirun -n 2 ./hello_world
+      ```
