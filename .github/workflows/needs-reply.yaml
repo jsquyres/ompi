@@ -1,0 +1,22 @@
+name: Close old issues that need reply
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close old issues that need reply
+        uses: dwieeb/needs-reply@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-label: needs-reply
+          days-before-close: 1
+          close-message: |
+            It looks like this issue is expecting a response, but hasn't gotten one in a while.  I'm guessing it means that this issue has been abondoned.
+
+            I'm going to close this issue.  If I'm wrong and this issue is *not* abondoned, please feel free to re-open it.  Thank you!
+
+            - Open MPI's Github bot
