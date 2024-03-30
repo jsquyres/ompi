@@ -1,4 +1,4 @@
-name: Reusable workflow example
+name: Reusable workflow testing
 
 on:
   workflow_call:
@@ -10,8 +10,16 @@ on:
 jobs:
   entrypoint:
     runs-on: ubuntu-latest
+    env:
+      the_value: ${{ inputs.env_name }}
+      ${{ inputs.env_name}}: 42
     steps:
       - name: say hello
-        run: echo hello world
-      - name: show the input
-        run: echo the input was ${{ inputs.env_name }}
+        run: |
+          echo hello world
+          echo the input was ${{ inputs.env_name }}
+          echo the env var was: $${{ inputs.env_name }}
+          cat >file.json <<EOF
+          ${{ toJson(github) }}
+          EOF
+          echo cat file.json
