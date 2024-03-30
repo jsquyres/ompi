@@ -1,0 +1,10 @@
+name: Workflow B
+
+on: [pull_request]
+
+jobs:
+  doit_b:
+    runs-on: ubuntu-latest
+    uses: ./.github/workflows/reusable.yaml
+    with:
+      env_name: THIS-IS-FROM-JMS-B
