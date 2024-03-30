@@ -1,4 +1,4 @@
-name: jms top-level job
+name: jms top-level job woo
 
 on: [ pull_request ]
 
@@ -13,12 +13,12 @@ jobs:
   run-all:
     needs: [ build ]
     uses: ./.github/workflows/reusable.yaml
-    with:
-      env_name: DO_THEM_ALL
+    env:
+      DO_THEM_ALL: 1
 
   run-spawn:
     needs: [ build ]
     uses: ./.github/workflows/reusable.yaml
-    with:
-      env_name: DO_THE_SPAWN
+    env:
+      DO_THE_SPAWN: 1
       
