@@ -35,14 +35,14 @@
 
 /*
  * TODO:BIGCOUNT this file will need to be updated once
- * the datatype framework supports bigcount 
+ * the datatype framework supports bigcount
  */
 
 PROTOTYPE ERROR_CLASS type_create_subarray(INT ndims,
                                            COUNT_ARRAY size_array,
                                            COUNT_ARRAY subsize_array,
                                            COUNT_ARRAY start_array,
-                                           INT order,
+                                           SUBARRAY_ORDER  order,
                                            DATATYPE oldtype,
                                            DATATYPE_OUT newtype)
 {

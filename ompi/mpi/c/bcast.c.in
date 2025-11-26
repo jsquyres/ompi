@@ -32,7 +32,7 @@
 #include "ompi/runtime/ompi_spc.h"
 
 PROTOTYPE ERROR_CLASS bcast(BUFFER_OUT buffer, COUNT count, DATATYPE datatype,
-                            INT root, COMM comm)
+                            ROOT root, COMM comm)
 {
     int err;
 
@@ -92,7 +92,7 @@ PROTOTYPE ERROR_CLASS bcast(BUFFER_OUT buffer, COUNT count, DATATYPE datatype,
             return OMPI_ERRHANDLER_INVOKE(comm, MPI_ERR_ROOT, FUNC_NAME);
         }
       }
-    } 
+    }
 
 #if OPAL_ENABLE_FT_MPI
     /*

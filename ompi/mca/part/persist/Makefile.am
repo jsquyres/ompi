@@ -37,12 +37,12 @@ local_sources = \
 	part_persist_request.h \
 	part_persist_request.c \
 	part_persist_sendreq.h \
-	part_persist_sendreq.c 
+	part_persist_sendreq.c
 
 mcacomponentdir = $(ompilibdir)
 mcacomponent_LTLIBRARIES = $(component_install)
 mca_part_persist_la_SOURCES = $(local_sources)
-mca_part_persist_la_LIBADD = $(top_builddir)/ompi/lib@OMPI_LIBMPI_NAME@.la \
+mca_part_persist_la_LIBADD = $(top_builddir)/ompi/libopen_mpi.la \
 	$(part_persist_LIBS)
 mca_part_persist_la_LDFLAGS = -module -avoid-version $(part_persist_LDFLAGS)
 
@@ -50,4 +50,3 @@ noinst_LTLIBRARIES = $(component_noinst)
 libmca_part_persist_la_SOURCES = $(local_sources)
 libmca_part_persist_la_LIBADD = $(part_persist_LIBS)
 libmca_part_persist_la_LDFLAGS = -module -avoid-version $(part_persist_LDFLAGS)
-

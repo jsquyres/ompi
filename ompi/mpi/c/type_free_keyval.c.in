@@ -28,7 +28,7 @@
 #include "ompi/errhandler/errhandler.h"
 #include "ompi/attribute/attribute.h"
 
-PROTOTYPE ERROR_CLASS type_free_keyval(INT_OUT type_keyval)
+PROTOTYPE ERROR_CLASS type_free_keyval(ATTR_KEY_INOUT type_keyval)
 {
     int ret;
 
@@ -45,6 +45,6 @@ PROTOTYPE ERROR_CLASS type_free_keyval(INT_OUT type_keyval)
 
     ret = ompi_attr_free_keyval(TYPE_ATTR, type_keyval, 0);
 
-    OMPI_ERRHANDLER_NOHANDLE_RETURN(ret, 
+    OMPI_ERRHANDLER_NOHANDLE_RETURN(ret,
 			  MPI_ERR_OTHER, FUNC_NAME);
 }

@@ -18,6 +18,9 @@
 #include "ompi_config.h"
 
 #include "ompi/mpi/tool/mpit-internal.h"
+#ifdef OMPI_NO_MPI_PROTOTYPES
+#include "ompi/mpi/c/abi.h"
+#endif
 
 #if OMPI_BUILD_MPI_PROFILING
 #if OPAL_HAVE_WEAK_SYMBOLS
@@ -38,4 +41,3 @@ int MPI_T_pvar_get_num(int *num_pvar)
 
     return mca_base_pvar_get_count (num_pvar);
 }
-

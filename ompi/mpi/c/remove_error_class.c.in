@@ -32,7 +32,7 @@
 #include "ompi/communicator/communicator.h"
 #include "ompi/attribute/attribute.h"
 
-PROTOTYPE ERROR_CLASS remove_error_class(INT errorclass)
+PROTOTYPE ERROR_CLASS remove_error_class(ERROR_CLASS errorclass)
 {
     int lastused;
     int rc;
@@ -71,4 +71,3 @@ PROTOTYPE ERROR_CLASS remove_error_class(INT errorclass)
 
     return MPI_SUCCESS;
 }
-

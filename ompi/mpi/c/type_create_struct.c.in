@@ -34,13 +34,13 @@
 
 /*
  * TODO:BIGCOUNT this file will need to be updated once
- * the datatype framework supports bigcount 
+ * the datatype framework supports bigcount
  */
 
 PROTOTYPE ERROR_CLASS type_create_struct(COUNT count,
                                          COUNT_ARRAY array_of_blocklengths,
                                          AINT_COUNT_ARRAY array_of_displacements,
-                                         DATATYPE_ARRAY array_of_types,
+                                         DATATYPE_ARRAY array_of_types:count,
                                          DATATYPE_OUT newtype)
 {
     int i, rc, icount = (int)count;
@@ -111,7 +111,7 @@ PROTOTYPE ERROR_CLASS type_create_struct(COUNT count,
         free(iarray_of_blocklengths);
         free(iarray_of_displacements);
 #endif
-        OMPI_ERRHANDLER_NOHANDLE_RETURN( rc, 
+        OMPI_ERRHANDLER_NOHANDLE_RETURN( rc,
                                 rc, FUNC_NAME );
     }
 
