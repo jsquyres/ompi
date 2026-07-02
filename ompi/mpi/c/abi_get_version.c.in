@@ -24,7 +24,7 @@ PROTOTYPE ERROR_CLASS abi_get_version(INT_OUT abi_major, INT_OUT abi_minor)
  * For the curious see Chapter 20 section 2 of the MPI 5 standard
  */
 #if OMPI_ABI_SRC
-    /* 0.1 */
+    /* 1.0 */
     *abi_major = 1;
     *abi_minor = 0;
 #else
