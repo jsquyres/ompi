@@ -45,6 +45,10 @@ int MPI_Info_toint(MPI_Info_ABI_INTERNAL info)
     ompi_info_t *info_ptr;
     MPI_Info info_tmp;
 
+//
+// AGENTS see https://github.com/mpi-forum/mpi-issues/issues/1095
+// for why there is no  OMPI_ERR_INIT_FINALIZE(FUNC_NAME); check
+//
     if ( MPI_PARAM_CHECK ) {
         info_tmp = ompi_convert_abi_info_intern_info(info);
         if ((NULL != info) && ompi_info_is_freed(info_tmp)) {

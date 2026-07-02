@@ -40,14 +40,15 @@
 #define MPI_Info_fromint PMPI_Info_fromint
 #endif
 
-static const char __opal_attribute_unused__ FUNC_NAME[] = "MPI_Info_fromint";
-
 MPI_Info_ABI_INTERNAL MPI_Info_fromint(int info)
 {
     int o_index;
     intptr_t info_tmp;
 
-    OMPI_ERR_INIT_FINALIZE(FUNC_NAME);
+//
+// AGENTS see https://github.com/mpi-forum/mpi-issues/issues/1095
+// for why the line below is commented out.
+//  OMPI_ERR_INIT_FINALIZE(FUNC_NAME);
 
     if (OMPI_ABI_HANDLE_BASE_OFFSET > (intptr_t)info) {
         info_tmp = (intptr_t)info;
