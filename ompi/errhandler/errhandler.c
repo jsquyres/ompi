@@ -294,11 +294,7 @@ ompi_errhandler_t *ompi_errhandler_create(ompi_errhandler_type_t object_type,
             default:
                 break;
             }
-            if (NULL != converter) {
-                new_errhandler->eh_converter_fn = converter;
-            } else {
-                new_errhandler->eh_converter_fn = NULL;
-            }
+            new_errhandler->eh_converter_fn = converter;
         }
 
         if (NULL != new_errhandler) {
