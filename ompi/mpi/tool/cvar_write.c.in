@@ -9,6 +9,8 @@
  *                         reserved.
  * Copyright (c) 2021      Amazon.com, Inc. or its affiliates.  All Rights
  *                         reserved.
+ * Copyright (c) 2026      Triad National Security, LLC. All rights
+ *                         reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -29,7 +31,7 @@ PROTOTYPE ERROR_CLASS cvar_write (CVAR_HANDLE handle, VOID_CONST buf)
     }
 
     if (MPI_PARAM_CHECK) {
-        if (NULL == buf)) {
+        if (NULL == buf) {
             return MPI_T_ERR_INVALID;
         }
         if (NULL == handle) {
