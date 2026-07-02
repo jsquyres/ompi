@@ -17,7 +17,7 @@
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2015-2019 Intel, Inc.  All rights reserved.
  * Copyright (c) 2021      Nanook Consulting.  All rights reserved.
- * Copyright (c) 2018-2021 Triad National Security, LLC. All rights
+ * Copyright (c) 2018-2026 Triad National Security, LLC. All rights
  *                         reserved.
  * $COPYRIGHT$
  *
