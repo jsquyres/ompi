@@ -40,6 +40,8 @@
 #define MPI_Info_fromint PMPI_Info_fromint
 #endif
 
+static const char __opal_attribute_unused__ FUNC_NAME[] = "MPI_Info_fromint";
+
 MPI_Info_ABI_INTERNAL MPI_Info_fromint(int info)
 {
     int o_index;
