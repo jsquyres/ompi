@@ -165,7 +165,7 @@ struct ompi_op_t {
     /** 3-buffer functions, which is only for intrinsic ops.  No need
         for the C/C++/Fortran user-defined functions. */
     ompi_op_base_op_3buff_fns_t o_3buff_intrinsic;
-    ompi_op_type_convert_to_abi_fn_t datatype_converter;
+    ompi_op_type_convert_to_abi_fn_t o_datatype_converter;
 };
 
 /**
@@ -582,8 +582,8 @@ static inline void ompi_op_reduce(ompi_op_t * op, const void *source,
     /*
      * MPI-5 ABI: see if we need to translate the datatype
      */
-    if(NULL != op->datatype_converter){
-        dtype = op->datatype_converter(dtype);
+    if (NULL != op->o_datatype_converter) {
+        dtype = op->o_datatype_converter(dtype);
     }
     if (0 == (op->o_flags & OMPI_OP_FLAGS_BIGCOUNT)) {
         op->o_func.c_fn(source, target, &count, &dtype);

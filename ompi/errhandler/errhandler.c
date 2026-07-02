@@ -208,12 +208,6 @@ int ompi_errhandler_init(void)
                    "MPI_ERRORS_ABORT",
                    sizeof(ompi_mpi_errors_abort.eh.eh_name));
 
-  /* Lets initialize the initial error handler if not already done */
-  char *env = getenv("OMPI_MCA_mpi_initial_errhandler");
-  if( NULL != env ) {
-    ompi_process_info.initial_errhandler = strndup(env, MPI_MAX_INFO_VAL);
-  }
-
   ompi_initial_errhandler_init();
   ompi_mpi_instance_append_finalize (ompi_errhandler_finalize);
 
@@ -620,6 +614,7 @@ static void ompi_errhandler_construct(ompi_errhandler_t *new_errhandler)
   new_errhandler->eh_win_fn       = NULL;
   new_errhandler->eh_file_fn      = NULL;
   new_errhandler->eh_fort_fn      = NULL;
+  new_errhandler->eh_converter_fn = NULL;
 
   memset (new_errhandler->eh_name, 0, MPI_MAX_OBJECT_NAME);
 }

@@ -28,12 +28,13 @@ PROTOTYPE ERROR_CLASS cvar_write (CVAR_HANDLE handle, VOID_CONST buf)
         return MPI_T_ERR_NOT_INITIALIZED;
     }
 
-    if (NULL == handle) {
-        return MPI_T_ERR_INVALID_HANDLE;
-    }
-
-    if (MPI_PARAM_CHECK && (NULL == buf)) {
-        return MPI_T_ERR_INVALID;
+    if (MPI_PARAM_CHECK) {
+        if (NULL == buf)) {
+            return MPI_T_ERR_INVALID;
+        }
+        if (NULL == handle) {
+            return MPI_T_ERR_INVALID_HANDLE;
+        }
     }
 
     ompi_mpit_lock ();

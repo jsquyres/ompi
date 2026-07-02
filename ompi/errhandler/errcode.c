@@ -253,7 +253,7 @@ int ompi_mpi_errcode_init (void)
     CONSTRUCT_ERRCODE( ompi_err_errhandler,  MPI_ERR_ERRHANDLER,  "MPI_ERR_ERRHANDLER: Invalid error handler handle" );
     CONSTRUCT_ERRCODE( ompi_t_err_not_accessible, MPI_T_ERR_NOT_ACCESSIBLE, "MPI_T_ERR_NOT_ACCESSIBLE: Requested functionality is not accessible" );
     CONSTRUCT_ERRCODE( ompi_t_err_not_supported, MPI_T_ERR_NOT_SUPPORTED, "MPI_T_ERR_NOT_SUPPORTED: Requested functionality not supported" );
-    CONSTRUCT_ERRCODE( ompi_err_abi,  MPI_ERR_ABI,  "MPI_ERR_ABI: Invalid call to abi fortran method" );
+    CONSTRUCT_ERRCODE( ompi_err_abi,  MPI_ERR_ABI,  "MPI_ERR_ABI: ABI function called from non-ABI context or vice versa" );
 
     /* Per MPI-3 p353:27-32, MPI_LASTUSEDCODE must be >=
        MPI_ERR_LASTCODE.  So just start it as == MPI_ERR_LASTCODE. */
