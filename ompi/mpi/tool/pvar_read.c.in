@@ -26,7 +26,7 @@ PROTOTYPE ERROR_CLASS pvar_read(PVAR_SESSION session, PVAR_HANDLE handle,
         return MPI_T_ERR_NOT_INITIALIZED;
     }
 
-    if (MPI_T_PVAR_ALL_HANDLES == handle || session != handle->session) {
+    if (MPI_T_PVAR_ALL_HANDLES == handle || NULL == handle || session != handle->session) {
         return MPI_T_ERR_INVALID_HANDLE;
     }
 

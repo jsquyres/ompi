@@ -29,8 +29,6 @@
 
 # ABI specific make components
 
-if OMPI_STANDARD_ABI
-
 noinst_LTLIBRARIES += libmpi_mpit_abi.la libmpi_mpit_abi_profile.la
 if BUILD_MPI_BINDINGS_LAYER
 noinst_LTLIBRARIES += libmpi_mpit_abi_noprofile.la
@@ -86,5 +84,3 @@ libmpi_mpit_abi_profile_la_CPPFLAGS = -DOMPI_NO_MPI_PROTOTYPES -DOMPI_BUILD_MPI_
 
 libmpi_mpit_abi_noprofile_la_SOURCES = $(abi_interface_profile_sources) $(interface_profile_sources_np)
 libmpi_mpit_abi_noprofile_la_CPPFLAGS = -DOMPI_NO_MPI_PROTOTYPES -DOMPI_BUILD_MPI_PROFILING=0
-
-endif
