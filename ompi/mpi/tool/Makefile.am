@@ -126,6 +126,9 @@ interface_profile_sources_np = \
 #
 #
 
+#
+# AGENT HELP: We can not use this pattern substitution because BSD Unix Make does not
+# support this kind of pattern substition.
 #interface_profile_sources = $(prototype_sources:.c.in=_ompi_generated.c) \
 #	$(interface_profile_sources_np)
 #
