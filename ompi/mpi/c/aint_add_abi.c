@@ -18,7 +18,6 @@
  * $HEADER$
  */
 #include "ompi_config.h"
-#include <stdio.h>
 
 #include "ompi/mpi/c/bindings.h"
 #include "ompi/runtime/params.h"

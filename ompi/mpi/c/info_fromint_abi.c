@@ -23,6 +23,8 @@
  */
 #include "ompi_config.h"
 
+#include <assert.h>
+
 #include "ompi/mpi/c/bindings.h"
 #include "ompi/runtime/params.h"
 #include "ompi/info/info.h"
@@ -45,12 +47,15 @@ MPI_Info_ABI_INTERNAL MPI_Info_fromint(int info)
     int o_index;
     intptr_t info_tmp;
 
+    OMPI_ERR_INIT_FINALIZE(FUNC_NAME);
+
     if (OMPI_ABI_HANDLE_BASE_OFFSET > (intptr_t)info) {
         info_tmp = (intptr_t)info;
         return (MPI_Info_ABI_INTERNAL)info_tmp;
     }
 
     o_index = info - OMPI_ABI_HANDLE_BASE_OFFSET;
+    assert(o_index >= 0);
 
     return (MPI_Info_ABI_INTERNAL)opal_pointer_array_get_item(&ompi_info_f_to_c_table, o_index);
 }

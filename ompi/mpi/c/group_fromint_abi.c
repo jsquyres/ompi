@@ -23,6 +23,8 @@
  */
 #include "ompi_config.h"
 
+#include <assert.h>
+
 #include "ompi/mpi/c/bindings.h"
 #include "ompi/runtime/params.h"
 #include "ompi/group/group.h"
@@ -55,6 +57,7 @@ MPI_Group_ABI_INTERNAL MPI_Group_fromint(int group)
     }
 
     o_index = group - OMPI_ABI_HANDLE_BASE_OFFSET;
+    assert(o_index >= 0);
 
     return (MPI_Group_ABI_INTERNAL)opal_pointer_array_get_item(&ompi_group_f_to_c_table, o_index);
 }

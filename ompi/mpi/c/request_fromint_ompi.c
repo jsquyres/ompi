@@ -24,7 +24,6 @@
 #include "ompi_config.h"
 
 #include "ompi/runtime/params.h"
-#include "ompi/file/file.h"
 #include "ompi/errhandler/errhandler.h"
 #include "ompi/request/request.h"
 

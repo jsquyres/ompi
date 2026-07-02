@@ -23,6 +23,8 @@
  */
 #include "ompi_config.h"
 
+#include <assert.h>
+
 #include "ompi/runtime/params.h"
 #include "ompi/errhandler/errhandler.h"
 #include "ompi/datatype/ompi_datatype.h"
@@ -55,6 +57,7 @@ MPI_Datatype_ABI_INTERNAL MPI_Type_fromint(int type)
     }
 
     o_index = type - OMPI_ABI_HANDLE_BASE_OFFSET;
+    assert(o_index >= 0);
 
     return (MPI_Datatype_ABI_INTERNAL)opal_pointer_array_get_item(&ompi_datatype_f_to_c_table, o_index);
 }

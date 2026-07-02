@@ -53,7 +53,7 @@ int ABI_C_MPI_TYPE_NULL_DELETE_FN( MPI_Datatype_ABI_INTERNAL datatype, int type_
                                     void* attribute_val_out,
                                     void* extra_state )
 {
-   return MPI_SUCCESS;
+    return MPI_SUCCESS;
 }
 
 int ABI_C_MPI_TYPE_NULL_COPY_FN( MPI_Datatype_ABI_INTERNAL datatype, int type_keyval,
@@ -62,8 +62,8 @@ int ABI_C_MPI_TYPE_NULL_COPY_FN( MPI_Datatype_ABI_INTERNAL datatype, int type_ke
                                   void* attribute_val_out,
                                   int* flag )
 {
-   *flag = 0;
-   return MPI_SUCCESS;
+    *flag = 0;
+    return MPI_SUCCESS;
 }
 
 int ABI_C_MPI_TYPE_DUP_FN( MPI_Datatype_ABI_INTERNAL datatype, int type_keyval,
@@ -71,16 +71,16 @@ int ABI_C_MPI_TYPE_DUP_FN( MPI_Datatype_ABI_INTERNAL datatype, int type_keyval,
                             void* attribute_val_in, void* attribute_val_out,
                             int* flag )
 {
-   *flag = 1;
-   *(void**)attribute_val_out = attribute_val_in;
-   return MPI_SUCCESS;
+    *flag = 1;
+    *(void**)attribute_val_out = attribute_val_in;
+    return MPI_SUCCESS;
 }
 
 int ABI_C_MPI_WIN_NULL_DELETE_FN( MPI_Win_ABI_INTERNAL window, int win_keyval,
                                    void* attribute_val_out,
                                    void* extra_state )
 {
-   return MPI_SUCCESS;
+    return MPI_SUCCESS;
 }
 
 int ABI_C_MPI_WIN_NULL_COPY_FN( MPI_Win_ABI_INTERNAL window, int win_keyval,
@@ -88,24 +88,24 @@ int ABI_C_MPI_WIN_NULL_COPY_FN( MPI_Win_ABI_INTERNAL window, int win_keyval,
                                  void* attribute_val_in,
                                  void* attribute_val_out, int* flag )
 {
-   *flag= 0;
-   return MPI_SUCCESS;
+    *flag= 0;
+    return MPI_SUCCESS;
 }
 
 int ABI_C_MPI_WIN_DUP_FN( MPI_Win_ABI_INTERNAL window, int win_keyval, void* extra_state,
                            void* attribute_val_in, void* attribute_val_out,
                            int* flag )
 {
-   *flag = 1;
-   *(void**)attribute_val_out = attribute_val_in;
-   return MPI_SUCCESS;
+    *flag = 1;
+    *(void**)attribute_val_out = attribute_val_in;
+    return MPI_SUCCESS;
 }
 
 int ABI_C_MPI_COMM_NULL_DELETE_FN( MPI_Comm_ABI_INTERNAL comm, int comm_keyval,
                                     void* attribute_val_out,
                                     void* extra_state )
 {
-   return MPI_SUCCESS;
+    return MPI_SUCCESS;
 }
 
 int ABI_C_MPI_COMM_NULL_COPY_FN( MPI_Comm_ABI_INTERNAL comm, int comm_keyval,
@@ -113,15 +113,15 @@ int ABI_C_MPI_COMM_NULL_COPY_FN( MPI_Comm_ABI_INTERNAL comm, int comm_keyval,
                                   void* attribute_val_in,
                                   void* attribute_val_out, int* flag )
 {
-   *flag = 0;
-   return MPI_SUCCESS;
+    *flag = 0;
+    return MPI_SUCCESS;
 }
 
 int ABI_C_MPI_COMM_DUP_FN( MPI_Comm_ABI_INTERNAL comm, int comm_keyval, void* extra_state,
                      void* attribute_val_in, void* attribute_val_out,
                      int* flag )
 {
-   *flag = 1;
-   *(void**)attribute_val_out = attribute_val_in;
-   return MPI_SUCCESS;
+    *flag = 1;
+    *(void**)attribute_val_out = attribute_val_in;
+    return MPI_SUCCESS;
 }

@@ -187,8 +187,6 @@ int ompi_abi_set_fortran_info(ompi_info_t *info)
         return MPI_ERR_ABI;
     }
 
-    already_called = true;
-
     /* 
      * If OMPI was built with fortran enabled, just tell the app
      * no to any of this setting fortran info stuff.
@@ -209,6 +207,7 @@ int ompi_abi_set_fortran_info(ompi_info_t *info)
         ret = ompi_info_dup(info, &abi_fortran_info_from_user);
         if (MPI_SUCCESS == ret) {
             ompi_mpi_instance_append_finalize (ompi_abi_fortran_finalize);
+            already_called = true;
         }
     }
 
@@ -229,7 +228,7 @@ int ompi_abi_get_fortran_booleans(int logical_size, void *logical_true, void *lo
      * the documentation and with MPI_Abi_set_fortran_booleans (which rejects
      * such sizes).
      */
-    if (countbits32((unsigned int)logical_size) > 1) {
+    if (countbits32((unsigned int)logical_size) != 1) {
         return MPI_ERR_ARG;
     }
 
@@ -470,7 +469,7 @@ int ompi_abi_set_fortran_booleans(int logical_size, void *logical_true, void *lo
 
     /* check logical size to be pow2 */
 
-    if(countbits32((unsigned int)logical_size) > 1) {
+    if(countbits32((unsigned int)logical_size) != 1) {
         return MPI_ERR_ARG;
     }
 

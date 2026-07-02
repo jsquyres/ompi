@@ -1,4 +1,3 @@
-/* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT BY HAND. */
 /*
  * Copyright (c) 2004-2007 The Trustees of Indiana University and Indiana
  *                         University Research and Technology

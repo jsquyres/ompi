@@ -1,4 +1,3 @@
-/* THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT EDIT BY HAND. */
 /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */
 /*
  * Copyright (c) 2004-2007 The Trustees of Indiana University and Indiana
@@ -106,6 +105,12 @@ int ompi_isendrecv(const void * sendbuf, size_t sendcount, MPI_Datatype sendtype
         rc = MCA_PML_CALL(irecv(recvbuf, recvcount, recvtype,
                                 source, recvtag, comm, &context->subreq[nreqs++]));
         if (MPI_SUCCESS != rc) {
+            for (int i = 0; i < nreqs; i++) {
+                if (MPI_REQUEST_NULL != context->subreq[i]) {
+                    ompi_request_cancel(context->subreq[i]);
+                    ompi_request_free(&context->subreq[i]);
+                }
+            }
             OBJ_RELEASE(context);
             ompi_comm_request_return (crequest);
         }
@@ -116,6 +121,12 @@ int ompi_isendrecv(const void * sendbuf, size_t sendcount, MPI_Datatype sendtype
         rc = MCA_PML_CALL(isend(sendbuf, sendcount, sendtype, dest,
                                 sendtag, MCA_PML_BASE_SEND_STANDARD, comm, &context->subreq[nreqs++]));
         if (MPI_SUCCESS != rc) {
+            for (int i = 0; i < nreqs; i++) {
+                if (MPI_REQUEST_NULL != context->subreq[i]) {
+                    ompi_request_cancel(context->subreq[i]);
+                    ompi_request_free(&context->subreq[i]);
+                }
+            }
             OBJ_RELEASE(context);
             ompi_comm_request_return (crequest);
         }
@@ -134,8 +145,15 @@ int ompi_isendrecv(const void * sendbuf, size_t sendcount, MPI_Datatype sendtype
     rc = ompi_comm_request_schedule_append_w_flags(crequest, ompi_isendrecv_complete_func,
                                                    context->subreq, nreqs, flags);
     if (MPI_SUCCESS != rc) {
+        for (int i = 0; i < nreqs; i++) {
+            if (MPI_REQUEST_NULL != context->subreq[i]) {
+                ompi_request_cancel(context->subreq[i]);
+                ompi_request_free(&context->subreq[i]);
+            }
+        }
         OBJ_RELEASE(context);
         ompi_comm_request_return (crequest);
+        OMPI_ERRHANDLER_CHECK(rc, comm, rc, "MPI_Isendrecv");
     }
 
     /* kick off the request */

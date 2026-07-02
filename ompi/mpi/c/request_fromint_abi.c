@@ -25,7 +25,7 @@
 
 #include "ompi/mpi/c/bindings.h"
 #include "ompi/runtime/params.h"
-#include "ompi/file/file.h"
+#include "ompi/request/request.h"
 #include "ompi/errhandler/errhandler.h"
 
 #include "ompi/mpi/c/abi.h"
