@@ -168,6 +168,7 @@ lib@OMPI_LIBMPI_NAME@_la_LIBADD = \
         $(c_pmpi_lib) \
         $(OMPI_MPIEXT_C_LIBS) \
         $(mpi_fortran_base_lib)
+lib@OMPI_LIBMPI_NAME@_la_DEPENDENCIES = $(lib@OMPI_LIBMPI_NAME@_la_LIBADD)
 
 lib@OMPI_LIBMPI_NAME@_la_LDFLAGS = \
        -version-info $(libmpi_so_version) \
@@ -179,6 +180,7 @@ libmpi_abi_la_LIBADD = \
         libopen_mpi.la \
 	mpi/c/libmpi_c_abi.la \
 	mpi/tool/libmpi_mpit_abi.la
+libmpi_abi_la_DEPENDENCIES = $(libmpi_abi_la_LIBADD)
 
 libmpi_abi_la_LDFLAGS = \
        -version-info $(libmpi_abi_so_version) \
