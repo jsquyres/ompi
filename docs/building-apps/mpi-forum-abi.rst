@@ -162,3 +162,44 @@ Use *one* MPI ABI consistently for every object file that calls MPI:
 * For other MPI applications, including mixed C and Fortran
   applications, compile C objects with ``mpicc`` and Fortran objects
   with ``mpifort``.
+
+All processes in an MPI job must use the same MPI ABI
+-----------------------------------------------------
+
+The requirement to pick a single MPI ABI is not limited to an
+individual executable: **every process in an MPI job must use the same
+MPI ABI.**
+
+You cannot run an MPI job in which some processes use the Open MPI ABI
+(executables built with ``mpicc`` / ``mpifort`` and linked against
+``libmpi``) while other processes use the MPI Forum standard ABI
+(executables built with ``mpicc_abi`` and linked against
+``libmpi_abi``).  This is true even though both kinds of process are
+ultimately run by the same Open MPI installation.
+
+.. danger:: Do not launch an MPI job that mixes processes built against
+            the Open MPI ABI with processes built against the MPI Forum
+            standard ABI.  Every process in the job must use the same
+            MPI ABI.
+
+This restriction applies to every way that processes can end up in the
+same MPI job, including:
+
+* **Multiple Program, Multiple Data (MPMD) launches**, where a single
+  ``mpirun`` command starts more than one executable.  For example, the
+  following is **not** supported if ``./app`` and ``./app_abi`` were
+  built against different MPI ABIs:
+
+  .. code-block:: sh
+
+     shell$ mpirun -np 2 ./app : -np 2 ./app_abi
+
+* **Dynamically connected jobs**, where processes that were launched
+  separately are joined into a single MPI job at run time via
+  :ref:`MPI_Comm_spawn` / :ref:`MPI_Comm_spawn_multiple`,
+  :ref:`MPI_Comm_connect` and :ref:`MPI_Comm_accept`, or
+  :ref:`MPI_Comm_join`.  All of the participating executables must be
+  built against the same MPI ABI.
+
+Build every executable that will participate in a given MPI job against
+the same MPI ABI, and launch the job accordingly.
