@@ -1067,6 +1067,7 @@ INSTALLED_C_RUNTIME_API_PROBES = (
         "support_api_names": (
             "MPI_Comm_disconnect",
             "MPI_Comm_remote_size",
+            "MPI_Comm_size",
             "MPI_Finalize",
             "MPI_Init",
         ),
