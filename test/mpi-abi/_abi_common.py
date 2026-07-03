@@ -292,6 +292,35 @@ def _skip(name, reason, **details):
     return _check_result(name, "SKIP", details, reason)
 
 
+def _count_by(entries, key):
+    """Tally entries by the value of one key (a missing key counts as None)."""
+    counts = {}
+    for entry in entries:
+        value = entry.get(key)
+        counts[value] = counts.get(value, 0) + 1
+    return counts
+
+
+def _language_counts(entries):
+    """Count manifest entries that expose each MPI language binding."""
+    counts = {
+        "c": 0,
+        "mpif.h": 0,
+        "use mpi": 0,
+        "use mpi_f08": 0,
+    }
+    for entry in entries:
+        for language, enabled in entry.get("languages", {}).items():
+            if enabled:
+                counts[language] += 1
+    return counts
+
+
+def _check_counts(checks):
+    """Count PASS/SKIP/FAIL results across a list of check records."""
+    return _count_by(checks, "result")
+
+
 def _color_tests_enabled(setting):
     """Resolve Automake-compatible color-test settings."""
     if setting in ("yes", "always"):
@@ -365,6 +394,28 @@ def _extend_checks(checks, new_checks, progress):
             progress.check(check)
 
 
+def _env_positive_int(name, default):
+    """Return a positive integer OMPI_ABI_TEST_* knob value, or the default.
+
+    Operator-facing numeric knobs must not turn a typo (for example
+    OMPI_ABI_TEST_TIMEOUT=30s, or an empty string) into an uncaught
+    ValueError deep inside command execution that unwinds to main() and
+    aborts the whole suite.  An unset, non-integer, or non-positive value
+    falls back to the documented default so the run continues with a sane
+    limit instead of a cryptic crash.
+    """
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        parsed = int(value.strip())
+    except ValueError:
+        return default
+    if parsed <= 0:
+        return default
+    return parsed
+
+
 def _command_timeout():
     """Return the timeout used for compile, launcher, and inspection jobs.
 
@@ -373,5 +424,4 @@ def _command_timeout():
     environments.  A timeout turns those hangs into ordinary FAIL records
     with command logs instead of wedging make check-abi indefinitely.
     """
-    return int(os.environ.get("OMPI_ABI_TEST_TIMEOUT",
-                              str(DEFAULT_COMMAND_TIMEOUT)))
+    return _env_positive_int("OMPI_ABI_TEST_TIMEOUT", DEFAULT_COMMAND_TIMEOUT)

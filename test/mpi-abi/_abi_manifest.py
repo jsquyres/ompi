@@ -33,6 +33,28 @@ def _api_stem(api_key, api_name):
     return name
 
 
+# Base spellings of the collective operation word that follows the MPI_
+# prefix.  Nonblocking (leading "i") and persistent (trailing "_init",
+# captured by this leading word) variants are handled by _is_collective_op
+# so a name such as MPI_Iallreduce or MPI_Barrier_init is still counted as
+# a collective for rank-requirement metadata.  Neighborhood collectives are
+# deliberately excluded here so they keep their own topology family.
+_COLLECTIVE_OPS = frozenset((
+    "barrier", "bcast", "gather", "gatherv", "scatter", "scatterv",
+    "allgather", "allgatherv", "alltoall", "alltoallv", "alltoallw",
+    "reduce", "allreduce", "scan", "exscan",
+))
+
+
+def _is_collective_op(op):
+    """Return whether an MPI name stem word denotes a collective."""
+    if op in _COLLECTIVE_OPS:
+        return True
+    if op.startswith("i") and op[1:] in _COLLECTIVE_OPS:
+        return True
+    return False
+
+
 def _api_family(name):
     """Return a coarse MPI API family used for test planning metadata."""
     lower = name.lower()
@@ -47,11 +69,7 @@ def _api_family(name):
         return parts[1]
     if parts[1] in ("send", "recv", "isend", "irecv", "probe", "iprobe"):
         return "point_to_point"
-    if parts[1] in ("allreduce", "allgather", "allgatherv", "alltoall"):
-        return "collective"
-    if parts[1] in ("barrier", "bcast", "gather", "gatherv"):
-        return "collective"
-    if parts[1] in ("reduce", "scan", "exscan"):
+    if _is_collective_op(parts[1]):
         return "collective"
     if parts[1] in ("put", "get", "accumulate", "rput", "rget"):
         return "rma"
@@ -70,15 +88,21 @@ def _rank_requirement(family):
 
 
 def _feature_requirement(family):
-    """Return the optional Open MPI feature that gates an API family."""
+    """Return the optional Open MPI feature that gates an API family.
+
+    The returned key must be one of the canonical optional-feature keys
+    produced by _detect_optional_features() and consumed by
+    _optional_feature_info()/_optional_feature_skip_reason(); otherwise the
+    feature gate silently falls through to the {"enabled": None} default
+    and becomes a no-op.  Sessions are always built, so the session family
+    is not gated on an optional feature.
+    """
     if family == "file":
         return "mpi_io"
     if family == "mpi_t":
-        return "mpi_t"
+        return "mpit_events"
     if family == "win" or family == "rma":
         return "rma"
-    if family == "session":
-        return "sessions"
     return None
 
 

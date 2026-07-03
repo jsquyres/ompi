@@ -49,32 +49,6 @@ from _abi_probes import (
     _runtime_probe_generation_check)
 
 
-def _count_by(entries, key):
-    counts = {}
-    for entry in entries:
-        value = entry.get(key)
-        counts[value] = counts.get(value, 0) + 1
-    return counts
-
-
-def _language_counts(entries):
-    counts = {
-        "c": 0,
-        "mpif.h": 0,
-        "use mpi": 0,
-        "use mpi_f08": 0,
-    }
-    for entry in entries:
-        for language, enabled in entry.get("languages", {}).items():
-            if enabled:
-                counts[language] += 1
-    return counts
-
-
-def _check_counts(checks):
-    return _count_by(checks, "result")
-
-
 def _command_result(name, command, cwd, env, log_path):
     """Run one subprocess, capture output, and write a JSON command log."""
     log_path.parent.mkdir(parents=True, exist_ok=True)

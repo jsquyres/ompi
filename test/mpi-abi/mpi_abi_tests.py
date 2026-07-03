@@ -22,6 +22,7 @@ import argparse
 import os
 from pathlib import Path
 import sys
+import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _abi_common import (
@@ -140,8 +141,19 @@ def main(argv):
     args = parser.parse_args(argv)
     try:
         return command(args)
-    except Exception as exc:
+    except RuntimeError as exc:
+        # RuntimeError is the runner's intentional gate: metadata
+        # version/count mismatches, malformed probe tables, and invalid
+        # operator environment values.  A clean one-line message is the
+        # right diagnostic for those.
         print("ERROR: {0}".format(exc), file=sys.stderr)
+        return 1
+    except Exception:
+        # Any other exception is an unexpected bug in the harness itself
+        # (KeyError, TypeError, AttributeError, ...).  Preserve the full
+        # traceback so a CI failure of the runner is diagnosable instead of
+        # being collapsed into an opaque one-liner.
+        traceback.print_exc()
         return 1
 
 

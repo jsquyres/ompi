@@ -23,18 +23,30 @@ from _abi_common import (
     _command_timeout, _read_text)
 
 
+_ENV_BOOL_TRUE = ("1", "true", "yes", "on")
+_ENV_BOOL_FALSE = ("0", "false", "no", "off", "")
+
+
 def _env_bool(name):
+    """Return a tri-state OMPI_ABI_TEST_* boolean knob value.
+
+    None means the variable is unset, so the caller applies its own
+    default.  Recognized values map to True/False.  An unrecognized value
+    raises rather than silently defaulting to False: a typo such as
+    OMPI_ABI_TEST_STANDARD_ABI=ture must not quietly disable ABI testing
+    and turn expected failures into skips.
+    """
     value = os.environ.get(name)
     if value is None:
         return None
-    return value.strip().lower() in ("1", "true", "yes", "on")
-
-
-def _which(env_name, default_name):
-    override = os.environ.get(env_name)
-    if override:
-        return override
-    return shutil.which(default_name)
+    normalized = value.strip().lower()
+    if normalized in _ENV_BOOL_TRUE:
+        return True
+    if normalized in _ENV_BOOL_FALSE:
+        return False
+    raise RuntimeError(
+        "invalid boolean value for {0}: {1!r} (expected one of "
+        "1/0, true/false, yes/no, on/off)".format(name, value))
 
 
 def _tool_available(path):
@@ -612,8 +624,6 @@ def _mpich_candidate(mpicc, mpirun=None, mpirun_override=False,
     mpichversion = _path_executable(bin_dir, "mpichversion")
     outputs = {
         "mpicc_show": _quick_command_output([mpicc, "-show"]),
-        "mpicc_compile_info": "",
-        "mpicc_link_info": "",
         "mpicc_version": _quick_command_output([mpicc, "--version"]),
         "mpirun_version": (
             _quick_command_output([mpirun, "--version"]) if mpirun else ""

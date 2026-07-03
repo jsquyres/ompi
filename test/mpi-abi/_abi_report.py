@@ -21,106 +21,85 @@ from _abi_common import (
     FAIL_OPEN_MPI_ABI_CLASSIFICATION_UNCONFIRMED,
     SKIP_CROSS_UNSUPPORTED_PLATFORM, SKIP_MPICH_DIRECTIONS_INVALID,
     SKIP_MPICH_TOOLS_UNAVAILABLE, SKIP_OPEN_MPI_TOOLS_UNAVAILABLE,
-    SKIP_STANDARD_ABI_DISABLED, _Colors, _append_check, _fail, _write_json,
-    _write_text)
+    SKIP_STANDARD_ABI_DISABLED, _Colors, _append_check, _check_counts,
+    _count_by, _fail, _language_counts, _write_json, _write_text)
 from _abi_discovery import (
     _mpich_tools_available, _open_mpi_tool_override_requested,
     _open_mpi_tools_available, _open_mpi_tools_present)
 from _abi_installed import (
-    _check_counts, _count_by, _language_counts, run_installed_checks)
+    run_installed_checks)
 from _abi_cross import (
     _symbol_diagnostics, _tool_info, run_cross_checks)
 from _abi_fast import (
     run_fast_checks)
 
 
+# Guidance shared by both the SKIP and FAIL paths of check-abi-mpich.  A
+# single source per reason keeps the two paths from drifting when wording
+# is fixed in one place but not the other.
+_CROSS_MODE_GUIDANCE = {
+    SKIP_MPICH_TOOLS_UNAVAILABLE: (
+        "MPICH MPI Forum ABI tools were not found.  Build MPICH "
+        "with MPI Forum ABI support, ensure mpicc_abi, mpi_abi.h, "
+        "and libmpi_abi are installed, put MPICH on PATH, or set "
+        "MPICH_ABI_TEST_MPICC and "
+        "MPICH_ABI_TEST_MPIRUN.  See test/mpi-abi/README.md for "
+        "check-abi-mpich setup."
+    ),
+    SKIP_OPEN_MPI_TOOLS_UNAVAILABLE: (
+        "Open MPI ABI tools were not found.  Install Open MPI with "
+        "standard ABI support, put its tools on PATH, or set "
+        "OMPI_ABI_TEST_MPICC_ABI and OMPI_ABI_TEST_MPIRUN.  See "
+        "test/mpi-abi/README.md for check-abi-mpich setup."
+    ),
+    SKIP_CROSS_UNSUPPORTED_PLATFORM: (
+        "This platform does not expose a supported runtime library "
+        "path environment variable for MPICH compatibility tests.  "
+        "See test/mpi-abi/README.md for check-abi-mpich setup."
+    ),
+    SKIP_MPICH_DIRECTIONS_INVALID: (
+        "OMPI_ABI_TEST_MPICH_DIRECTIONS contains an invalid value.  "
+        "Use both, mpich-to-ompi, ompi-to-mpich, "
+        "mpich_compile_open_mpi_run, or "
+        "open_mpi_compile_mpich_run."
+    ),
+}
+
+# Guidance that only applies when the reason is a hard mode-level FAIL.
+_CROSS_MODE_FAILURE_ONLY_GUIDANCE = {
+    SKIP_STANDARD_ABI_DISABLED: (
+        "Open MPI was configured without standard ABI support.  "
+        "Reconfigure and install Open MPI with standard ABI support "
+        "before running make check-abi-mpich."
+    ),
+    FAIL_OPEN_MPI_ABI_CLASSIFICATION_UNCONFIRMED: (
+        "Open MPI ABI tools were found but could not be validated "
+        "as an Open MPI MPI Forum ABI installation.  Check the "
+        "reported discovery evidence, wrapper link flags, standard "
+        "ABI header path, and OMPI_ABI_TEST_* overrides."
+    ),
+    FAIL_CROSS_PROBES_NOT_EXECUTED: (
+        "No MPICH compatibility cross probes executed successfully.  "
+        "Inspect the per-probe SKIP reasons and command logs under "
+        "the ABI test output directory."
+    ),
+}
+
+
 def _mode_skip_guidance(mode, skip_reason):
     """Return user-facing guidance for mode-level SKIP results."""
-    if mode == "check-abi-mpich":
-        if skip_reason == SKIP_MPICH_TOOLS_UNAVAILABLE:
-            return (
-                "MPICH MPI Forum ABI tools were not found.  Build MPICH "
-                "with MPI Forum ABI support, ensure mpicc_abi, mpi_abi.h, "
-                "and libmpi_abi are installed, put MPICH on PATH, or set "
-                "MPICH_ABI_TEST_MPICC and "
-                "MPICH_ABI_TEST_MPIRUN.  See test/mpi-abi/README.md for "
-                "check-abi-mpich setup."
-            )
-        if skip_reason == SKIP_OPEN_MPI_TOOLS_UNAVAILABLE:
-            return (
-                "Open MPI ABI tools were not found.  Install Open MPI with "
-                "standard ABI support, put its tools on PATH, or set "
-                "OMPI_ABI_TEST_MPICC_ABI and OMPI_ABI_TEST_MPIRUN.  See "
-                "test/mpi-abi/README.md for check-abi-mpich setup."
-            )
-        if skip_reason == SKIP_CROSS_UNSUPPORTED_PLATFORM:
-            return (
-                "This platform does not expose a supported runtime library "
-                "path environment variable for MPICH compatibility tests.  "
-                "See test/mpi-abi/README.md for check-abi-mpich setup."
-            )
-        if skip_reason == SKIP_MPICH_DIRECTIONS_INVALID:
-            return (
-                "OMPI_ABI_TEST_MPICH_DIRECTIONS contains an invalid value.  "
-                "Use both, mpich-to-ompi, ompi-to-mpich, "
-                "mpich_compile_open_mpi_run, or "
-                "open_mpi_compile_mpich_run."
-            )
-    return None
+    if mode != "check-abi-mpich":
+        return None
+    return _CROSS_MODE_GUIDANCE.get(skip_reason)
 
 
 def _mode_failure_guidance(mode, failure_reason):
     """Return user-facing guidance for mode-level FAIL results."""
-    if mode == "check-abi-mpich":
-        if failure_reason == SKIP_STANDARD_ABI_DISABLED:
-            return (
-                "Open MPI was configured without standard ABI support.  "
-                "Reconfigure and install Open MPI with standard ABI support "
-                "before running make check-abi-mpich."
-            )
-        if failure_reason == SKIP_MPICH_TOOLS_UNAVAILABLE:
-            return (
-                "MPICH MPI Forum ABI tools were not found.  Build MPICH "
-                "with MPI Forum ABI support, ensure mpicc_abi, mpi_abi.h, "
-                "and libmpi_abi are installed, put MPICH on PATH, or set "
-                "MPICH_ABI_TEST_MPICC and "
-                "MPICH_ABI_TEST_MPIRUN.  See test/mpi-abi/README.md for "
-                "check-abi-mpich setup."
-            )
-        if failure_reason == SKIP_OPEN_MPI_TOOLS_UNAVAILABLE:
-            return (
-                "Open MPI ABI tools were not found.  Install Open MPI with "
-                "standard ABI support, put its tools on PATH, or set "
-                "OMPI_ABI_TEST_MPICC_ABI and OMPI_ABI_TEST_MPIRUN.  See "
-                "test/mpi-abi/README.md for check-abi-mpich setup."
-            )
-        if failure_reason == FAIL_OPEN_MPI_ABI_CLASSIFICATION_UNCONFIRMED:
-            return (
-                "Open MPI ABI tools were found but could not be validated "
-                "as an Open MPI MPI Forum ABI installation.  Check the "
-                "reported discovery evidence, wrapper link flags, standard "
-                "ABI header path, and OMPI_ABI_TEST_* overrides."
-            )
-        if failure_reason == SKIP_CROSS_UNSUPPORTED_PLATFORM:
-            return (
-                "This platform does not expose a supported runtime library "
-                "path environment variable for MPICH compatibility tests.  "
-                "See test/mpi-abi/README.md for check-abi-mpich setup."
-            )
-        if failure_reason == SKIP_MPICH_DIRECTIONS_INVALID:
-            return (
-                "OMPI_ABI_TEST_MPICH_DIRECTIONS contains an invalid value.  "
-                "Use both, mpich-to-ompi, ompi-to-mpich, "
-                "mpich_compile_open_mpi_run, or "
-                "open_mpi_compile_mpich_run."
-            )
-        if failure_reason == FAIL_CROSS_PROBES_NOT_EXECUTED:
-            return (
-                "No MPICH compatibility cross probes executed successfully.  "
-                "Inspect the per-probe SKIP reasons and command logs under "
-                "the ABI test output directory."
-            )
-    return None
+    if mode != "check-abi-mpich":
+        return None
+    if failure_reason in _CROSS_MODE_FAILURE_ONLY_GUIDANCE:
+        return _CROSS_MODE_FAILURE_ONLY_GUIDANCE[failure_reason]
+    return _CROSS_MODE_GUIDANCE.get(failure_reason)
 
 
 def _append_mode_failure(checks, progress, name, reason, message, **details):
@@ -305,6 +284,20 @@ def build_report(manifest, mode, srcdir, builddir, outdir, progress=None):
     }
 
 
+def _append_check_section(lines, colors, title, checks):
+    """Append a titled block of per-check result lines to the summary."""
+    lines.append(title)
+    if checks:
+        for check in checks:
+            line = "  {0}: {1}".format(check["name"], check["result"])
+            if check["skip_reason"]:
+                line += " ({0})".format(check["skip_reason"])
+            lines.append(colors.result(check["result"], line))
+    else:
+        lines.append("  none")
+    lines.append("")
+
+
 def _summary_text(report, colors=None):
     """Render a human-readable summary from a report object."""
     if colors is None:
@@ -355,36 +348,11 @@ def _summary_text(report, colors=None):
             report["summary"]["constant_test_status"].items()):
         lines.append("  {0}: {1}".format(key, value))
     lines.append("")
-    lines.append("Fast checks:")
-    if report["fast_checks"]:
-        for check in report["fast_checks"]:
-            line = "  {0}: {1}".format(check["name"], check["result"])
-            if check["skip_reason"]:
-                line += " ({0})".format(check["skip_reason"])
-            lines.append(colors.result(check["result"], line))
-    else:
-        lines.append("  none")
-    lines.append("")
-    lines.append("Installed checks:")
-    if report["installed_checks"]:
-        for check in report["installed_checks"]:
-            line = "  {0}: {1}".format(check["name"], check["result"])
-            if check["skip_reason"]:
-                line += " ({0})".format(check["skip_reason"])
-            lines.append(colors.result(check["result"], line))
-    else:
-        lines.append("  none")
-    lines.append("")
-    lines.append("Cross checks:")
-    if report["cross_checks"]:
-        for check in report["cross_checks"]:
-            line = "  {0}: {1}".format(check["name"], check["result"])
-            if check["skip_reason"]:
-                line += " ({0})".format(check["skip_reason"])
-            lines.append(colors.result(check["result"], line))
-    else:
-        lines.append("  none")
-    lines.append("")
+    _append_check_section(lines, colors, "Fast checks:", report["fast_checks"])
+    _append_check_section(
+        lines, colors, "Installed checks:", report["installed_checks"])
+    _append_check_section(
+        lines, colors, "Cross checks:", report["cross_checks"])
     if report.get("cross_environment") is not None:
         env = report["cross_environment"]
         lines.append("Cross environment:")

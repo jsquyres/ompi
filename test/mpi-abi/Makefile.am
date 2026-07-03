@@ -40,6 +40,7 @@ C_RUNTIME_CASES = \
         cases/c-runtime/runtime_init_state.cbody.in \
         cases/c-runtime/runtime_init_thread.cbody.in \
         cases/c-runtime/runtime_intercomm_group.cbody.in \
+        cases/c-runtime/runtime_object_name_abi_length.cbody.in \
         cases/c-runtime/runtime_op_predefined.cbody.in \
         cases/c-runtime/runtime_pack_status.cbody.in \
         cases/c-runtime/runtime_point_to_point_basic.cbody.in \
@@ -56,7 +57,8 @@ C_RUNTIME_CASES = \
         cases/c-runtime/runtime_session_group.cbody.in \
         cases/c-runtime/runtime_topology_cart_graph.cbody.in \
         cases/c-runtime/runtime_topology_dist_neighbor.cbody.in \
-        cases/c-runtime/runtime_win_lifecycle.cbody.in
+        cases/c-runtime/runtime_win_lifecycle.cbody.in \
+        cases/c-runtime/runtime_win_object_name_abi_length.cbody.in
 
 C_CALLBACK_CASES = \
         cases/c-callback/callback_comm_errhandler.cbody.in \
@@ -102,6 +104,7 @@ EXTRA_DIST = \
         README.md \
         requirements.txt \
         mpi_abi_tests.py \
+        test_abi_units.py \
         $(ABI_RUNNER_MODULES) \
         templates/c_probe.c.in \
         templates/fortran_probe.f90.in \
@@ -125,11 +128,17 @@ abi_check_runner = $(abi_test_runner) \
 abi_mpich_runner = $(abi_test_runner) \
         --outdir "$(abs_builddir)/check-abi-mpich-results"
 
+# The custom targets below are not Automake-recognized hooks (unlike
+# check-local/clean-local/distclean-local), so declare them phony to keep
+# make from skipping them if a like-named file ever appears here.
+.PHONY: check-abi check-abi-mpich manifest coverage
+
 check-local:
 	@if test "$(PYTHON)" = ":"; then \
 	    echo "SKIP: Python is not available"; \
 	else \
-	    $(abi_fast_runner) check-fast; \
+	    $(PYTHON) -B "$(srcdir)/test_abi_units.py" \
+	        && $(abi_fast_runner) check-fast; \
 	fi
 
 check-abi:

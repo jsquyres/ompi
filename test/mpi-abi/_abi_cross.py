@@ -18,8 +18,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _abi_common import (
     MPI_REMOVED_LEGACY_C_NAMES, SKIP_CROSS_PROBES_NOT_PASSED,
-    SKIP_FORTRAN_BINDINGS_DISABLED, _append_check, _extend_checks, _fail,
-    _pass, _skip, _write_text)
+    SKIP_FORTRAN_BINDINGS_DISABLED, _append_check, _check_counts,
+    _env_positive_int, _extend_checks, _fail, _pass, _skip, _write_text)
 from _abi_tables import (
     INSTALLED_C_ABI_PROBES, INSTALLED_C_CALLBACK_PROBES,
     INSTALLED_C_RUNTIME_API_PROBES)
@@ -33,7 +33,7 @@ from _abi_probes import (
     _runtime_api_probe_generation_check, _runtime_probe_constant_names,
     _runtime_probe_generation_check)
 from _abi_installed import (
-    _c_probe_source, _check_counts, _command_result,
+    _c_probe_source, _command_result,
     _cross_compile_extra_flags, _cross_compile_header,
     _cross_compile_overrides, _cross_header_semantic_checks,
     _cross_launcher_args, _cross_linkage_diagnostic_check,
@@ -48,33 +48,23 @@ def _tool_info(mode):
     discovery = _discover_mpi_installations(
         include_open_mpi=mode in ("check-abi", "check-abi-mpich"),
         include_mpich=mode == "check-abi-mpich")
-    open_mpi_install = _select_install(discovery, "open_mpi")
-    mpich_install = _select_install(discovery, "mpich")
+    # Normalize the selected installs to empty dicts so the record-building
+    # below uses uniform .get() access instead of repeating an
+    # "... if install is not None else <default>" guard for every field.
+    open_mpi_install = _select_install(discovery, "open_mpi") or {}
+    mpich_install = _select_install(discovery, "mpich") or {}
     cross_directions = _cross_direction_selection()
-    open_mpi_tools = (
-        open_mpi_install["tools"] if open_mpi_install is not None else {}
-    )
-    mpich_tools = mpich_install["tools"] if mpich_install is not None else {}
-    open_mpi_include_dirs = (
-        open_mpi_install.get("paths", {}).get("include_dirs", [])
-        if open_mpi_install is not None else []
-    )
-    open_mpi_library_dirs = (
-        open_mpi_install.get("paths", {}).get("library_dirs", [])
-        if open_mpi_install is not None else []
-    )
-    mpich_include_dirs = (
-        mpich_install.get("paths", {}).get("include_dirs", [])
-        if mpich_install is not None else []
-    )
-    mpich_library_dirs = (
-        mpich_install.get("paths", {}).get("library_dirs", [])
-        if mpich_install is not None else []
-    )
-    mpich_device = (
-        mpich_install.get("evidence", {}).get("mpich_device")
-        if mpich_install is not None else None
-    )
+    open_mpi_tools = open_mpi_install.get("tools", {})
+    mpich_tools = mpich_install.get("tools", {})
+    open_mpi_evidence = open_mpi_install.get("evidence", {})
+    mpich_evidence = mpich_install.get("evidence", {})
+    open_mpi_found_paths = open_mpi_install.get("paths", {})
+    mpich_found_paths = mpich_install.get("paths", {})
+    open_mpi_include_dirs = open_mpi_found_paths.get("include_dirs", [])
+    open_mpi_library_dirs = open_mpi_found_paths.get("library_dirs", [])
+    mpich_include_dirs = mpich_found_paths.get("include_dirs", [])
+    mpich_library_dirs = mpich_found_paths.get("library_dirs", [])
+    mpich_device = mpich_evidence.get("mpich_device")
     open_mpi_paths = {
         "include": (
             os.environ.get("OMPI_ABI_TEST_INCLUDE_PATH") or
@@ -104,49 +94,25 @@ def _tool_info(mode):
             "mpicc_abi": open_mpi_tools.get("mpicc_abi"),
             "mpifort": _open_mpi_mpifort(open_mpi_install),
             "mpirun": open_mpi_tools.get("mpirun"),
-            "identity": (
-                open_mpi_install["implementation"]
-                if open_mpi_install is not None else None
-            ),
-            "mpi_forum_abi_available": (
-                open_mpi_install.get("evidence", {}).get(
-                    "mpi_forum_abi_available")
-                if open_mpi_install is not None else None
-            ),
-            "unsuitable_reasons": (
-                open_mpi_install.get("evidence", {}).get("unsuitable_reasons")
-                if open_mpi_install is not None else None
-            ),
-            "prefix": (
-                open_mpi_install["prefix"]
-                if open_mpi_install is not None else None
-            ),
+            "identity": open_mpi_install.get("implementation"),
+            "mpi_forum_abi_available": open_mpi_evidence.get(
+                "mpi_forum_abi_available"),
+            "unsuitable_reasons": open_mpi_evidence.get("unsuitable_reasons"),
+            "prefix": open_mpi_install.get("prefix"),
         },
         "mpich": {
             "mpicc": mpich_tools.get("mpicc"),
             "mpirun": mpich_tools.get("mpirun"),
-            "identity": (
-                mpich_install["implementation"]
-                if mpich_install is not None else None
-            ),
-            "mpi_forum_abi_available": (
-                mpich_install.get("evidence", {}).get(
-                    "mpi_forum_abi_available")
-                if mpich_install is not None else None
-            ),
+            "identity": mpich_install.get("implementation"),
+            "mpi_forum_abi_available": mpich_evidence.get(
+                "mpi_forum_abi_available"),
             "device": mpich_device,
-            "unsuitable_reasons": (
-                mpich_install.get("evidence", {}).get("unsuitable_reasons")
-                if mpich_install is not None else None
-            ),
-            "prefix": (
-                mpich_install["prefix"]
-                if mpich_install is not None else None
-            ),
+            "unsuitable_reasons": mpich_evidence.get("unsuitable_reasons"),
+            "prefix": mpich_install.get("prefix"),
         },
         "rank_counts": {
-            "np1": int(os.environ.get("OMPI_ABI_TEST_NP1", "1")),
-            "np2": int(os.environ.get("OMPI_ABI_TEST_NP2", "2")),
+            "np1": _env_positive_int("OMPI_ABI_TEST_NP1", 1),
+            "np2": _env_positive_int("OMPI_ABI_TEST_NP2", 2),
         },
         "paths": open_mpi_paths,
         "discovery": discovery,
@@ -342,46 +308,51 @@ def _cross_environment_report(tools, dirs):
     return report
 
 
+# Per-direction compile/run roles for the two standard ABI cross paths.
+# Each entry is (compile_implementation, run_implementation); the compile
+# wrapper and the run-side paths/launcher are then looked up by role so the
+# two directions share one dict-building path instead of duplicated branches.
+_CROSS_DIRECTION_ROLES = {
+    "mpich_compile_open_mpi_run": ("mpich", "open_mpi"),
+    "open_mpi_compile_mpich_run": ("open_mpi", "mpich"),
+}
+
+# The ABI compile wrapper each implementation exposes under tools[impl].
+_CROSS_COMPILE_WRAPPER_KEY = {
+    "mpich": "mpicc",
+    "open_mpi": "mpicc_abi",
+}
+
+# The tools["cross"] paths block that describes each implementation.
+_CROSS_PATHS_KEY = {
+    "mpich": "mpich_paths",
+    "open_mpi": "open_mpi_paths",
+}
+
+
 def _cross_direction_summary(tools):
     """Describe the compile/run roles selected for each cross direction."""
+    cross = tools["cross"]
+    runtime_loader = cross["runtime_loader"]
     directions = {}
-    for direction in tools["cross"]["directions"]:
-        if direction == "mpich_compile_open_mpi_run":
-            loader_policy = _cross_runtime_loader_policy(
-                tools["cross"]["open_mpi_paths"]["library"],
-                tools["cross"]["runtime_loader"])
-            directions[direction] = {
-                "compile_implementation": "mpich",
-                "compile_wrapper": tools["mpich"]["mpicc"],
-                "run_implementation": "open_mpi",
-                "launcher": tools["open_mpi"]["mpirun"],
-                "runtime_loader": tools["cross"]["runtime_loader"],
-                "runtime_library_path": (
-                    tools["cross"]["open_mpi_paths"]["library"]
-                ),
-                "runtime_loader_policy": loader_policy,
-                "launcher_args": (
-                    tools["cross"]["open_mpi_paths"]["launcher_args"]
-                ),
-            }
-        elif direction == "open_mpi_compile_mpich_run":
-            loader_policy = _cross_runtime_loader_policy(
-                tools["cross"]["mpich_paths"]["library"],
-                tools["cross"]["runtime_loader"])
-            directions[direction] = {
-                "compile_implementation": "open_mpi",
-                "compile_wrapper": tools["open_mpi"]["mpicc_abi"],
-                "run_implementation": "mpich",
-                "launcher": tools["mpich"]["mpirun"],
-                "runtime_loader": tools["cross"]["runtime_loader"],
-                "runtime_library_path": (
-                    tools["cross"]["mpich_paths"]["library"]
-                ),
-                "runtime_loader_policy": loader_policy,
-                "launcher_args": (
-                    tools["cross"]["mpich_paths"]["launcher_args"]
-                ),
-            }
+    for direction in cross["directions"]:
+        roles = _CROSS_DIRECTION_ROLES.get(direction)
+        if roles is None:
+            continue
+        compile_impl, run_impl = roles
+        run_paths = cross[_CROSS_PATHS_KEY[run_impl]]
+        directions[direction] = {
+            "compile_implementation": compile_impl,
+            "compile_wrapper": tools[compile_impl][
+                _CROSS_COMPILE_WRAPPER_KEY[compile_impl]],
+            "run_implementation": run_impl,
+            "launcher": tools[run_impl]["mpirun"],
+            "runtime_loader": runtime_loader,
+            "runtime_library_path": run_paths["library"],
+            "runtime_loader_policy": _cross_runtime_loader_policy(
+                run_paths["library"], runtime_loader),
+            "launcher_args": run_paths["launcher_args"],
+        }
     return directions
 
 
@@ -666,6 +637,17 @@ def _run_cross_direction_probe_cases(srcdir, manifest, tools, dirs,
             continue
         _write_text(source, probe_source)
 
+        # Context common to every result record for this case.  Splatting
+        # this into each branch keeps the per-case identity fields in one
+        # place so no branch can silently omit one of them.
+        base = {
+            "direction": direction,
+            "compile_implementation": compile_implementation,
+            "run_implementation": run_implementation,
+            "source": str(source),
+            "executable": str(executable),
+        }
+
         compile_command = (
             [compile_wrapper] + compile_overrides + compile_extra_flags +
             [str(source), "-o", str(executable)]
@@ -683,29 +665,20 @@ def _run_cross_direction_probe_cases(srcdir, manifest, tools, dirs,
                 check_name,
                 "cross C ABI probe compile failed",
                 phase="compile",
-                direction=direction,
-                compile_implementation=compile_implementation,
-                run_implementation=run_implementation,
-                source=str(source),
-                executable=str(executable),
                 command=compile_result["command"],
                 returncode=compile_result["returncode"],
-                log=compile_result["log"]), progress)
+                log=compile_result["log"],
+                **base), progress)
             continue
 
         rewrite_result = _cross_verify_or_rewrite_abi_libraries(
             executable, dirs, run_env, name, runtime_library_path)
         if rewrite_result["result"] != "PASS":
-            detail = {
-                "phase": "runtime_linkage",
-                "direction": direction,
-                "compile_implementation": compile_implementation,
-                "run_implementation": run_implementation,
-                "source": str(source),
-                "executable": str(executable),
-                "compile_log": compile_result["log"],
-                "runtime_linkage": rewrite_result["details"],
-            }
+            detail = dict(
+                base,
+                phase="runtime_linkage",
+                compile_log=compile_result["log"],
+                runtime_linkage=rewrite_result["details"])
             if rewrite_result["result"] == "SKIP":
                 _append_check(checks, _skip(
                     check_name,
@@ -733,11 +706,6 @@ def _run_cross_direction_probe_cases(srcdir, manifest, tools, dirs,
                 check_name,
                 "cross C ABI probe runtime timed out",
                 phase="run",
-                direction=direction,
-                compile_implementation=compile_implementation,
-                run_implementation=run_implementation,
-                source=str(source),
-                executable=str(executable),
                 rank_count=rank_count,
                 command=run_result["command"],
                 returncode=run_result["returncode"],
@@ -745,7 +713,8 @@ def _run_cross_direction_probe_cases(srcdir, manifest, tools, dirs,
                 timed_out=run_result["timed_out"],
                 compile_log=compile_result["log"],
                 run_log=run_result["log"],
-                runtime_linkage=rewrite_result["details"]), progress)
+                runtime_linkage=rewrite_result["details"],
+                **base), progress)
             continue
         skip_reason = case.get("skip_exit_codes", {}).get(
             run_result["returncode"])
@@ -754,49 +723,37 @@ def _run_cross_direction_probe_cases(srcdir, manifest, tools, dirs,
                 check_name,
                 skip_reason,
                 phase="run",
-                direction=direction,
-                compile_implementation=compile_implementation,
-                run_implementation=run_implementation,
-                source=str(source),
-                executable=str(executable),
                 rank_count=rank_count,
                 command=run_result["command"],
                 returncode=run_result["returncode"],
                 compile_log=compile_result["log"],
-                run_log=run_result["log"]), progress)
+                run_log=run_result["log"],
+                **base), progress)
             continue
         if run_result["returncode"] != 0:
             _append_check(checks, _fail(
                 check_name,
                 "cross C ABI probe runtime failed",
                 phase="run",
-                direction=direction,
-                compile_implementation=compile_implementation,
-                run_implementation=run_implementation,
-                source=str(source),
-                executable=str(executable),
                 rank_count=rank_count,
                 command=run_result["command"],
                 returncode=run_result["returncode"],
                 compile_log=compile_result["log"],
                 run_log=run_result["log"],
-                runtime_linkage=rewrite_result["details"]), progress)
+                runtime_linkage=rewrite_result["details"],
+                **base), progress)
             continue
 
         _append_check(checks, _pass(
             check_name,
             phase="run",
-            direction=direction,
-            compile_implementation=compile_implementation,
-            run_implementation=run_implementation,
-            source=str(source),
-            executable=str(executable),
             rank_count=rank_count,
             compile_command=compile_result["command"],
             run_command=run_result["command"],
             compile_log=compile_result["log"],
             run_log=run_result["log"],
-            runtime_linkage=rewrite_result["details"]), progress)
+            runtime_linkage=rewrite_result["details"],
+            **base), progress)
 
     return checks
 

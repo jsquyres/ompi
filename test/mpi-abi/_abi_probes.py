@@ -29,6 +29,14 @@ from _abi_tables import (
     DEFERRED_CALLBACK_API_NAMES)
 
 
+# A standard ABI mpi.h is large (the suite requires >= 1000 prototypes) and
+# is parsed several times per cross direction.  Its contents are stable for
+# the lifetime of one runner process, so memoize the parse results by header
+# path to avoid repeated full-file reads and regex passes.
+_HEADER_PROTOTYPE_CACHE = {}
+_HEADER_CONSTANT_NAME_CACHE = {}
+
+
 def _strip_c_comments(value):
     value = re.sub(r"/\*.*?\*/", " ", value)
     return value.split("//", 1)[0]
@@ -252,6 +260,10 @@ def _parse_header_constant_names(path):
     _parse_header_constants() so an implicit enum member is not silently
     dropped from the installed-header declaration preflight.
     """
+    key = str(path)
+    cached = _HEADER_CONSTANT_NAME_CACHE.get(key)
+    if cached is not None:
+        return set(cached)
     names = set()
     define_re = re.compile(r"^\s*#define\s+(MPI\w+)\b")
     enum_re = re.compile(r"^\s*(MPI\w+)\b\s*(?:=|,)")
@@ -261,7 +273,8 @@ def _parse_header_constant_names(path):
             match = enum_re.match(line)
         if match is not None:
             names.add(match.group(1))
-    return names
+    _HEADER_CONSTANT_NAME_CACHE[key] = names
+    return set(names)
 
 
 def _constant_sort_key(entry):
@@ -422,11 +435,8 @@ def _predefined_handle_guards(manifest):
 
 def _predefined_handle_checks(manifest):
     """Generate predefined-handle converter round-trip statements."""
-    entries = [
-        entry for entry in _predefined_handle_entries(manifest)
-    ]
     return _generated_check_lines(
-        entries,
+        _predefined_handle_entries(manifest),
         "    ABI_CHECK_PREDEFINED_HANDLE({kind}, {name});")
 
 
@@ -868,21 +878,19 @@ def _callback_api_coverage_audit(
             continue
         missing_by_package.setdefault(package, []).append(name)
 
+    # The main loop above is the single authority for recording missing
+    # legacy attribute APIs: it already appends an implemented, declared,
+    # uncovered, untolerated legacy name to its package exactly once, and
+    # skips names that a callback probe covers.  legacy_declared is kept
+    # only for the tolerated-legacy reporting fields below; re-adding it to
+    # missing_by_package here would double-count uncovered names and flag
+    # covered ones as missing.
     legacy_declared = sorted(
         name for name in LEGACY_ATTRIBUTE_API_NAMES
         if name in declared_names and
         entries_by_name.get(name, {}).get("classification") ==
         CLASS_IMPLEMENTED
     )
-    if legacy_declared:
-        untolerated = sorted(
-            name for name in legacy_declared
-            if name not in tolerated_legacy_names
-        )
-        if untolerated:
-            missing_by_package.setdefault(
-                "chunk10a_legacy_attribute_callbacks", []).extend(
-                    untolerated)
 
     counts = {
         package: len(names)
@@ -975,6 +983,17 @@ def _remove_c_comments(text):
     return re.sub(r"/\*.*?\*/", " ", text, flags=re.DOTALL)
 
 
+def _copy_prototype_map(prototypes):
+    """Return an isolated copy of a parsed prototype map.
+
+    The per-name values are flat str->str dicts, so a per-entry shallow
+    copy fully decouples the returned map from the shared cache.  This
+    mirrors the defensive copy _parse_header_constant_names returns, so a
+    caller cannot poison the memoized result for a later cross direction.
+    """
+    return {name: dict(entry) for name, entry in prototypes.items()}
+
+
 def _parse_c_header_prototypes(header):
     """Parse MPI and PMPI C prototypes from an installed mpi.h.
 
@@ -983,6 +1002,10 @@ def _parse_c_header_prototypes(header):
     minimum prototype count so a future formatting change cannot reduce
     this to an empty or tiny parse that still passes downstream checks.
     """
+    key = str(header)
+    cached = _HEADER_PROTOTYPE_CACHE.get(key)
+    if cached is not None:
+        return _copy_prototype_map(cached)
     text = _remove_c_comments(_read_text(header))
     prototypes = {}
     pattern = re.compile(
@@ -1005,7 +1028,8 @@ def _parse_c_header_prototypes(header):
             "signature": _normalize_c_signature_text(signature),
             "prototype": match.group(0).strip(),
         }
-    return prototypes
+    _HEADER_PROTOTYPE_CACHE[key] = prototypes
+    return _copy_prototype_map(prototypes)
 
 
 def _normalize_c_signature_text(text):
