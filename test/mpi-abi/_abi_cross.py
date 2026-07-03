@@ -624,7 +624,7 @@ def _run_cross_direction_probe_cases(srcdir, manifest, tools, dirs,
         try:
             body = _prepare_installed_c_probe_body(
                 srcdir, case, manifest, declared_names)
-            probe_source = _c_probe_source(srcdir, case, body, rank_count)
+            probe_source = _c_probe_source(srcdir, case, body)
         except RuntimeError as exc:
             if progress is not None:
                 progress.start(check_name)

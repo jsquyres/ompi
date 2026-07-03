@@ -34,20 +34,27 @@ if (size != @EXPECTED_RANKS@ || rank < 0 || rank >= size) {
  * Each persistent collective must be activated and completed before the
  * persistent request is freed.  Keep the start/wait/free checks uniform
  * so each initializer below validates the same request lifecycle.
+ *
+ * The caller passes a per-family base exit code so a start/wait/free
+ * failure is attributable to a specific collective: base_ + 0 means the
+ * MPI_Start failed, base_ + 1 the MPI_Wait, base_ + 2 the
+ * MPI_Request_free.  The bases below are spaced by 4 (and chosen to
+ * avoid the 77 skip code) so the three phase codes never collide across
+ * families.
  */
-#define ABI_START_WAIT_FREE(req_)                                      \
+#define ABI_START_WAIT_FREE(req_, base_)                               \
     do {                                                               \
         ret = MPI_Start(&(req_));                                      \
         if (MPI_SUCCESS != ret) {                                      \
-            return 5;                                                  \
+            return (base_);                                            \
         }                                                              \
         ret = MPI_Wait(&(req_), MPI_STATUS_IGNORE);                    \
         if (MPI_SUCCESS != ret) {                                      \
-            return 6;                                                  \
+            return (base_) + 1;                                        \
         }                                                              \
         ret = MPI_Request_free(&(req_));                               \
         if (MPI_SUCCESS != ret || MPI_REQUEST_NULL != (req_)) {        \
-            return 7;                                                  \
+            return (base_) + 2;                                        \
         }                                                              \
     } while (0)
 
@@ -56,7 +63,7 @@ ret = MPI_Barrier_init(MPI_COMM_WORLD, MPI_INFO_NULL, &request);
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 8;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 50);
 
 int value = 0;
 if (0 == rank) {
@@ -67,7 +74,7 @@ ret = MPI_Bcast_init(&value, 1, MPI_INT, 0, MPI_COMM_WORLD,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 9;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 54);
 if (31 != value) {
     return 10;
 }
@@ -79,7 +86,7 @@ ret = MPI_Allreduce_init(&send, &recv, 1, MPI_INT, MPI_SUM,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 11;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 58);
 if (3 != recv) {
     return 12;
 }
@@ -89,7 +96,7 @@ ret = MPI_Reduce_init(&send, &recv, 1, MPI_INT, MPI_SUM, 0,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 13;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 62);
 if (0 == rank && 3 != recv) {
     return 14;
 }
@@ -102,7 +109,7 @@ ret = MPI_Allgather_init(&send, 1, MPI_INT, recvbuf, 1, MPI_INT,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 15;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 66);
 if (1 != recvbuf[0] || 2 != recvbuf[1]) {
     return 16;
 }
@@ -114,7 +121,7 @@ ret = MPI_Allgatherv_init(&send, 1, MPI_INT, recvbuf, counts,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 17;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 70);
 if (1 != recvbuf[0] || 2 != recvbuf[1]) {
     return 18;
 }
@@ -127,7 +134,7 @@ ret = MPI_Alltoall_init(alltoall_send, 1, MPI_INT, alltoall_recv,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 19;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 74);
 if (alltoall_recv[0] != rank || alltoall_recv[1] != 10 + rank) {
     return 20;
 }
@@ -139,7 +146,7 @@ ret = MPI_Alltoallv_init(alltoall_send, counts, displs, MPI_INT,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 21;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 78);
 if (alltoall_recv[0] != rank || alltoall_recv[1] != 10 + rank) {
     return 22;
 }
@@ -157,7 +164,7 @@ ret = MPI_Alltoallw_init(alltoall_send, counts, byte_displs, types,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 23;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 82);
 if (alltoall_recv[0] != rank || alltoall_recv[1] != 10 + rank) {
     return 24;
 }
@@ -168,7 +175,7 @@ ret = MPI_Gather_init(&send, 1, MPI_INT, root_recv, 1, MPI_INT, 0,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 25;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 86);
 if (0 == rank && (1 != root_recv[0] || 2 != root_recv[1])) {
     return 26;
 }
@@ -180,7 +187,7 @@ ret = MPI_Gatherv_init(&send, 1, MPI_INT, root_recv, counts,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 27;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 90);
 if (0 == rank && (1 != root_recv[0] || 2 != root_recv[1])) {
     return 28;
 }
@@ -193,7 +200,7 @@ ret = MPI_Scatter_init(scatter_send, 1, MPI_INT, &recv, 1,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 29;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 94);
 if (recv != 41 + 2 * rank) {
     return 30;
 }
@@ -204,7 +211,7 @@ ret = MPI_Scatterv_init(scatter_send, counts, displs, MPI_INT,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 31;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 98);
 if (recv != 41 + 2 * rank) {
     return 32;
 }
@@ -218,7 +225,7 @@ ret = MPI_Reduce_scatter_block_init(reduce_send, &recv, 1,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 33;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 102);
 if (recv != (0 == rank ? 3 : 7)) {
     return 34;
 }
@@ -229,7 +236,7 @@ ret = MPI_Reduce_scatter_init(reduce_send, &recv, counts, MPI_INT,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 35;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 106);
 if (recv != (0 == rank ? 3 : 7)) {
     return 36;
 }
@@ -240,7 +247,7 @@ ret = MPI_Scan_init(&send, &recv, 1, MPI_INT, MPI_SUM,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 37;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 110);
 if (recv != (0 == rank ? 1 : 3)) {
     return 38;
 }
@@ -250,10 +257,12 @@ ret = MPI_Exscan_init(&send, &recv, 1, MPI_INT, MPI_SUM,
 if (MPI_SUCCESS != ret || MPI_REQUEST_NULL == request) {
     return 39;
 }
-ABI_START_WAIT_FREE(request);
+ABI_START_WAIT_FREE(request, 114);
 if (1 == rank && 1 != recv) {
     return 40;
 }
+
+#undef ABI_START_WAIT_FREE
 
 ret = MPI_Finalize();
 if (MPI_SUCCESS != ret) {

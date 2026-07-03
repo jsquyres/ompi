@@ -28,7 +28,7 @@ if (MPI_SUCCESS != ret) {
     return 2;
 }
 ret = MPI_Comm_size(MPI_COMM_WORLD, &size);
-if (MPI_SUCCESS != ret || 2 != size) {
+if (MPI_SUCCESS != ret || size != @EXPECTED_RANKS@) {
     return 3;
 }
 

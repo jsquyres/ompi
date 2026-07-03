@@ -248,8 +248,16 @@ Useful variables:
   accept, or name-service operations.
 * `OMPI_ABI_TEST_TIMEOUT`: per-command timeout, in seconds, for compile,
   inspection, and launcher jobs.  The default is 30 seconds.
-* `OMPI_ABI_TEST_NP1`: one-rank test size.
-* `OMPI_ABI_TEST_NP2`: two-rank test size.
+* `OMPI_ABI_TEST_NP1`: launch size for the single-rank probes (default
+  `1`).
+* `OMPI_ABI_TEST_NP2`: launch size for the two-rank probes (default
+  `2`).  The probes hard-code buffer sizes, peer indices, and expected
+  values for their canonical one- or two-rank topology and assert the
+  communicator size against that canonical count, so setting `NP1`/`NP2`
+  to any other value makes the affected probes report a deterministic
+  rank-count mismatch rather than run at the requested size.  These
+  knobs exist to override the launcher invocation, not to scale the
+  probes.
 * `OMPI_ABI_TEST_TMPDIR`: temporary directory root.
 * `OMPI_ABI_TEST_KEEP`: preserve generated files and logs.
 

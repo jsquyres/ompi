@@ -31,6 +31,21 @@ if (MPI_SUCCESS != ret) {
     return 1;
 }
 
+/*
+ * This probe self-sends and self-probes (dest 0 / source 0), so it is
+ * only correct at exactly one rank.  Assert that up front: a mis-launch
+ * with more than one rank then fails deterministically here instead of
+ * deadlocking on unmatched point-to-point calls.
+ */
+int size = -1;
+ret = MPI_Comm_size(MPI_COMM_WORLD, &size);
+if (MPI_SUCCESS != ret) {
+    return 2;
+}
+if (1 != size) {
+    return 3;
+}
+
 MPI_Comm comm = MPI_COMM_NULL;
 ret = MPI_Comm_dup(MPI_COMM_WORLD, &comm);
 if (MPI_SUCCESS != ret) {

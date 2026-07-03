@@ -2013,11 +2013,21 @@ def _installed_wrapper_checks(tools, dirs, progress=None):
     return checks
 
 
-def _c_probe_source(srcdir, case, body, rank_count):
-    """Render one installed C probe source from the shared template."""
+def _c_probe_source(srcdir, case, body):
+    """Render one installed C probe source from the shared template.
+
+    @EXPECTED_RANKS@ is replaced with the case's canonical rank count
+    (the number of ranks the probe body is actually written for), not
+    the launcher's possibly-overridden rank count.  Every fixed-topology
+    probe hard-codes buffer sizes and expected values for exactly that
+    count, so pinning the guard to the canonical value makes a mis-launch
+    (e.g. OMPI_ABI_TEST_NP2 set to something other than 2) fail
+    deterministically at the size check instead of writing past a
+    fixed-size buffer or deadlocking on a self/peer communication.
+    """
     template = _read_text(srcdir / "test" / "mpi-abi" /
                           "templates" / "c_probe.c.in")
-    body = body.replace("@EXPECTED_RANKS@", str(rank_count))
+    body = body.replace("@EXPECTED_RANKS@", str(case["rank_count"]))
     prologue = _probe_prologue_text(srcdir, case).rstrip()
     # Keep checked-in *.cbody.in snippets at natural column-zero C
     # indentation.  The snippets are always inserted inside main(), so
@@ -2033,23 +2043,42 @@ def _c_probe_source(srcdir, case, body, rank_count):
     )
 
 
-def _fortran_probe_source(srcdir, case, rank_count=None):
+def _fortran_use_preamble(case):
+    """Return the use/include line plus a uniform ``implicit none``.
+
+    ``implicit none`` strengthens every generated Fortran probe: a
+    mistyped local in a body then fails to compile instead of silently
+    acquiring an implicit type.  Fortran statement ordering forces it
+    *after* a ``use`` statement but *before* the specification statements
+    that ``include 'mpif.h'`` expands to, so the correct placement
+    differs by binding.  Emitting the preamble here keeps ``implicit
+    none`` out of every probe body while placing it correctly for both
+    the module and mpif.h bindings.
+    """
+    use_statement = case["use_statement"]
+    if use_statement.lstrip().startswith("include"):
+        return "implicit none\n" + use_statement
+    return use_statement + "\nimplicit none"
+
+
+def _fortran_probe_source(srcdir, case):
     """Render one Fortran probe from the shared template.
 
-    Runtime probes pass the resolved rank_count so the probe body can
-    assert the communicator size against the launcher's actual rank count
-    through the @EXPECTED_RANKS@ token, exactly as the C probes do via
-    _c_probe_source.  Compile-only probes do not launch and leave
-    rank_count None; their bodies contain no @EXPECTED_RANKS@ token.
+    Runtime probes assert the communicator size against the case's
+    canonical rank count through the @EXPECTED_RANKS@ token, exactly as
+    the C probes do via _c_probe_source.  Compile-only probes carry no
+    rank_count and no @EXPECTED_RANKS@ token, so the substitution is
+    skipped for them.
     """
     template = _read_text(srcdir / "test" / "mpi-abi" /
                           "templates" / "fortran_probe.f90.in")
     body = case["body"].strip()
-    if rank_count is not None:
-        body = body.replace("@EXPECTED_RANKS@", str(rank_count))
+    expected_ranks = case.get("rank_count")
+    if expected_ranks is not None:
+        body = body.replace("@EXPECTED_RANKS@", str(expected_ranks))
     return (
         template
-        .replace("@USE_STATEMENT@", case["use_statement"])
+        .replace("@USE_STATEMENT@", _fortran_use_preamble(case))
         .replace("@BODY@", body)
     )
 
@@ -2232,7 +2261,7 @@ def _run_installed_fortran_runtime_probes(srcdir, manifest, tools, dirs,
             case["rank_count"])]
         source = dirs["src"] / (name + ".f90")
         executable = dirs["bin"] / name
-        _write_text(source, _fortran_probe_source(srcdir, case, rank_count))
+        _write_text(source, _fortran_probe_source(srcdir, case))
         compile_command = (
             [mpifort] + compile_overrides +
             [str(source), "-o", str(executable)]
@@ -2435,7 +2464,7 @@ def _run_installed_c_probe_cases(srcdir, manifest, tools, dirs, header_names,
                 error=str(exc)), progress)
             continue
         try:
-            probe_source = _c_probe_source(srcdir, case, body, rank_count)
+            probe_source = _c_probe_source(srcdir, case, body)
         except RuntimeError as exc:
             if progress is not None:
                 progress.start(check_name)

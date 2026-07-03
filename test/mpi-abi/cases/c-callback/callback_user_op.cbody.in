@@ -27,7 +27,13 @@ if (MPI_SUCCESS != ret) {
 }
 int size = 0;
 ret = MPI_Comm_size(MPI_COMM_WORLD, &size);
-if (MPI_SUCCESS != ret || size < 1) {
+/*
+ * Require exactly the two ranks this case is launched with: the
+ * MPI_Allreduce path below is meant to prove the user-defined op is
+ * usable by a real multi-rank collective, which a single-rank run would
+ * satisfy trivially.
+ */
+if (MPI_SUCCESS != ret || size != @EXPECTED_RANKS@) {
     return 3;
 }
 

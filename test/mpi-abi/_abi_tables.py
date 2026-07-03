@@ -15,7 +15,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _abi_common import (
-    SKIP_DATAREP_UNSUPPORTED, SKIP_MPIT_EVENTS_UNAVAILABLE)
+    SKIP_DATAREP_UNSUPPORTED, SKIP_MPIT_EVENTS_REGISTRATION_ONLY,
+    SKIP_MPIT_EVENTS_UNAVAILABLE)
 
 
 # Installed C probes are small source fragments inserted into
@@ -1352,6 +1353,7 @@ INSTALLED_C_CALLBACK_PROBES = (
         "requires_feature": "mpit_events",
         "skip_exit_codes": {
             77: SKIP_MPIT_EVENTS_UNAVAILABLE,
+            78: SKIP_MPIT_EVENTS_REGISTRATION_ONLY,
         },
         "prologue_file": "cases/c-callback/callback_mpit_events.prologue.in",
         "body_file": "cases/c-callback/callback_mpit_events.cbody.in",
@@ -1426,7 +1428,6 @@ call MPI_Comm_size(MPI_COMM_WORLD, size, ierr)
             "MPI_Comm_size",
         ),
         "body": """
-implicit none
 integer :: ierr
 integer :: rank
 integer :: size
@@ -1445,7 +1446,6 @@ call MPI_Comm_size(MPI_COMM_WORLD, size, ierr)
             "MPI_Get_count",
         ),
         "body": """
-implicit none
 integer :: ierr
 integer :: rank
 integer :: size
@@ -1527,7 +1527,6 @@ if (ierr .ne. MPI_SUCCESS) stop 10
             "MPI_Sendrecv",
         ),
         "body": """
-implicit none
 integer :: ierr
 integer :: rank
 integer :: size
@@ -1581,7 +1580,6 @@ if (ierr .ne. MPI_SUCCESS) stop 10
             "MPI_Type_size",
         ),
         "body": """
-implicit none
 integer :: ierr
 integer :: rank
 integer :: size
@@ -1770,7 +1768,6 @@ if (ierr .ne. MPI_SUCCESS) stop 10
             "MPI_Finalize",
         ),
         "body": """
-implicit none
 integer :: ierr
 integer :: major
 integer :: minor
@@ -1896,7 +1893,6 @@ if (ierr .ne. MPI_SUCCESS) stop 10
             "MPI_Finalize",
         ),
         "body": """
-implicit none
 integer :: ierr
 integer :: major
 integer :: minor

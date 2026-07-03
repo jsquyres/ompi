@@ -22,8 +22,12 @@
 
 #define CHECK_TYPE(type, name, expected)                                    \
     do {                                                                    \
-        MPI_Type_size(type, &size);                                         \
-        if (size != (expected)) {                                           \
+        int rc = MPI_Type_size(type, &size);                                \
+        if (MPI_SUCCESS != rc) {                                            \
+            fprintf(stderr, "FAIL: MPI_Type_size(%s) returned %d\n",        \
+                    name, rc);                                              \
+            errors++;                                                       \
+        } else if (size != (expected)) {                                    \
             fprintf(stderr, "FAIL: MPI_Type_size(%s) = %d, expected %d\n", \
                     name, size, (expected));                                \
             errors++;                                                       \
@@ -32,7 +36,7 @@
 
 int main(int argc, char *argv[])
 {
-    int size;
+    int size = 0;
     int errors = 0;
 
     MPI_Init(&argc, &argv);

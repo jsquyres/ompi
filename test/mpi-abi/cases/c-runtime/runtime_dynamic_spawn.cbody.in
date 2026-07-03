@@ -46,6 +46,22 @@ if (argc > 1 &&
     return 0;
 }
 
+/*
+ * The parent path spawns children with MPI_COMM_WORLD as the spawning
+ * communicator, and each child asserts a parent remote size of 1.  That
+ * holds only when the parent job runs with a single rank, so assert it
+ * here: a mis-launch then fails deterministically with a distinct code
+ * instead of surfacing as an opaque child failure.
+ */
+int world_size = -1;
+ret = MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+if (MPI_SUCCESS != ret) {
+    return 13;
+}
+if (1 != world_size) {
+    return 14;
+}
+
 char *spawn_argv[] = {"spawn_child", NULL};
 int spawn_errcodes[1] = {-1};
 MPI_Comm spawn_intercomm = MPI_COMM_NULL;

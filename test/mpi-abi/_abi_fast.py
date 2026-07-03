@@ -1314,8 +1314,7 @@ def _fortran_probe_table_unit_check(srcdir):
                 duplicates=duplicates))
             return checks
 
-        rendered = _fortran_probe_source(
-            srcdir, case, case.get("rank_count"))
+        rendered = _fortran_probe_source(srcdir, case)
         dangling_tokens = sorted(set(re.findall(r"@[A-Z_]+@", rendered)))
         if dangling_tokens:
             checks.append(_fail(

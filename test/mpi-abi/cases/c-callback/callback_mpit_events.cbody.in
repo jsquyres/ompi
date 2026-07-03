@@ -156,12 +156,16 @@ if (MPI_SUCCESS != ret || 0 != mpit_event_state.failure_code ||
 
 /*
  * Open MPI currently has no event sources that can fire this callback
- * in local CI.  Treat a registration-only run as unsupported callback
- * invocation, not as completed MPI_T callback coverage.
+ * in local CI.  Registration, dropped-handler, and free conversion were
+ * exercised above, but the callback-invocation conversion path was not.
+ * Return the distinct registration-only skip code (78) rather than the
+ * generic "unavailable" 77 so the suite records that this probe covered
+ * only registration/free and never the event-callback argument
+ * conversion, instead of counting it as full MPI_T event coverage.
  */
 if (0 == mpit_event_state.event_calls) {
     (void) MPI_T_finalize();
-    return 77;
+    return 78;
 }
 
 #undef ABI_MPIT_CLEANUP_RETURN
