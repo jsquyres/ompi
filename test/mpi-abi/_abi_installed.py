@@ -39,8 +39,8 @@ from _abi_discovery import (
     _flag_dirs_from_words, _tool_available, _words_define_macro,
     _words_link_library)
 from _abi_probes import (
-    _callback_api_coverage_audit, _fortran_bindings_enabled,
-    _metadata_integer_value, _normalize_c_signature_text,
+    _callback_api_coverage_audit, _compare_header_constants_to_metadata,
+    _fortran_bindings_enabled, _normalize_c_signature_text,
     _optional_feature_info, _optional_feature_skip_reason,
     _parse_c_header_prototypes, _parse_header_constant_names,
     _parse_header_constants, _prepare_installed_c_probe_body,
@@ -341,8 +341,20 @@ def _cross_test_dirs(outdir):
 
 
 def _split_launcher_args(args):
-    """Split a launcher-argument string into a list (empty when unset)."""
-    return shlex.split(args) if args else []
+    """Split a launcher-argument string into a list (empty when unset).
+
+    Launcher arguments come from operator configuration, so a malformed
+    value (for example, an unbalanced quote) is surfaced as a clear setup
+    error instead of an opaque shlex ValueError traceback that aborts the
+    whole suite.
+    """
+    if not args:
+        return []
+    try:
+        return shlex.split(args)
+    except ValueError as exc:
+        raise RuntimeError(
+            "invalid launcher arguments {0!r}: {1}".format(args, exc))
 
 
 def _launcher_args(tools):
@@ -430,12 +442,51 @@ def _installed_helper_unit_checks():
                 "expected": expected,
                 "got": got,
             })
+    # A malformed launcher-argument string (an unbalanced quote) must be
+    # surfaced as a clear RuntimeError rather than an uncaught shlex
+    # ValueError that would abort the whole suite.
+    try:
+        _split_launcher_args('"unterminated')
+        failures.append({
+            "helper": "_split_launcher_args",
+            "input": '"unterminated',
+            "expected": "RuntimeError",
+            "got": "no exception raised",
+        })
+    except RuntimeError:
+        pass
+    # A Linux shared object must be inspected with "nm -D" (.dynsym), but a
+    # static archive (.a) and non-Linux platforms must use "nm -g".
+    nm_command_cases = (
+        ("libmpi_abi.so", "Linux", ["nm", "-D", "libmpi_abi.so"]),
+        ("libmpi_abi.so.40.30", "Linux", ["nm", "-D", "libmpi_abi.so.40.30"]),
+        ("libmpi_abi.a", "Linux", ["nm", "-g", "libmpi_abi.a"]),
+        ("libmpi_abi.dylib", "Darwin", ["nm", "-g", "libmpi_abi.dylib"]),
+        ("libmpi_abi.a", "Darwin", ["nm", "-g", "libmpi_abi.a"]),
+    )
+    for library, system, expected in nm_command_cases:
+        got = _nm_symbol_table_command("nm", library, system)
+        if got != expected:
+            failures.append({
+                "helper": "_nm_symbol_table_command",
+                "input": [library, system],
+                "expected": expected,
+                "got": got,
+            })
     if failures:
         return _fail("fast_installed_helper_unit_checks",
                      "installed helper unit checks failed",
                      failures=failures)
     return _pass("fast_installed_helper_unit_checks",
-                 checked=len(flag_cases) + len(split_cases))
+                 checked=(len(flag_cases) + len(split_cases) + 1 +
+                          len(nm_command_cases)))
+
+
+def _header_defines_mpi_h_abi(candidate):
+    """Return True when a header defines Open MPI's MPI_H_ABI marker."""
+    text = _read_text(candidate)
+    return bool(
+        re.search(r"^\s*#define\s+MPI_H_ABI\b", text, re.MULTILINE))
 
 
 def _cross_compile_header(tools, implementation):
@@ -457,14 +508,24 @@ def _cross_compile_header(tools, implementation):
             include_path / "standard_abi" / "mpi.h",
             include_path / "mpi.h",
         )
-    else:
-        candidates = (
-            include_path / "mpi.h",
-            include_path / "standard_abi" / "mpi.h",
-            include_path / "mpi_abi.h",
-        )
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        return None
+
+    # For Open MPI the plain include root also contains the normal,
+    # internal-ABI mpi.h, which would silently invalidate cross ABI
+    # generation if selected.  Require the MPI_H_ABI marker (as
+    # _installed_standard_abi_header does) and prefer the standard_abi
+    # subdirectory so an install-include-root override cannot pick the
+    # non-ABI header.
+    candidates = (
+        include_path / "standard_abi" / "mpi.h",
+        include_path / "mpi.h",
+        include_path / "mpi_abi.h",
+    )
     for candidate in candidates:
-        if candidate.exists():
+        if candidate.exists() and _header_defines_mpi_h_abi(candidate):
             return candidate
     return None
 
@@ -474,35 +535,13 @@ def _cross_header_constant_semantics_check(manifest, header, implementation):
     check_name = "cross_header_" + implementation + "_constant_semantics"
     header_constants, unparsed_header_constants = _parse_header_constants(
         header)
-    missing = []
-    mismatches = []
-    unparsed = []
-    checked = 0
-    skipped = []
-    for entry in manifest["constants"]:
-        expected = _metadata_integer_value(entry["abi_value"])
-        if expected is None:
-            skipped.append(entry["name"])
-            continue
-        if entry["c_type"] is None:
-            skipped.append(entry["name"])
-            continue
-        if entry["category"] == "DEPRECATED_FUNCS":
-            skipped.append(entry["name"])
-            continue
-        checked += 1
-        name = entry["name"]
-        if name not in header_constants:
-            if name in unparsed_header_constants:
-                unparsed.append(name)
-            else:
-                missing.append(name)
-        elif header_constants[name] != expected:
-            mismatches.append({
-                "name": name,
-                "expected": expected,
-                "actual": header_constants[name],
-            })
+    comparison = _compare_header_constants_to_metadata(
+        manifest, header_constants, unparsed_header_constants)
+    missing = comparison["missing"]
+    mismatches = comparison["mismatches"]
+    unparsed = comparison["unparsed"]
+    skipped = comparison["skipped"]
+    checked = comparison["checked"]
 
     if checked == 0:
         return _fail(
@@ -781,7 +820,16 @@ def _cross_wrapper_intent_check(tools, dirs, implementation, details):
                 command=result["command"],
                 returncode=result["returncode"],
                 log=result["log"])
-        words.extend(shlex.split(result["stdout"]))
+        try:
+            words.extend(shlex.split(result["stdout"]))
+        except ValueError as exc:
+            return _fail(
+                check_name,
+                "cross ABI wrapper produced unparsable output",
+                implementation=implementation,
+                command=result["command"],
+                error=str(exc),
+                log=result["log"])
 
     words.extend(_cross_compile_overrides(tools, implementation))
     include_dirs = _flag_dirs_from_words(words, "-I")
@@ -856,9 +904,23 @@ def _linkage_command(executable):
     """Return the platform-specific command for linkage inspection.
 
     Linkage inspection is a diagnostic check, not a portability
-    requirement.  Platforms without readelf/otool return None and are
+    requirement.  Platforms without ldd/otool return None and are
     reported as SKIP by the caller instead of making the ABI suite fail
     just because the inspection tool is unavailable.
+
+    Linux uses ldd (rather than readelf) so the installed-tier verifier
+    depends on the same tool the cross verifiers and the
+    cross_linkage_diagnostics_available gate use; otherwise a host with
+    ldd but not readelf would advertise diagnostics as available while
+    this verifier silently degraded to SKIP.
+
+    Note that ldd reports the full transitive dependency closure, whereas
+    readelf -d would report only the executable's direct DT_NEEDED
+    entries.  For these self-contained ABI probes (one source compiled
+    directly with mpicc_abi) libmpi_abi is always a direct dependency, so
+    the transitive view does not weaken the check in practice; the
+    consequence is only that a hypothetical binary linking libmpi_abi
+    purely transitively would also pass, which this diagnostic tolerates.
     """
     system = platform.system()
     if system == "Darwin":
@@ -866,9 +928,9 @@ def _linkage_command(executable):
         if tool:
             return [tool, "-L", str(executable)]
     if system == "Linux":
-        tool = shutil.which("readelf")
+        tool = shutil.which("ldd")
         if tool:
-            return [tool, "-d", str(executable)]
+            return [tool, str(executable)]
     return None
 
 
@@ -1220,7 +1282,13 @@ def _showme_words(mpicc_abi, option, dirs, env, name):
         dirs["logs"] / (name + ".json"))
     if result["returncode"] != 0:
         return result, []
-    return result, shlex.split(result["stdout"])
+    try:
+        return result, shlex.split(result["stdout"])
+    except ValueError:
+        # Malformed wrapper output (for example, an unbalanced quote) must
+        # not abort the suite; treat it as if the wrapper reported nothing
+        # so the dependent header/flag check produces a clean SKIP or FAIL.
+        return result, []
 
 
 def _installed_standard_abi_header(tools, dirs, env):
@@ -1244,8 +1312,7 @@ def _installed_standard_abi_header(tools, dirs, env):
     for candidate in candidates:
         if not candidate.exists():
             continue
-        text = _read_text(candidate)
-        if re.search(r"^\s*#define\s+MPI_H_ABI\b", text, re.MULTILINE):
+        if _header_defines_mpi_h_abi(candidate):
             return candidate
     return None
 
@@ -1387,6 +1454,9 @@ def _normalize_c_typedef_reference(type_name):
     return type_name.rstrip("*").strip()
 
 
+_EXPECTED_SIGNATURES_CACHE = {}
+
+
 def _standard_abi_expected_signatures(srcdir):
     """Build expected C/PMPI signatures from pympistandard metadata.
 
@@ -1394,9 +1464,23 @@ def _standard_abi_expected_signatures(srcdir):
     installed header is parsed and then used as its own authority.
     Deprecated C APIs and Fortran-only entry points are excluded by the
     same generator-side rules used to build the standard ABI header.
+
+    The derived table is deterministic for a given srcdir, so it is
+    memoized: this helper is called from both the installed header and
+    the cross-header checks, and re-deriving it would re-parse the C
+    header, re-run use_api_version(), and iterate the pympistandard
+    procedures again.  The pympistandard src path is only inserted into
+    sys.path once so repeated calls do not accumulate duplicate entries.
     """
-    sys.path.insert(
-        0, str((srcdir / "3rd-party" / "pympistandard" / "src").resolve()))
+    cache_key = str(Path(srcdir).resolve())
+    cached = _EXPECTED_SIGNATURES_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    pympistandard_src = str(
+        (srcdir / "3rd-party" / "pympistandard" / "src").resolve())
+    if pympistandard_src not in sys.path:
+        sys.path.insert(0, pympistandard_src)
     import pympistandard as std
 
     std.use_api_version()
@@ -1435,7 +1519,9 @@ def _standard_abi_expected_signatures(srcdir):
             add_signature("{0} P{1};".format(binding[0],
                                              " ".join(binding[1:])))
 
-    return expected, excluded
+    result = (expected, excluded)
+    _EXPECTED_SIGNATURES_CACHE[cache_key] = result
+    return result
 
 
 def _probe_variable_name(name):
@@ -1682,6 +1768,24 @@ def _defined_nm_symbols(output):
     return symbols
 
 
+def _nm_symbol_table_command(nm, library, system):
+    """Choose the nm invocation that reads the exported symbol table.
+
+    On ELF platforms an installed or packaged shared libmpi_abi may be
+    stripped of its regular symbol table (.symtab) while still exporting
+    the required ABI entry points in the dynamic symbol table (.dynsym).
+    "nm -g" only reads .symtab, so inspect .dynsym via "nm -D" for a Linux
+    shared object to avoid a false failure on a stripped-but-valid
+    library.  A static archive (a static-only install) has no .dynsym, so
+    it must be read with "nm -g"; macOS and other platforms keep exported
+    symbols visible to "nm -g" as well.
+    """
+    library = str(library)
+    if system == "Linux" and not library.endswith(".a"):
+        return [nm, "-D", library]
+    return [nm, "-g", library]
+
+
 def _symbol_table_check(prototypes, excluded_names, tools, dirs, env):
     """Optionally verify libmpi_abi exports all expected ABI symbols."""
     nm = shutil.which("nm")
@@ -1693,9 +1797,10 @@ def _symbol_table_check(prototypes, excluded_names, tools, dirs, env):
             nm=nm,
             library=str(library) if library else None)
 
+    nm_command = _nm_symbol_table_command(nm, library, platform.system())
     result = _command_result(
         "nm_libmpi_abi",
-        [nm, "-g", str(library)],
+        nm_command,
         dirs["base"],
         env,
         dirs["logs"] / "nm_libmpi_abi.json")
@@ -1954,11 +2059,20 @@ def _c_probe_source(srcdir, case, body, rank_count):
     )
 
 
-def _fortran_probe_source(srcdir, case):
-    """Render one compile-only Fortran probe from the shared template."""
+def _fortran_probe_source(srcdir, case, rank_count=None):
+    """Render one Fortran probe from the shared template.
+
+    Runtime probes pass the resolved rank_count so the probe body can
+    assert the communicator size against the launcher's actual rank count
+    through the @EXPECTED_RANKS@ token, exactly as the C probes do via
+    _c_probe_source.  Compile-only probes do not launch and leave
+    rank_count None; their bodies contain no @EXPECTED_RANKS@ token.
+    """
     template = _read_text(srcdir / "test" / "mpi-abi" /
                           "templates" / "fortran_probe.f90.in")
     body = case["body"].strip()
+    if rank_count is not None:
+        body = body.replace("@EXPECTED_RANKS@", str(rank_count))
     return (
         template
         .replace("@USE_STATEMENT@", case["use_statement"])
@@ -2031,8 +2145,8 @@ def _fortran_coverage_audit(manifest, tools, compile_checks, runtime_checks):
             "compile_probe_api_names": sorted(compile_covered[language]),
             "runtime_probe_api_names": sorted(runtime_covered[language]),
             "covered_implemented_count": len(covered_implemented),
-            "pending_phase11b_count": len(pending),
-            "pending_phase11b": pending[:20],
+            "pending_coverage_count": len(pending),
+            "pending_coverage": pending[:20],
             "coverage_kind": (
                 "standard_abi" if language == "use mpi_f08"
                 else "regression"
@@ -2144,7 +2258,7 @@ def _run_installed_fortran_runtime_probes(srcdir, manifest, tools, dirs,
             case["rank_count"])]
         source = dirs["src"] / (name + ".f90")
         executable = dirs["bin"] / name
-        _write_text(source, _fortran_probe_source(srcdir, case))
+        _write_text(source, _fortran_probe_source(srcdir, case, rank_count))
         compile_command = (
             [mpifort] + compile_overrides +
             [str(source), "-o", str(executable)]
@@ -2385,20 +2499,7 @@ def _run_installed_c_probe_cases(srcdir, manifest, tools, dirs, header_names,
 
         linkage_result = _verify_executable_libmpi_abi(
             executable, dirs, env, name)
-        if linkage_result["result"] == "SKIP":
-            _append_check(checks, _skip(
-                check_name,
-                linkage_result["skip_reason"],
-                phase="linkage",
-                source=str(source),
-                executable=str(executable),
-                command=linkage_result["command"],
-                returncode=linkage_result["returncode"],
-                compile_log=compile_result["log"],
-                linkage_log=linkage_result["log"]), progress)
-            continue
-
-        if linkage_result["result"] != "PASS":
+        if linkage_result["result"] not in ("PASS", "SKIP"):
             _append_check(checks, _fail(
                 check_name,
                 linkage_result["message"],
@@ -2410,6 +2511,20 @@ def _run_installed_c_probe_cases(srcdir, manifest, tools, dirs, header_names,
                 compile_log=compile_result["log"],
                 linkage_log=linkage_result["log"]), progress)
             continue
+
+        # A SKIP here means only that the linkage-inspection tool is
+        # unavailable.  Linkage inspection is diagnostic, not a
+        # portability requirement, so still run the probe (preserving
+        # runtime ABI coverage on platforms without ldd/otool) and record
+        # that the diagnostic did not run in the probe's final result.
+        linkage_details = {
+            "linkage_result": linkage_result["result"],
+            "linkage_command": linkage_result["command"],
+            "linkage_log": linkage_result["log"],
+        }
+        if linkage_result["result"] == "SKIP":
+            linkage_details["linkage_skip_reason"] = \
+                linkage_result["skip_reason"]
 
         run_command = (
             [mpirun] + launcher_args +
@@ -2476,9 +2591,8 @@ def _run_installed_c_probe_cases(srcdir, manifest, tools, dirs, header_names,
             compile_command=compile_result["command"],
             run_command=run_result["command"],
             compile_log=compile_result["log"],
-            linkage_command=linkage_result["command"],
-            linkage_log=linkage_result["log"],
-            run_log=run_result["log"]), progress)
+            run_log=run_result["log"],
+            **linkage_details), progress)
 
     return checks
 

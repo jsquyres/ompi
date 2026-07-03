@@ -1491,19 +1491,21 @@ if (ierr .ne. MPI_SUCCESS) stop 1
 call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
 if (ierr .ne. MPI_SUCCESS) stop 2
 call MPI_Comm_size(MPI_COMM_WORLD, size, ierr)
-if (ierr .ne. MPI_SUCCESS .or. size .ne. 2) stop 3
-peer = 1 - rank
-sendbuf = rank + 10
-recvbuf = -1
-call MPI_Sendrecv(sendbuf, 1, MPI_INTEGER, peer, 1101, &
-                  recvbuf, 1, MPI_INTEGER, peer, 1101, &
-                  MPI_COMM_WORLD, status, ierr)
-if (ierr .ne. MPI_SUCCESS) stop 4
-call MPI_Get_count(status, MPI_INTEGER, count, ierr)
-if (ierr .ne. MPI_SUCCESS .or. count .ne. 1) stop 5
-if (status(MPI_SOURCE) .ne. peer) stop 6
-if (status(MPI_TAG) .ne. 1101) stop 7
-if (recvbuf .ne. peer + 10) stop 8
+if (ierr .ne. MPI_SUCCESS .or. size .ne. @EXPECTED_RANKS@) stop 3
+if (rank .lt. 2) then
+    peer = 1 - rank
+    sendbuf = rank + 10
+    recvbuf = -1
+    call MPI_Sendrecv(sendbuf, 1, MPI_INTEGER, peer, 1101, &
+                      recvbuf, 1, MPI_INTEGER, peer, 1101, &
+                      MPI_COMM_WORLD, status, ierr)
+    if (ierr .ne. MPI_SUCCESS) stop 4
+    call MPI_Get_count(status, MPI_INTEGER, count, ierr)
+    if (ierr .ne. MPI_SUCCESS .or. count .ne. 1) stop 5
+    if (status(MPI_SOURCE) .ne. peer) stop 6
+    if (status(MPI_TAG) .ne. 1101) stop 7
+    if (recvbuf .ne. peer + 10) stop 8
+end if
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 if (ierr .ne. MPI_SUCCESS) stop 9
 call MPI_Finalize(ierr)
@@ -1540,19 +1542,21 @@ if (ierr .ne. MPI_SUCCESS) stop 1
 call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
 if (ierr .ne. MPI_SUCCESS) stop 2
 call MPI_Comm_size(MPI_COMM_WORLD, size, ierr)
-if (ierr .ne. MPI_SUCCESS .or. size .ne. 2) stop 3
-peer = 1 - rank
-sendbuf = rank + 20
-recvbuf = -1
-call MPI_Sendrecv(sendbuf, 1, MPI_INTEGER, peer, 1102, &
-                  recvbuf, 1, MPI_INTEGER, peer, 1102, &
-                  MPI_COMM_WORLD, status, ierr)
-if (ierr .ne. MPI_SUCCESS) stop 4
-call MPI_Get_count(status, MPI_INTEGER, count, ierr)
-if (ierr .ne. MPI_SUCCESS .or. count .ne. 1) stop 5
-if (status(MPI_SOURCE) .ne. peer) stop 6
-if (status(MPI_TAG) .ne. 1102) stop 7
-if (recvbuf .ne. peer + 20) stop 8
+if (ierr .ne. MPI_SUCCESS .or. size .ne. @EXPECTED_RANKS@) stop 3
+if (rank .lt. 2) then
+    peer = 1 - rank
+    sendbuf = rank + 20
+    recvbuf = -1
+    call MPI_Sendrecv(sendbuf, 1, MPI_INTEGER, peer, 1102, &
+                      recvbuf, 1, MPI_INTEGER, peer, 1102, &
+                      MPI_COMM_WORLD, status, ierr)
+    if (ierr .ne. MPI_SUCCESS) stop 4
+    call MPI_Get_count(status, MPI_INTEGER, count, ierr)
+    if (ierr .ne. MPI_SUCCESS .or. count .ne. 1) stop 5
+    if (status(MPI_SOURCE) .ne. peer) stop 6
+    if (status(MPI_TAG) .ne. 1102) stop 7
+    if (recvbuf .ne. peer + 20) stop 8
+end if
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 if (ierr .ne. MPI_SUCCESS) stop 9
 call MPI_Finalize(ierr)
@@ -1597,22 +1601,24 @@ if (ierr /= MPI_SUCCESS) stop 2
 call MPI_Comm_rank(comm, rank, ierr)
 if (ierr /= MPI_SUCCESS) stop 3
 call MPI_Comm_size(comm, size, ierr)
-if (ierr /= MPI_SUCCESS .or. size /= 2) stop 4
+if (ierr /= MPI_SUCCESS .or. size /= @EXPECTED_RANKS@) stop 4
 call MPI_Type_size(MPI_INTEGER, type_size, ierr)
 expected_type_size = storage_size(sendbuf) / 8
 if (ierr /= MPI_SUCCESS .or. type_size /= expected_type_size) stop 5
-peer = 1 - rank
-sendbuf = rank + 30
-recvbuf = -1
-call MPI_Sendrecv(sendbuf, 1, MPI_INTEGER, peer, 1103, &
-                  recvbuf, 1, MPI_INTEGER, peer, 1103, &
-                  comm, status, ierr)
-if (ierr /= MPI_SUCCESS) stop 6
-call MPI_Get_count(status, MPI_INTEGER, count, ierr)
-if (ierr /= MPI_SUCCESS .or. count /= 1) stop 7
-if (status%MPI_SOURCE /= peer) stop 8
-if (status%MPI_TAG /= 1103) stop 9
-if (recvbuf /= peer + 30) stop 10
+if (rank < 2) then
+    peer = 1 - rank
+    sendbuf = rank + 30
+    recvbuf = -1
+    call MPI_Sendrecv(sendbuf, 1, MPI_INTEGER, peer, 1103, &
+                      recvbuf, 1, MPI_INTEGER, peer, 1103, &
+                      comm, status, ierr)
+    if (ierr /= MPI_SUCCESS) stop 6
+    call MPI_Get_count(status, MPI_INTEGER, count, ierr)
+    if (ierr /= MPI_SUCCESS .or. count /= 1) stop 7
+    if (status%MPI_SOURCE /= peer) stop 8
+    if (status%MPI_TAG /= 1103) stop 9
+    if (recvbuf /= peer + 30) stop 10
+end if
 call MPI_Barrier(comm, ierr)
 if (ierr /= MPI_SUCCESS) stop 11
 call MPI_Comm_free(comm, ierr)
@@ -1725,9 +1731,13 @@ requested_true = .false.
 requested_false = .true.
 call MPI_Abi_set_fortran_booleans(logical_size, requested_true, &
                                   requested_false, ierr)
-! See the MPI_Abi_set_fortran_info comment above; after MPI_Init,
-! accepting MPI_ERR_ABI avoids turning expected read-only runtime state
-! into a false failure.
+! Unlike MPI_Abi_set_fortran_info (which Open MPI owns and always
+! rejects with MPI_ERR_ABI when built with Fortran), the MPI-5 ABI lets
+! the application register its Fortran logical representation once with
+! MPI_Abi_set_fortran_booleans: the first call succeeds and only later
+! calls return MPI_ERR_ABI.  This probe issues a single set call, so
+! accept either MPI_SUCCESS (first-time registration) or MPI_ERR_ABI
+! (already registered in this environment).
 if (ierr .ne. MPI_SUCCESS .and. ierr .ne. MPI_ERR_ABI) stop 9
 logical_true = .false.
 logical_false = .true.
@@ -1847,9 +1857,13 @@ requested_true = .false.
 requested_false = .true.
 call MPI_Abi_set_fortran_booleans(logical_size, requested_true, &
                                   requested_false, ierr)
-! See the MPI_Abi_set_fortran_info comment above; after MPI_Init,
-! accepting MPI_ERR_ABI avoids turning expected read-only runtime state
-! into a false failure.
+! Unlike MPI_Abi_set_fortran_info (which Open MPI owns and always
+! rejects with MPI_ERR_ABI when built with Fortran), the MPI-5 ABI lets
+! the application register its Fortran logical representation once with
+! MPI_Abi_set_fortran_booleans: the first call succeeds and only later
+! calls return MPI_ERR_ABI.  This probe issues a single set call, so
+! accept either MPI_SUCCESS (first-time registration) or MPI_ERR_ABI
+! (already registered in this environment).
 if (ierr .ne. MPI_SUCCESS .and. ierr .ne. MPI_ERR_ABI) stop 9
 logical_true = .false.
 logical_false = .true.
@@ -1969,9 +1983,13 @@ requested_true = .false.
 requested_false = .true.
 call MPI_Abi_set_fortran_booleans(logical_size, requested_true, &
                                   requested_false, ierr)
-! See the MPI_Abi_set_fortran_info comment above; after MPI_Init,
-! accepting MPI_ERR_ABI avoids turning expected read-only runtime state
-! into a false failure.
+! Unlike MPI_Abi_set_fortran_info (which Open MPI owns and always
+! rejects with MPI_ERR_ABI when built with Fortran), the MPI-5 ABI lets
+! the application register its Fortran logical representation once with
+! MPI_Abi_set_fortran_booleans: the first call succeeds and only later
+! calls return MPI_ERR_ABI.  This probe issues a single set call, so
+! accept either MPI_SUCCESS (first-time registration) or MPI_ERR_ABI
+! (already registered in this environment).
 if (ierr /= MPI_SUCCESS .and. ierr /= MPI_ERR_ABI) stop 9
 logical_true = .false.
 logical_false = .true.
@@ -2015,7 +2033,7 @@ LEGACY_ATTRIBUTE_API_NAMES = frozenset((
     "MPI_Keyval_free",
 ))
 
-PHASE10B_CALLBACK_API_NAMES = frozenset((
+DEFERRED_CALLBACK_API_NAMES = frozenset((
     "MPI_Comm_create_errhandler",
     "MPI_File_create_errhandler",
     "MPI_Grequest_complete",

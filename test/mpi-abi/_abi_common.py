@@ -34,6 +34,10 @@ SKIP_MPICH_TOOLS_UNAVAILABLE = "mpich_tools_unavailable"
 SKIP_HEADER_UNAVAILABLE = "generated_standard_abi_header_unavailable"
 SKIP_LINKAGE_INSPECTION_UNAVAILABLE = "linkage_inspection_unavailable"
 SKIP_SYMBOL_DIAGNOSTICS_UNAVAILABLE = "symbol_diagnostics_unavailable"
+# Plural: ALL Fortran bindings are disabled (e.g. a C probe that itself
+# requires Fortran, or the whole-Fortran-off case).  Singular: exactly
+# ONE binding layer (mpif.h / use mpi / use mpi_f08) is disabled.  The
+# two are distinct skip reasons; do not interchange them.
 SKIP_FORTRAN_BINDINGS_DISABLED = "fortran_bindings_disabled"
 SKIP_FORTRAN_BINDING_DISABLED = "fortran_binding_disabled"
 SKIP_FORTRAN_HELPERS_SHARED = "fortran_abi_helpers_shared_with_mpifh"
@@ -60,6 +64,11 @@ EXPECTED_API_COUNT = 567
 EXPECTED_CONSTANT_COUNT = 373
 DEFAULT_COMMAND_TIMEOUT = 30
 MIN_EXPECTED_C_HEADER_PROTOTYPES = 1000
+
+# Offset added to Open MPI internal handle indices to form standard ABI
+# integer handle values.  Must match OMPI_ABI_HANDLE_BASE_OFFSET in
+# ompi/mpi/c/abi_converters.h.
+OMPI_ABI_HANDLE_BASE_OFFSET = 16385
 
 MPI_REMOVED_LEGACY_C_NAMES = {
     "MPI_Attr_delete",

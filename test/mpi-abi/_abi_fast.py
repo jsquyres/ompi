@@ -19,8 +19,9 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _abi_common import (
     ABI_CONVERTER_HANDLES, CLASS_IMPLEMENTED, FORTRAN_ABI_HELPERS,
-    MPI_REMOVED_LEGACY_C_NAMES, SKIP_CROSS_PROBES_NOT_PASSED,
-    SKIP_FORTRAN_BINDINGS_DISABLED, SKIP_FORTRAN_HELPERS_SHARED,
+    MPI_REMOVED_LEGACY_C_NAMES, OMPI_ABI_HANDLE_BASE_OFFSET,
+    SKIP_CROSS_PROBES_NOT_PASSED,
+    SKIP_FORTRAN_BINDING_DISABLED, SKIP_FORTRAN_HELPERS_SHARED,
     SKIP_FORTRAN_WRAPPER_UNAVAILABLE, SKIP_HEADER_UNAVAILABLE,
     SKIP_LINKAGE_INSPECTION_UNAVAILABLE, TEST_NOT_WRITTEN,
     VALID_CLASSIFICATIONS, VALID_TEST_STATUSES, _append_check,
@@ -34,12 +35,12 @@ from _abi_discovery import (
     _open_mpi_report_candidates, _same_tool_directory, _words_define_macro,
     _words_link_library)
 from _abi_probes import (
-    _callback_api_coverage_audit, _metadata_integer_value,
+    _callback_api_coverage_audit, _compare_header_constants_to_metadata,
     _parse_c_header_prototypes, _parse_header_constants)
 from _abi_installed import (
     _c_parameter_normalization_unit_checks, _cross_header_feature_set_check,
     _cross_runtime_library_target, _darwin_otool_install_name,
-    _fortran_coverage_audit, _fortran_probe_source,
+    _defined_nm_symbols, _fortran_coverage_audit, _fortran_probe_source,
     _installed_helper_unit_checks, _linux_resolved_library,
     _mpich_transport_runtime_env, _non_abi_absence_check,
     _path_is_run_side_abi_library, _signature_comparison_check)
@@ -515,11 +516,11 @@ def _completion_gate_report(manifest, report):
             pending = {}
             for language, info in sorted(languages.items()):
                 configured = info.get("configured", {}).get("enabled")
-                pending_count = info.get("pending_phase11b_count", 0)
+                pending_count = info.get("pending_coverage_count", 0)
                 if configured is not False and pending_count:
                     pending[language] = {
                         "count": pending_count,
-                        "sample": info.get("pending_phase11b", []),
+                        "sample": info.get("pending_coverage", []),
                     }
             if pending:
                 _completion_gate_add_finding(
@@ -531,6 +532,7 @@ def _completion_gate_report(manifest, report):
 
     if mode == "check-abi-mpich":
         summaries = _checks_named(report, "cross_direction_summary")
+        incomplete_summaries = []
         if not summaries:
             _completion_gate_add_finding(
                 findings,
@@ -538,7 +540,6 @@ def _completion_gate_report(manifest, report):
                 "MPICH cross-direction summary did not run",
                 audit="cross_direction_summary")
         else:
-            incomplete_summaries = []
             for summary in summaries:
                 details = summary.get("details", {})
                 direction_count = len(details.get("directions", ()))
@@ -725,8 +726,8 @@ def _completion_gate_unit_checks():
                     languages={
                         "mpi_f08": {
                             "configured": {"enabled": None},
-                            "pending_phase11b_count": 1,
-                            "pending_phase11b": ["MPI_F08_X"],
+                            "pending_coverage_count": 1,
+                            "pending_coverage": ["MPI_F08_X"],
                         },
                     }),
             ],
@@ -741,6 +742,41 @@ def _completion_gate_unit_checks():
             "as coverage-relevant",
             check="fortran_unknown_pending",
             gate=fortran_pending)
+
+    invalid_metadata = _completion_gate_report(
+        {
+            "apis": [
+                {
+                    "name": "MPI_Bad_classification",
+                    "classification": "not_a_real_classification",
+                    "test_status": TEST_NOT_WRITTEN,
+                }
+            ],
+            "constants": [
+                {
+                    "name": "MPI_BAD_TEST_STATUS",
+                    "classification": CLASS_IMPLEMENTED,
+                    "test_status": "not_a_real_test_status",
+                }
+            ],
+        },
+        {
+            "mode": "check-fast",
+            "result": "PASS",
+            "fast_checks": [],
+            "installed_checks": [],
+            "cross_checks": [],
+        })
+    kinds = {finding["kind"] for finding in invalid_metadata["findings"]}
+    if (invalid_metadata["result"] != "FAIL" or
+            "unclassified_metadata" not in kinds or
+            "invalid_test_status" not in kinds):
+        return _fail(
+            check_name,
+            "Completion gate must fail on invalid classification and "
+            "test-status metadata",
+            check="invalid_metadata",
+            gate=invalid_metadata)
 
     mixed_cross = _completion_gate_report(
         empty_manifest,
@@ -783,35 +819,13 @@ def _header_constant_checks(manifest, srcdir, builddir):
                       SKIP_HEADER_UNAVAILABLE)]
 
     header_constants, unparsed_header_constants = _parse_header_constants(path)
-    missing = []
-    mismatches = []
-    unparsed = []
-    checked = 0
-    skipped = []
-    for entry in manifest["constants"]:
-        name = entry["name"]
-        expected = _metadata_integer_value(entry["abi_value"])
-        if expected is None:
-            skipped.append(name)
-            continue
-        if entry["c_type"] is None:
-            skipped.append(name)
-            continue
-        if entry["category"] == "DEPRECATED_FUNCS":
-            skipped.append(name)
-            continue
-        checked += 1
-        if name not in header_constants:
-            if name in unparsed_header_constants:
-                unparsed.append(name)
-            else:
-                missing.append(name)
-        elif header_constants[name] != expected:
-            mismatches.append({
-                "name": name,
-                "expected": expected,
-                "actual": header_constants[name],
-            })
+    comparison = _compare_header_constants_to_metadata(
+        manifest, header_constants, unparsed_header_constants)
+    missing = comparison["missing"]
+    mismatches = comparison["mismatches"]
+    unparsed = comparison["unparsed"]
+    skipped = comparison["skipped"]
+    checked = comparison["checked"]
 
     if checked == 0:
         return [_fail(
@@ -899,8 +913,11 @@ def _abi_converter_checks(srcdir, builddir):
     source_text = _read_text(converter_source)
 
     header_requirements = [
-        ("OMPI_ABI_HANDLE_BASE_OFFSET", "#define OMPI_ABI_HANDLE_BASE_OFFSET"),
-        ("ABI base offset value", "16385"),
+        ("OMPI_ABI_HANDLE_BASE_OFFSET macro",
+         "#define OMPI_ABI_HANDLE_BASE_OFFSET"),
+        ("OMPI_ABI_HANDLE_BASE_OFFSET == {0}".format(
+            OMPI_ABI_HANDLE_BASE_OFFSET),
+         str(OMPI_ABI_HANDLE_BASE_OFFSET)),
         ("error conversion to OMPI", "ompi_convert_abi_error_intern_error"),
         ("error conversion to ABI", "ompi_convert_intern_error_abi_error"),
         ("status conversion to OMPI", "ompi_convert_abi_status_intern_status"),
@@ -1033,7 +1050,7 @@ def _fortran_mpifh_helper_checks(srcdir, builddir, manifest):
     enabled = _fortran_enabled(manifest, "mpif.h")
     if enabled is False:
         return [_skip("fortran_mpifh_abi_helpers",
-                      SKIP_FORTRAN_BINDINGS_DISABLED,
+                      SKIP_FORTRAN_BINDING_DISABLED,
                       language="mpif.h")]
 
     base_relative = Path("ompi") / "mpi" / "fortran" / "mpif-h"
@@ -1074,27 +1091,30 @@ def _fortran_mpifh_helper_checks(srcdir, builddir, manifest):
 
         checked_sources += 1
         text = _read_text(c_path)
+        # Each requirement carries its own haystack, source file, and
+        # match mode (token_match True == whole-token match, False ==
+        # plain substring) so behavior does not depend on the human
+        # label, mirroring _fortran_f08_helper_checks.  The Makefile only
+        # needs a substring match for the source file name; the C source
+        # and prototypes are matched on whole tokens.
         requirements = [
-            ("Makefile source", c_name),
-            ("prototype declaration", mixed_name),
-            ("uppercase weak symbol", upper_name),
-            ("lowercase weak symbol", lower_name),
-            ("mixed-case weak symbol", mixed_name + "_f"),
-            ("f08 weak symbol", mixed_name + "_f08"),
-            ("internal wrapper", internal_name),
-            ("calls PMPI C helper", pmpi_name),
+            ("Makefile source", c_name, makefile_text, str(makefile), False),
+            ("prototype declaration", mixed_name, prototypes_text,
+             str(prototypes), True),
+            ("uppercase weak symbol", upper_name, text, str(c_path), True),
+            ("lowercase weak symbol", lower_name, text, str(c_path), True),
+            ("mixed-case weak symbol", mixed_name + "_f", text,
+             str(c_path), True),
+            ("f08 weak symbol", mixed_name + "_f08", text, str(c_path), True),
+            ("internal wrapper", internal_name, text, str(c_path), True),
+            ("calls PMPI C helper", pmpi_name, text, str(c_path), True),
         ]
-        for label, pattern in requirements:
-            haystack = makefile_text if label == "Makefile source" else text
-            if label == "prototype declaration":
-                haystack = prototypes_text
-            found = pattern in haystack
-            if label != "Makefile source":
-                found = _contains_token(haystack, pattern)
+        for label, pattern, haystack, source, token_match in requirements:
+            found = _contains_token(haystack, pattern) if token_match \
+                    else pattern in haystack
             if not found:
                 missing_patterns.append({
-                    "file": str(c_path if label != "prototype declaration"
-                                else prototypes),
+                    "file": source,
                     "pattern": label,
                     "helper": helper,
                 })
@@ -1126,7 +1146,7 @@ def _fortran_usempi_helper_checks(srcdir, builddir, manifest):
     enabled = _fortran_enabled(manifest, "use mpi")
     if enabled is False:
         return [_skip("fortran_usempi_abi_helpers",
-                      SKIP_FORTRAN_BINDINGS_DISABLED,
+                      SKIP_FORTRAN_BINDING_DISABLED,
                       language="use mpi")]
 
     relative_path = (Path("ompi") / "mpi" / "fortran" / "use-mpi" /
@@ -1160,7 +1180,7 @@ def _fortran_f08_helper_checks(srcdir, builddir, manifest):
     enabled = _fortran_enabled(manifest, "use mpi_f08")
     if enabled is False:
         return [_skip("fortran_f08_abi_helpers",
-                      SKIP_FORTRAN_BINDINGS_DISABLED,
+                      SKIP_FORTRAN_BINDING_DISABLED,
                       language="use mpi_f08")]
 
     base_relative = Path("ompi") / "mpi" / "fortran" / "use-mpi-f08"
@@ -1294,7 +1314,8 @@ def _fortran_probe_table_unit_check(srcdir):
                 duplicates=duplicates))
             return checks
 
-        rendered = _fortran_probe_source(srcdir, case)
+        rendered = _fortran_probe_source(
+            srcdir, case, case.get("rank_count"))
         dangling_tokens = sorted(set(re.findall(r"@[A-Z_]+@", rendered)))
         if dangling_tokens:
             checks.append(_fail(
@@ -1401,17 +1422,17 @@ def _fortran_coverage_audit_unit_check():
     expected = {
         "mpif.h": {
             "covered_implemented_count": 1,
-            "pending_phase11b_count": 0,
+            "pending_coverage_count": 0,
             "coverage_kind": "regression",
         },
         "use mpi": {
             "covered_implemented_count": 0,
-            "pending_phase11b_count": 1,
+            "pending_coverage_count": 1,
             "coverage_kind": "regression",
         },
         "use mpi_f08": {
             "covered_implemented_count": 1,
-            "pending_phase11b_count": 1,
+            "pending_coverage_count": 1,
             "coverage_kind": "standard_abi",
         },
     }
@@ -1914,10 +1935,11 @@ def _fast_linux_resolved_library_check():
             "fast_discovery_helper_unit_checks",
             "Linux ldd parsing must report unresolved libraries as None",
             check="linux_resolved_library_not_found")
-    if _linux_resolved_library(output, "libmissing_abi") is not None:
+    if _linux_resolved_library(output, "libnot_mentioned_abi") is not None:
         return _fail(
             "fast_discovery_helper_unit_checks",
-            "Linux ldd parsing must report absent libraries as None",
+            "Linux ldd parsing must report libraries that never appear in "
+            "the ldd output as None",
             check="linux_resolved_library_absent")
     if not _path_is_run_side_abi_library(
             "/run/My MPI/lib/libmpi_abi.so.anything",
@@ -1966,6 +1988,123 @@ def _fast_linux_resolved_library_check():
         check="cross_linkage_parsing")
 
 
+def _fast_defined_nm_symbols_check():
+    """Validate nm defined-symbol parsing used by the libmpi_abi check.
+
+    _defined_nm_symbols gates the installed_libmpi_abi_symbols PASS/FAIL,
+    but its positional symbol-type selection, undefined/weak-undefined
+    exclusion, and leading-underscore stripping are easy to break.  This
+    fast unit check exercises representative GNU and BSD/macOS nm output
+    so a regression is caught by make check before any installed run.
+    """
+    check_name = "fast_defined_nm_symbols_unit_checks"
+    gnu_output = "\n".join([
+        "0000000000001120 T MPI_Init",
+        "0000000000001200 T PMPI_Init",
+        "                 U some_undefined_ref",
+        "0000000000002000 w a_weak_undefined_ref",
+        "                 v a_weak_undefined_ref_v",
+    ])
+    defined = _defined_nm_symbols(gnu_output)
+    if "MPI_Init" not in defined or "PMPI_Init" not in defined:
+        return _fail(
+            check_name,
+            "nm parsing must report defined MPI/PMPI symbols",
+            check="gnu_defined", defined=sorted(defined))
+    if ("some_undefined_ref" in defined or "a_weak_undefined_ref" in defined
+            or "a_weak_undefined_ref_v" in defined):
+        return _fail(
+            check_name,
+            "nm parsing must exclude undefined and weak-undefined (U/w/v) "
+            "symbols",
+            check="gnu_undefined", defined=sorted(defined))
+
+    # BSD/macOS nm prints leading underscores and may omit the address
+    # column, producing two-field lines.
+    bsd_output = "\n".join([
+        "0000000000001120 T _MPI_Comm_rank",
+        "T _PMPI_Comm_rank",
+        "                 U _dyld_stub_binder",
+    ])
+    defined = _defined_nm_symbols(bsd_output)
+    if "MPI_Comm_rank" not in defined or "PMPI_Comm_rank" not in defined:
+        return _fail(
+            check_name,
+            "nm parsing must strip leading underscores and accept "
+            "two-field output",
+            check="bsd_defined", defined=sorted(defined))
+    if "dyld_stub_binder" in defined:
+        return _fail(
+            check_name,
+            "nm parsing must exclude undefined symbols in BSD output",
+            check="bsd_undefined", defined=sorted(defined))
+    return _pass(check_name)
+
+
+def _fast_compare_header_constants_check():
+    """Validate the shared metadata-vs-header constant comparison.
+
+    _compare_header_constants_to_metadata centralizes the scoping and
+    partitioning rules for both the fast in-tree header check and the
+    installed cross-header check, so exercise each branch here rather than
+    relying on whichever branches the real header and manifest happen to
+    hit at runtime.
+    """
+    check_name = "fast_compare_header_constants_unit_checks"
+    manifest = {
+        "constants": [
+            # skipped: abi_value is not an integer
+            {"name": "MPI_SKIP_VALUE", "abi_value": "not_an_int",
+             "c_type": "int", "category": "ASSORTED"},
+            # skipped: no C type
+            {"name": "MPI_SKIP_CTYPE", "abi_value": "1",
+             "c_type": None, "category": "ASSORTED"},
+            # skipped: deprecated-function category
+            {"name": "MPI_SKIP_DEPRECATED", "abi_value": "2",
+             "c_type": "int", "category": "DEPRECATED_FUNCS"},
+            # checked + value matches
+            {"name": "MPI_MATCH", "abi_value": "5",
+             "c_type": "int", "category": "ASSORTED"},
+            # checked + value mismatch
+            {"name": "MPI_MISMATCH", "abi_value": "7",
+             "c_type": "int", "category": "ASSORTED"},
+            # checked + missing from header
+            {"name": "MPI_MISSING", "abi_value": "9",
+             "c_type": "int", "category": "ASSORTED"},
+            # checked + declared but unparseable in header
+            {"name": "MPI_UNPARSED", "abi_value": "11",
+             "c_type": "int", "category": "ASSORTED"},
+        ],
+    }
+    header_constants = {"MPI_MATCH": 5, "MPI_MISMATCH": 8}
+    unparsed_header_constants = {"MPI_UNPARSED": "SOME_EXPR"}
+    result = _compare_header_constants_to_metadata(
+        manifest, header_constants, unparsed_header_constants)
+    mismatch_names = [entry["name"] for entry in result["mismatches"]]
+    if (result["checked"] != 4 or
+            sorted(result["skipped"]) != sorted(
+                ["MPI_SKIP_VALUE", "MPI_SKIP_CTYPE", "MPI_SKIP_DEPRECATED"]) or
+            result["missing"] != ["MPI_MISSING"] or
+            result["unparsed"] != ["MPI_UNPARSED"] or
+            mismatch_names != ["MPI_MISMATCH"]):
+        return _fail(
+            check_name,
+            "shared header-constant comparison partitioned entries "
+            "incorrectly",
+            checked=result["checked"],
+            skipped=result["skipped"],
+            missing=result["missing"],
+            unparsed=result["unparsed"],
+            mismatches=mismatch_names)
+    mismatch = result["mismatches"][0]
+    if mismatch.get("expected") != 7 or mismatch.get("actual") != 8:
+        return _fail(
+            check_name,
+            "mismatch entry must report expected and actual values",
+            mismatch=mismatch)
+    return _pass(check_name)
+
+
 def run_fast_checks(manifest, srcdir, builddir, progress=None):
     """Run in-tree checks that do not require an installed Open MPI."""
     checks = []
@@ -2011,6 +2150,14 @@ def run_fast_checks(manifest, srcdir, builddir, progress=None):
     if progress is not None:
         progress.start("fast installed helper unit checks")
     _append_check(checks, _installed_helper_unit_checks(), progress)
+
+    if progress is not None:
+        progress.start("fast nm symbol parsing unit checks")
+    _append_check(checks, _fast_defined_nm_symbols_check(), progress)
+
+    if progress is not None:
+        progress.start("fast header-constant comparison unit checks")
+    _append_check(checks, _fast_compare_header_constants_check(), progress)
 
     if progress is not None:
         progress.start("fast completion gate unit checks")

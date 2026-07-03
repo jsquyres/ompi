@@ -26,7 +26,7 @@ from _abi_common import (
     _probe_body_text, _probe_prologue_text, _read_text)
 from _abi_tables import (
     CALLBACK_ATTRIBUTE_API_NAMES, LEGACY_ATTRIBUTE_API_NAMES,
-    PHASE10B_CALLBACK_API_NAMES)
+    DEFERRED_CALLBACK_API_NAMES)
 
 
 def _strip_c_comments(value):
@@ -193,6 +193,55 @@ def _parse_header_constants(path):
                 unresolved = True
     unparsed.update(aliases)
     return constants, unparsed
+
+
+def _compare_header_constants_to_metadata(manifest, header_constants,
+                                          unparsed_header_constants):
+    """Partition ABI metadata constants against parsed header values.
+
+    Both the fast in-tree header check and the installed cross-header
+    check share this comparison so their scoping rules (skip when the
+    metadata value or C type is missing, or the entry is a deprecated
+    function) and their missing/unparsed/mismatch partitioning cannot
+    drift apart.  Callers turn the returned dict into their own
+    PASS/FAIL result.
+    """
+    missing = []
+    mismatches = []
+    unparsed = []
+    skipped = []
+    checked = 0
+    for entry in manifest["constants"]:
+        name = entry["name"]
+        expected = _metadata_integer_value(entry["abi_value"])
+        if expected is None:
+            skipped.append(name)
+            continue
+        if entry["c_type"] is None:
+            skipped.append(name)
+            continue
+        if entry["category"] == "DEPRECATED_FUNCS":
+            skipped.append(name)
+            continue
+        checked += 1
+        if name not in header_constants:
+            if name in unparsed_header_constants:
+                unparsed.append(name)
+            else:
+                missing.append(name)
+        elif header_constants[name] != expected:
+            mismatches.append({
+                "name": name,
+                "expected": expected,
+                "actual": header_constants[name],
+            })
+    return {
+        "missing": missing,
+        "mismatches": mismatches,
+        "unparsed": unparsed,
+        "skipped": skipped,
+        "checked": checked,
+    }
 
 
 def _parse_header_constant_names(path):
@@ -751,7 +800,7 @@ def _callback_api_work_package(name):
         return "chunk10a_attribute_callbacks"
     if name in LEGACY_ATTRIBUTE_API_NAMES:
         return "chunk10a_legacy_attribute_callbacks"
-    if name in PHASE10B_CALLBACK_API_NAMES:
+    if name in DEFERRED_CALLBACK_API_NAMES:
         return "chunk10b_callback_lifetime"
     return None
 
