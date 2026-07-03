@@ -8,13 +8,12 @@
 #
 # $HEADER$
 
+"""Source parsing code."""
+
 import os
 import sys
 from ompi_bindings import util
 
-"""Source parsing code."""
-
-import os
 
 class Parameter:
 

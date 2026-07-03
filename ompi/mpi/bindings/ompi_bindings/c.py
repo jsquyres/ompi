@@ -36,7 +36,6 @@ from ompi_bindings.c_type import Type
 from ompi_bindings.parser import SourceTemplate
 
 c_intrinsic_types = ['char', 'int', 'long int', 'void']
-#OMPI_ABI_HANDLE_BASE_OFFSET = '16385'
 
 class ABIHeaderBuilder:
     """ABI header builder code."""
@@ -156,7 +155,7 @@ struct MPI_Status_ABI {
     int MPI_SOURCE;
     int MPI_TAG;
     int MPI_ERROR;
-    int MPI_Internal[5];
+    int MPI_internal[5];
 };""")
         self.dump(f'typedef struct MPI_Status_ABI {self.mangle_name("MPI_Status")};')
         self.dump()
@@ -259,11 +258,15 @@ class ABIConverterBuilder:
         #
         # now shoe-horn in optional fortran predefined types
         #
+        lines.append('#if OMPI_BUILD_FORTRAN_BINDINGS')
         for i,value_name in enumerate(consts.PREDEFINED_OPTIONAL_FORTRAN_DATATYPES):
             intern_name = self.mangle_name(value_name)
             base_type = value_name[4:]
+            lines.append(f'#if OMPI_HAVE_FORTRAN_{base_type}')
             lines.append('} else if (%s == datatype) {' % (intern_name))
             lines.append(f'return {value_name};')
+            lines.append('#endif')
+        lines.append('#endif  /* OMPI_BUILD_FORTRAN_BINDINGS */')
         lines.append('}')
         lines.append(f'return (MPI_Datatype) datatype;')
         self.dump_lines(lines)
@@ -284,7 +287,6 @@ class ABIConverterBuilder:
         #
         # now shoe-horn in optional fortran predefined types
         #
-        mangle_null_name = self.mangle_name('MPI_DATATYPE_NULL')
         lines.append('#if OMPI_BUILD_FORTRAN_BINDINGS')
         for i,value_name in enumerate(consts.PREDEFINED_OPTIONAL_FORTRAN_DATATYPES):
             intern_name = self.mangle_name(value_name)
@@ -463,7 +465,7 @@ class ABIConverterBuilder:
         self.generic_convert(ConvertFuncs.SOURCE, 'source', 'int', consts.RESERVED_SOURCE)
 
     def generate_source_convert_fn_intern_to_abi(self):
-        self.generic_convert_reverse(ConvertOMPIToStandard.SOURCE, 'tag', 'int', consts.RESERVED_SOURCE)
+        self.generic_convert_reverse(ConvertOMPIToStandard.SOURCE, 'source', 'int', consts.RESERVED_SOURCE)
 
     def generate_root_convert_fn(self):
         self.generic_convert(ConvertFuncs.ROOT, 'root', 'int', consts.RESERVED_ROOT)
@@ -490,7 +492,7 @@ class ABIConverterBuilder:
         self.generic_convert(ConvertFuncs.T_ENUM, 't_enum', 'MPI_T_enum', consts.RESERVED_T_ENUMS)
 
     def generate_t_enum_convert_fn_intern_to_abi(self):
-        self.generic_convert_reverse(ConvertOMPIToStandard.T_ENUM, 'pvar_handle', 'MPI_T_enum', consts.RESERVED_T_ENUMS)
+        self.generic_convert_reverse(ConvertOMPIToStandard.T_ENUM, 't_enum', 'MPI_T_enum', consts.RESERVED_T_ENUMS)
 
     def generate_t_bind_convert_fn(self):
         self.generic_convert(ConvertFuncs.T_BIND, 'bind', 'int', consts.T_BIND_VALUES)
@@ -514,7 +516,7 @@ class ABIConverterBuilder:
         self.generic_convert(ConvertFuncs.PVAR_CLASS, 'pvar_class', 'int', consts.T_PVAR_CLASS_VALUES)
 
     def generate_pvar_class_convert_fn_intern_to_abi(self):
-        self.generic_convert_reverse(ConvertOMPIToStandard.PVAR_CLASS, 'order', 'int', consts.T_PVAR_CLASS_VALUES)
+        self.generic_convert_reverse(ConvertOMPIToStandard.PVAR_CLASS, 'pvar_class', 'int', consts.T_PVAR_CLASS_VALUES)
 
     def generate_t_cb_safety_convert_fn(self):
         self.generic_convert(ConvertFuncs.T_CB_SAFETY, 'safety', 'MPI_T_cb_safety', consts.T_CB_SAFETY_VALUES)
@@ -612,31 +614,11 @@ class ABIConverterBuilder:
         self.dump('}')
 
 
-    def generate_pointer_convert_fn(self, type_, fn_name, constants):
-        abi_type = self.mangle_name(type_)
-        self.dump(f'{consts.INLINE_ATTRS} void {fn_name}({abi_type} *ptr)')
-        self.dump('{')
-        lines = []
-        for i, ompi_name in enumerate(constants):
-            abi_name = self.mangle_name(ompi_name)
-            if i == 0:
-                lines.append('if (%s == (%s) *ptr) {' % (ompi_name, type_))
-            else:
-                lines.append('} else if (%s == (%s) *ptr) {' % (ompi_name, type_))
-            lines.append(f'*ptr = {abi_name};')
-        lines.append('}')
-        self.dump_lines(lines)
-        self.dump('}')
-
     def generate_request_convert_fn(self):
-#       self.generate_pointer_convert_fn('MPI_Request', ConvertFuncs.REQUEST, consts.RESERVED_REQUESTS)
         self.generic_convert(ConvertFuncs.REQUEST, 'request', 'MPI_Request', consts.RESERVED_REQUESTS)
 
     def generate_request_convert_fn_intern_to_abi(self):
         self.generic_convert_reverse(ConvertOMPIToStandard.REQUEST, 'request', 'MPI_Request', consts.RESERVED_REQUESTS)
-
-#   def generate_file_convert_fn(self):
-#       self.generate_pointer_convert_fn('MPI_File', ConvertFuncs.FILE, consts.RESERVED_FILES)
 
     def generate_status_convert_fn(self):
         type_ = 'MPI_Status'
@@ -733,9 +715,13 @@ extern "C" {
         self.dump('{')
         lines = []
         lines.append('void *aptr = NULL;')
-        lines.append('if (count > 0) {')
-        lines.append('aptr = (void *)malloc(count * elsize);')
+        lines.append('if (count > 0 && elsize > 0) {')
+        lines.append('/* guard against size_t overflow in count * elsize (CWE-190); ')
+        lines.append(' * on overflow aptr stays NULL and the caller handles it */')
+        lines.append('if ((size_t) count <= SIZE_MAX / elsize) {')
+        lines.append('aptr = (void *)malloc((size_t) count * elsize);')
         lines.append('assert(NULL != aptr);')
+        lines.append('}')
         lines.append('}')
         lines.append('return aptr;')
         lines.append('}')
@@ -874,20 +860,12 @@ def print_profiling_header(fn_name, out):
 
 
 def print_cdefs_for_bigcount(out, enable_count=False):
-    if enable_count:
-        out.dump('#undef OMPI_BIGCOUNT_SRC')
-        out.dump('#define OMPI_BIGCOUNT_SRC 1')
-    else:
-        out.dump('#undef OMPI_BIGCOUNT_SRC')
-        out.dump('#define OMPI_BIGCOUNT_SRC 0')
+    out.dump('#undef OMPI_BIGCOUNT_SRC')
+    out.dump(f'#define OMPI_BIGCOUNT_SRC {1 if enable_count else 0}')
 
 def print_cdefs_for_abi(out, abi_type='ompi'):
-    if abi_type == 'ompi':
-        out.dump('#undef OMPI_ABI_SRC')
-        out.dump('#define OMPI_ABI_SRC 0')
-    else:
-        out.dump('#undef OMPI_ABI_SRC')
-        out.dump('#define OMPI_ABI_SRC 1')
+    out.dump('#undef OMPI_ABI_SRC')
+    out.dump(f'#define OMPI_ABI_SRC {0 if abi_type == "ompi" else 1}')
 
 def generate_replacements(mangle_names=False):
     replacements = {}
@@ -966,7 +944,6 @@ def standard_abi(base_name, template, out, suppress_bc=False, suppress_nbc=False
     def generate_function(prototype, fn_name, internal_fn, out, enable_count=False):
         """Generate a function for the standard ABI."""
         print_profiling_header(fn_name,out)
-#       print_cdefs_for_bigcount(out, enable_count)
 
         # Handle type conversions and arguments
         params = [param.construct(abi_type='standard') for param in prototype.params]
@@ -976,7 +953,6 @@ def standard_abi(base_name, template, out, suppress_bc=False, suppress_nbc=False
         return_type = prototype.return_type.construct(abi_type='standard')
         lines.append(f'{return_type.tmp_type_text()} ret_value;')
         for param in params:
-#           print("param = " + str(param) + " " + str(param.argument))
             if param.init_code:
                 lines.extend(param.init_code)
         pass_args = ', '.join(param.argument for param in params)

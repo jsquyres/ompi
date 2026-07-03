@@ -117,7 +117,7 @@ def indent_lines(lines, tab, start=0):
     indent_count = start
     for line in lines:
         # is this a pragma line, if so do not indent
-        if (line[0] =='#'):
+        if (line and line[0] == '#'):
             new_lines.append(f'{line}')
         else:
             # Closing bracket

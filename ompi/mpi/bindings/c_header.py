@@ -12,7 +12,6 @@ import argparse
 import re
 import json
 import sys
-import os
 from pathlib import Path
 
 # ============================= Constants / Globals ============================
@@ -69,7 +68,7 @@ DEPRECATED_FUNCTIONS = [
     "MPI_Type_struct",
     "MPI_Type_extent",
     "MPI_Type_lb",
-    "MPI_Type_lb",
+    "MPI_Type_ub",
     "MPI_LB",
     "MPI_UB",
     "MPI_Errhandler_create",
@@ -123,7 +122,7 @@ parser.add_argument("-i", "--input", type=str, help="input path for the .h.in fi
 parser.add_argument("-o", "--output", type=str, help="output path for the header file")
 parser.add_argument("--mangle-names", help="enable name mangling for constants and datatypes", action="store_true")
 parser.add_argument("--no-mangle", help="disable name mangling (default)", action="store_true")
-parser.add_argument("--pympistd-dir", type=str, help="directory for the pympistandard library")
+parser.add_argument("--pympistd-dir", type=str, required=True, help="directory for the pympistandard library")
 
 args = parser.parse_args()
 
