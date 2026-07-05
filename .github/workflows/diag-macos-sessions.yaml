@@ -1,0 +1,147 @@
+name: DIAG macOS MPI Sessions hang
+
+# Throwaway diagnostic workflow (branch: diag/macos-sessions-hang).
+#
+# Reproduces and captures the intermittent macOS deadlock seen in
+# ompi-pr-builds when the examples step runs hello_sessions_c: the second
+# MPI_Session_init (after the first MPI_Session_finalize has torn the runtime
+# and its session directory down) fails to open() its OPAL shmem backing file
+# with ENOENT and the ranks deadlock.
+#
+# This branch is based on a CLEAN origin/main (no ABI PR code), so a hang here
+# proves the race is pre-existing upstream rather than introduced by PR #13280.
+#
+# Strategy: build Open MPI like the real CI (all components, 3-vCPU
+# macos-15-arm64 runner), then run hello_sessions_c many times with the exact
+# CI launch command, each under a soft timeout.  On the FIRST hang, capture
+# stack traces (sample) of every stuck rank + prte, dump the runtime session
+# directories, and fail the job so the deadlock is visible in the log.
+
+on:
+  push:
+    branches: [ diag/macos-sessions-hang ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: macos-15
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3
+
+    - name: Set up build dependencies
+      run: |
+        brew install autoconf automake libtool
+        brew unlink libevent || true
+
+    - name: Show machine info
+      run: |
+        echo "logical CPUs: $(sysctl -n hw.logicalcpu)"
+        echo "physical CPUs: $(sysctl -n hw.physicalcpu)"
+        sw_vers
+        echo "TMPDIR=$TMPDIR"
+
+    - name: Remove .opal_ignore files (build all components, like real CI)
+      run: find . -name .opal_ignore -exec rm -f {} \; -print
+
+    - name: Build and install Open MPI
+      run: |
+        NCPU=$(sysctl -n hw.logicalcpu)
+        export AUTOMAKE_JOBS=$NCPU
+        ./autogen.pl
+        # Fortran/Sphinx are irrelevant to the C sessions example; skip them
+        # for a faster diagnostic build.  Everything else is left at CI defaults
+        # (internal hwloc / pmix / prrte / libevent on macOS).
+        ./configure --prefix=${PWD}/install --disable-mpi-fortran --disable-silent-rules
+        make -j $NCPU
+        make install
+        echo "${PWD}/install/bin" >> "$GITHUB_PATH"
+
+    - name: Build the sessions reproducers
+      run: |
+        set -x
+        which mpicc
+        # (a) The exact stock example that hangs in CI.
+        mpicc -g examples/hello_sessions_c.c -o /tmp/hello_sessions_c
+        # (b) A stress variant: many MPI_Session_init/finalize cycles per run,
+        #     each cycle a full runtime teardown+reinit (refcount 0->1->0),
+        #     which is exactly what stresses the session-directory / shmem race.
+        mpicc -g contrib/diag-sessions/sessions_stress.c -o /tmp/sessions_stress
+
+    - name: Hunt the hang (stock hello_sessions_c + stress), capture on deadlock
+      env:
+        # Match the real CI launch exactly for the stock example.
+        LAUNCH: "mpirun --map-by ppr:1:core"
+      run: |
+        set -u
+
+        capture_and_die() {
+          local label="$1" iter="$2" outfile="$3"
+          echo ""
+          echo "########################################################"
+          echo ">>> HANG DETECTED: ${label}, iteration ${iter}"
+          echo "########################################################"
+          echo "---- partial program output ----"
+          cat "${outfile}" || true
+          echo "---- running MPI/PRRTE processes ----"
+          ps ax -o pid,ppid,stat,%cpu,command | grep -iE "hello_sessions|sessions_stress|prterun|prted|mpirun" | grep -v grep || true
+          echo "---- stack traces of stuck processes ----"
+          for p in $(pgrep -f "hello_sessions_c|sessions_stress|prterun|prted"); do
+            echo "==== sample pid $p ===="
+            sample "$p" 2 -mayDie 2>/dev/null || true
+            echo "==== lldb backtrace pid $p ===="
+            lldb -p "$p" --batch -o "thread backtrace all" -o "detach" -o "quit" 2>/dev/null || true
+          done
+          echo "---- runtime session directories ----"
+          ls -laR $TMPDIR/prte* $TMPDIR/ompi* $TMPDIR/pmix* 2>/dev/null || echo "(none present)"
+          echo "---- kill stragglers ----"
+          pkill -9 -f "hello_sessions_c" 2>/dev/null || true
+          pkill -9 -f "sessions_stress" 2>/dev/null || true
+          pkill -9 prterun 2>/dev/null || true
+          exit 1
+        }
+
+        # Run one command in the background and watch it for LIMIT seconds.
+        # Returns 0 on clean exit; on timeout, captures diagnostics and exits 1.
+        watch_run() {
+          local label="$1" iter="$2" limit="$3"; shift 3
+          local outfile="/tmp/run_out.txt"
+          "$@" > "${outfile}" 2>&1 &
+          local pid=$! waited=0
+          while kill -0 "$pid" 2>/dev/null; do
+            sleep 2; waited=$((waited + 2))
+            if [ "$waited" -ge "$limit" ]; then
+              capture_and_die "$label" "$iter" "$outfile"
+            fi
+          done
+          wait "$pid"; local rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo "[$label iter $iter] NON-ZERO exit rc=$rc"
+            cat "${outfile}" || true
+          fi
+          return 0
+        }
+
+        echo "===== Phase 1: stock hello_sessions_c x150 (exact CI command) ====="
+        for i in $(seq 1 150); do
+          watch_run "hello_sessions_c" "$i" 90 $LAUNCH /tmp/hello_sessions_c
+          [ $((i % 25)) -eq 0 ] && echo "  ...stock $i/150 clean"
+        done
+
+        echo "===== Phase 2: sessions_stress (100 cycles/run) x40 ====="
+        for i in $(seq 1 40); do
+          watch_run "sessions_stress" "$i" 120 $LAUNCH /tmp/sessions_stress 100
+          [ $((i % 10)) -eq 0 ] && echo "  ...stress $i/40 clean"
+        done
+
+        echo "===== No hang reproduced in this run ====="
