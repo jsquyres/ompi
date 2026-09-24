@@ -1325,6 +1325,12 @@ get_and_define_min_versions();
 &find_and_check("libtool", $ompi_libtoolize_search, $ompi_libtool_version);
 &find_and_check("automake", $ompi_automake_search, $ompi_automake_version);
 
+# We need patch(1) to apply our fixes to Libtool's ltmain.sh.  Without
+# it, those fixes would be skipped, so check for it up front.
+verbose "   Searching for $patch_prog\n";
+my_die "Could not run \"$patch_prog --version\".  Please install patch(1).\n"
+    if (0 != system("$patch_prog --version >/dev/null 2>&1"));
+
 #---------------------------------------------------------------------------
 
 ++$step;
