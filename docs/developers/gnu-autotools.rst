@@ -195,9 +195,9 @@ to at least the versions listed below.
      - 4.2.0
    * - Git main
      - 1.4.17
-     - 2.69
-     - 1.15
-     - 2.4.6
+     - 2.73
+     - 1.19
+     - 2.6.2
      - 2.5.35
      - 4.2.0
 
