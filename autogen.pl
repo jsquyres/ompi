@@ -848,20 +848,28 @@ sub patch_autotools_output {
         $indent_str = "=== ";
     }
 
-    # Patch ltmain.sh for the NAG and flang compilers.  Redirect stderr to
-    # /dev/null because these patches are only necessary for some versions
-    # of Libtool; they'll [rightfully] fail if you have a new enough
-    # Libtool that doesn't need them.  But don't alarm the user and make
-    # them think that autogen failed if a patch fails -- make the errors be
-    # silent.
-    if (-f "config/ltmain.sh") {
-        verbose "$indent_str"."Patching \"-pthread\" option for NAG compiler in ltmain.sh\n";
-        system("$patch_prog -N -p0 < $topdir/config/ltmain_nag_pthread.diff >/dev/null 2>&1");
-        unlink("config/ltmain.sh.rej");
+    # Every patch below works around a bug in GNU Libtool.  When a bug is
+    # fixed upstream -- or the text a patch targets is simply reworded --
+    # the patch stops applying and quietly becomes dead code, which has
+    # historically gone unnoticed for years.  Collect the patches that did
+    # not apply so that we can report them.
+    my @patch_misses;
 
-        verbose "$indent_str"."Patching \"-framework\" option for flang compiler in ltmain.sh\n";
-        system("$patch_prog -N -p0 < $topdir/config/ltmain_flang_darwin.diff >/dev/null 2>&1");
-        unlink("config/ltmain.sh.rej");
+    # Patch ltmain.sh for the NAG and flang compilers.  The diffs are made
+    # against the ltmain.sh of the Libtool version in VERSION, so a newer
+    # Libtool may reject some of their hunks; keep patch's own output
+    # quiet and report the failure below instead.
+    if (-f "config/ltmain.sh") {
+        foreach my $p (["\"-pthread\" option for NAG compiler", "ltmain_nag_pthread.diff"],
+                       ["\"-framework\" option for flang compiler", "ltmain_flang_darwin.diff"]) {
+            my ($desc, $diff) = @$p;
+            if (0 == system("$patch_prog -N -p0 < $topdir/config/$diff >/dev/null 2>&1")) {
+                verbose "$indent_str"."Patching $desc in ltmain.sh\n";
+            } else {
+                push(@patch_misses, "ltmain.sh for $desc ($diff)");
+            }
+            unlink("config/ltmain.sh.rej");
+        }
     }
 
     # If there's no configure script, there's nothing else to do.
@@ -869,14 +877,9 @@ sub patch_autotools_output {
         if (! -f "configure");
     my @verbose_out;
 
-    # Every patch below works around a bug in GNU Libtool.  When a bug is
-    # fixed upstream -- or the text a patch targets is simply reworded --
-    # the search string stops matching and the patch quietly becomes dead
-    # code, which has historically gone unnoticed for years.  Route the
-    # patches through this helper so that we can tell the difference
-    # between a patch that did something and one that did not, and report
-    # the latter.
-    my @patch_misses;
+    # Route the configure patches through this helper so that we can tell
+    # the difference between a patch that did something and one that did
+    # not.
     my $record_patch = sub {
         my ($desc, @counts) = @_;
         my $total = 0;
