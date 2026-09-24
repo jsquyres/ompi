@@ -869,13 +869,13 @@ sub patch_autotools_output {
         if (! -f "configure");
     my @verbose_out;
 
-    # Every patch below works around a bug in some range of GNU Autotools
-    # versions.  When a bug is fixed upstream -- or the text a patch
-    # targets is simply reworded -- the search string stops matching and
-    # the patch quietly becomes dead code, which has historically gone
-    # unnoticed for years.  Route the patches through this helper so that
-    # we can tell the difference between a patch that did something and one
-    # that did not, and report the latter.
+    # Every patch below works around a bug in GNU Libtool.  When a bug is
+    # fixed upstream -- or the text a patch targets is simply reworded --
+    # the search string stops matching and the patch quietly becomes dead
+    # code, which has historically gone unnoticed for years.  Route the
+    # patches through this helper so that we can tell the difference
+    # between a patch that did something and one that did not, and report
+    # the latter.
     my @patch_misses;
     my $record_patch = sub {
         my ($desc, @counts) = @_;
@@ -899,35 +899,6 @@ sub patch_autotools_output {
         while(<IN>);
     close(IN);
     my $c_orig = $c;
-
-    foreach my $tag (("", "_FC")) {
-
-        # We have to change the search pattern and substitution on each
-        # iteration to take into account the tag changing.
-        #
-        # Capture the "icc*..." case line and put it back verbatim rather
-        # than re-emitting a hard-coded copy of it.  Libtool extends that
-        # list over time (2.6.2 added icx* and ifx* for the Intel oneAPI
-        # compilers), and writing out our own copy silently reverted those
-        # additions.
-        my $search_string = '# icc used to be incompatible with GCC.\n\s+' .
-                            '# ICC 10 doesn\047t accept -KPIC any more.\n(.*)\n\s+' .
-	                    "lt_prog_compiler_wl${tag}=";
-        my $replace_prefix = "# Flang compiler
-      *flang*)
-	lt_prog_compiler_wl${tag}='-Wl,'
-	lt_prog_compiler_pic${tag}='-fPIC -DPIC'
-	lt_prog_compiler_static${tag}='-static'
-        ;;
-      # icc used to be incompatible with GCC.
-      # ICC 10 doesn't accept -KPIC any more.
-";
-        my $replace_suffix = "
-	lt_prog_compiler_wl${tag}=";
-
-        $record_patch->("configure for flang Fortran ($tag)",
-                        ($c =~ s/$search_string/$replace_prefix . $1 . $replace_suffix/e));
-    }
 
     foreach my $tag (("", "_FC")) {
 
@@ -955,65 +926,21 @@ sub patch_autotools_output {
     }
 
     # Oracle has apparently begun (as of 12.5-beta) removing the "Sun" branding.
-    # So this patch (cumulative over the previous one) is required.
+    # So this patch is required.
     $record_patch->("configure for Oracle Studio Fortran version strings",
                     ($c =~ s/\*Sun\*Fortran\*\)/*Sun*Fortran* | *Studio*Fortran*)/g),
                     ($c =~ s/\*Sun\\ F\*\)(.*\n\s+tmp_sharedflag=)/*Sun\\ F* | *Studio*Fortran*)$1/g));
 
-    # Fix consequence of broken libtool.m4
-    # see http://lists.gnu.org/archive/html/bug-libtool/2015-07/msg00002.html and
-    # https://github.com/open-mpi/ompi/issues/751
-    # The first form is for libtool < 2.4.3, the second for >= 2.4.3.
-    # Libtool fixed this itself in 2.5.0, so both are no-ops with a
-    # sufficiently new Libtool; they are kept for the older Libtools that
-    # libtool_min_version in VERSION still allows.
-    $record_patch->("configure for -L/-R libtool.m4 bug",
-                    ($c =~ s/# Some compilers place space between "-\{L,R\}" and the path.\n       # Remove the space.\n       if test \$p = \"-L\" \|\|/# Some compilers place space between "-\{L,-l,R\}" and the path.\n       # Remove the spaces.\n       if test \$p = \"-L\" \|\|\n          test \$p = \"-l\" \|\|/g),
-                    ($c =~ s/# Some compilers place space between "-\{L,R\}" and the path.\n       # Remove the space.\n       if test x-L = \"\$p\" \|\|\n          test x-R = \"\$p\"\; then/# Some compilers place space between "-\{L,-l,R\}" and the path.\n       # Remove the spaces.\n       if test x-L = \"x\$p\" \|\|\n          test x-l = \"x\$p\" \|\|\n          test x-R = \"x\$p\"\; then/g));
-
-    # Fix OS X Big Sur (11.0.x) support
-    # From https://lists.gnu.org/archive/html/libtool-patches/2020-06/msg00001.html
-    # Libtool fixed this itself in 2.4.7, so this is a no-op with a
-    # sufficiently new Libtool; it is kept for the older Libtools that
-    # libtool_min_version in VERSION still allows.
-    #
-    # Some versions of Libtool use ${wl} consistently, but others did
-    # not (e.g., they used $wl).  Make the regexp be able to handle
-    # both.  Additionally, the case string searching for 10.[012]*
-    # changed over time.  So make sure it can handle both of the case
-    # strings that we're aware of.
-    my $WL = '(\$\{wl\}|\$wl)';
-    my $SOMETIMES = '(\[,.\])*';
-    my $search_string = 'darwin\*\) # darwin 5.x on
-      # if running on 10.5 or later, the deployment target defaults
-      # to the OS version, if on x86, and 10.4, the deployment
-      # target defaults to 10.4. Don\'t you love it\?
-      case \$\{MACOSX_DEPLOYMENT_TARGET-10.0\},\$host in
-	10.0,\*86\*-darwin8\*\|10.0,\*-darwin\[91\]\*\)
-	  _lt_dar_allow_undefined=\'' . $WL . '-undefined ' . $WL . 'dynamic_lookup\' ;;
-	10.\[012\]' . $SOMETIMES . '\*\)
-	  _lt_dar_allow_undefined=\'' . $WL . '-flat_namespace ' . $WL . '-undefined ' . $WL . 'suppress\' ;;
-	10.\*\)';
-    my $replace_string = 'darwin*)
-      # Open MPI patched for Darwin / MacOS Big Sur.  See
-      # http://lists.gnu.org/archive/html/bug-libtool/2015-07/msg00001.html
-      case ${MACOSX_DEPLOYMENT_TARGET},$host in
-      10.[012],*|,*powerpc*)
-	  _lt_dar_allow_undefined=\'${wl}-flat_namespace ${wl}-undefined ${wl}suppress\' ;;
-      *)';
-    $record_patch->("configure for MacOS Big Sur libtool.m4 bug",
-                    ($c =~ s/$search_string/$replace_string/g));
-
     # Fix ifort support on OSX
     # see https://ntq1982.github.io/files/20200621.html
-    $search_string = 'case \$cc_basename in
+    my $search_string = 'case \$cc_basename in
       nagfor\*\)
         # NAG Fortran compiler
         lt_prog_compiler_wl_FC=\'-Wl,-Wl,,\'
         lt_prog_compiler_pic_FC=\'-PIC\'
         lt_prog_compiler_static_FC=\'-Bstatic\'
         ;;';
-    $replace_string = "case \$cc_basename in
+    my $replace_string = "case \$cc_basename in
       flang*)
         # flang compiler
         lt_prog_compiler_wl_FC='-Wl,'
@@ -1075,25 +1002,27 @@ sub patch_autotools_output {
                     ($c =~ s/$search_string/$replace_string/g),
                     ($c =~ s/(archive_cmds_FC.*)-install_name \\\$rpath/$1-Wl,-install_name,\\\`echo \\\$rpath | sed \'s%^[ ]*%%\'\\\`/g));
 
-    # Say which patches did nothing.  A patch that matches nothing is
-    # either working around a bug that has since been fixed upstream, or
-    # is aimed at text that upstream has reworded -- in which case it has
-    # silently stopped protecting us.  Either way somebody should look at
-    # it.  Note that a few patches below are expected to appear here with
-    # a new enough Autotools; they are retained for the older versions
-    # that VERSION still permits.
+    # Say which patches did not apply.  Every patch here is written against
+    # libtool_min_version in VERSION (which is also the Libtool used to
+    # make release tarballs), so with that Libtool they should all apply.
+    # A patch that does not is either working around a bug that has since
+    # been fixed upstream, or is aimed at text that upstream has reworded
+    # -- in which case it has silently stopped protecting us.  Either way
+    # somebody should look at it.
     #
     # Only report for our own configure ($topdir eq "."): these patches are
     # written against what Open MPI's configure contains, and a miss in an
     # embedded package's configure (PMIx and PRRTE have no Fortran, for
     # example) is expected rather than interesting.
     if (@patch_misses && $topdir eq ".") {
-        verbose "$indent_str"."Patches that matched nothing with this Autotools:\n";
+        verbose "$indent_str"."WARNING: Patches that did not apply with this Libtool:\n";
         foreach my $miss (@patch_misses) {
             verbose "$indent_str"."    $miss\n";
         }
-        verbose "$indent_str"."(If a patch is listed here for every Autotools version Open MPI\n";
-        verbose "$indent_str"."supports, it is dead code and should be removed from autogen.pl.)\n";
+        my $lt_version = $ompi_libtool_version;
+        chomp($lt_version);
+        verbose "$indent_str"."These patches are written against GNU Libtool $lt_version; with that\n";
+        verbose "$indent_str"."version, this is a bug in autogen.pl -- please report it.\n";
     }
 
     # Only write out verbose statements and a new configure if the
